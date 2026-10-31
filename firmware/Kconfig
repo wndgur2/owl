@@ -41,7 +41,11 @@ config OWL_OPUS_ARM_DSP
 
 config OWL_OPUS_ENC_MEM
 	int "Static memory for the Opus encoder state (bytes)"
-	default 32768
+	default 26624
+	help
+	  opus_encoder_get_size(1) is 24548 B for libopus 1.5.2 fixed point
+	  (measured by tests/opus on native_sim, also ILP32). The recorder
+	  checks the real size at boot and refuses to start if it doesn't fit.
 
 config OWL_AUDIO_STACK_SIZE
 	int "Recorder thread stack (bytes)"

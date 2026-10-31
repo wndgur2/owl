@@ -20,7 +20,7 @@ firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build
 # M0 bring-up 앱
 firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build/bringup firmware/bringup -- -DEXTRA_CONF_FILE=uart.conf'
 
-# 하드웨어 없는 테스트 (native_sim, 53개: 로직 45 + 가상 플래시 위 storage 8)
+# 하드웨어 없는 테스트 (native_sim, 54개: 로직 45 + 가상 플래시 위 storage 8 + libopus 1)
 firmware/scripts/ncs.sh 'west twister -T firmware/tests -p native_sim -O build/twister'
 ```
 
@@ -59,11 +59,11 @@ NCS에는 Opus가 없어서 `cmake/opus.cmake`가 **libopus 1.5.2 공식 릴리�
 
 | 빌드 | Flash (RRAM 1524KB) | RAM (256KB) |
 |---|---|---|
-| 본 앱 기본 | 293,580 B (18.8%) | 178,216 B (68.0%) |
-| 본 앱 `uart.conf` | 327,772 B (21.0%) | 185,952 B (70.9%) |
+| 본 앱 기본 | 293,612 B (18.8%) | 172,088 B (65.7%) |
+| 본 앱 `uart.conf` | 327,804 B (21.0%) | 179,824 B (68.6%) |
 | bring-up 기본 / `uart.conf` | 48,520 / 59,212 B | 23,904 / 24,064 B |
 
-RAM 큰 항목: 세그먼트 인덱스 32KB(`CONFIG_OWL_SEG_INDEX_MAX`=4096×8B), Opus 인코더 상태 32KB(`CONFIG_OWL_OPUS_ENC_MEM`, 실제 필요량은 부팅 로그 `opus: N B state`로 보고 줄이기), audio 스택 24KB, 링 8KB, PDM 블록 7.5KB, 프리롤 6.4KB, 쓰기 버퍼 4KB.
+RAM 큰 항목: 세그먼트 인덱스 32KB(`CONFIG_OWL_SEG_INDEX_MAX`=4096×8B), Opus 인코더 상태 26KB(`CONFIG_OWL_OPUS_ENC_MEM`; native_sim 측정 24,548B, 보드에선 부팅 로그 `opus: N B state`로 확인), audio 스택 24KB, 링 8KB, PDM 블록 7.5KB, 프리롤 6.4KB, 쓰기 버퍼 4KB.
 
 ## 구조
 
@@ -93,6 +93,7 @@ PDM 마이크 ─▶ audio 스레드: VAD ─▶ Opus ─▶ [RAM 링 8KB] ─�
 | `src/main.c` | 부팅 순서, 모듈 연결 | |
 | `bringup/` | **M0 bring-up 앱**(따로 빌드): 배터리, 플래시 JEDEC·읽기쓰기, 마이크 rms, 버튼, System OFF 깨우기 | |
 | `tests/unit/` | native_sim ztest 7개 스위트(순수 로직). `vectors.h`는 `tools/owlproto.py`로 생성 | |
+| `tests/opus/` | libopus를 같은 `cmake/opus.cmake`·같은 인코더 설정으로 native_sim에서 빌드: 16kbps 근처, 20ms wideband 패킷, 디코딩 레벨 확인 | |
 | `tests/storage/` | `storage.c`를 native_sim의 가상 플래시 + LittleFS에서: 세그먼트 바이트, 재부팅 id, 이벤트, 삭제, **전원 끊김 복구**, 가득 참/재개 | |
 | `Kconfig` | 앱 옵션(`CONFIG_OWL_*`): 코덱, 복잡도, PDM 채널, 마이크 게인, VAD hangover 등 | |
 
@@ -111,7 +112,7 @@ PDM 마이크 ─▶ audio 스레드: VAD ─▶ Opus ─▶ [RAM 링 8KB] ─�
 - 오디오는 4KB씩 파일에 쓰고 16KB(`CONFIG_OWL_SEG_SYNC_KB`, 약 8초 분량)마다 `fs_sync`. 전원이 갑자기 끊기면 최대 그만큼 + RAM 버퍼 4KB를 잃어요(배터리 차단은 먼저 정리하니 해당 없음). sync마다 반쯤 찬 마지막 블록을 복사하기 때문에 더 자주 하면 플래시가 닳아요. 이벤트는 하나씩 바로 sync(`decisions.md` #19)
 - 남은 용량 계산(`fs_statvfs`)은 파일 시스템 전체를 훑어서 가끔만 하고, 그 사이엔 추정값을 써요. STATUS와 오디오 스레드는 스핀락으로 보호한 복사본을 읽어서 플래시 작업을 기다리지 않아요
 - 남은 공간이 128KB(`CONFIG_OWL_STORAGE_RESERVE_KB`) 아래면 녹음 멈춤 + STATUS bit3 + 이벤트 4, 384KB 위로 회복되면 다시 녹음. 이벤트는 가득 차도 계속 기록
-- 열린 이벤트 세그먼트는 LIST_SEGMENTS를 받을 때 닫아서 그 동기화에 포함돼요
+- 열린 이벤트 로그는 **폰이 연결될 때**(그리고 LIST_SEGMENTS를 받을 때도) 닫혀서 목록에 올라가요. 목록에 오른 세그먼트는 크기가 바뀌지 않고, 그 뒤 이벤트는 새 이벤트 세그먼트로 가요
 
 ### 스레드와 우선순위
 
@@ -191,6 +192,24 @@ VAD가 너무 둔하거나 예민하면 M0의 rms를 보고 `src/vad.c`의 `min_
 | 가득 참 | (PCM16 빌드로 빨리 채우기) `storage full`, 30초마다 길게 2번, STATUS bit3 → ACK로 비우면 다시 녹음 |
 
 M5에서: 실제 전류 측정, 3.5V 차단과 1시간 깨우기(가변 전원으로), 배터리 부족 LED.
+
+## 확인한 것과 가정
+
+**확인함** (SDK 소스를 읽거나 빌드·테스트로):
+- 보드 DTS(NCS v3.4.1): 마이크 alias는 `dmic20`뿐(그래서 overlay에 `dmic0`), `pdm_imu_pwr`·`vbat_pwr`는 `regulator-boot-on` = 참조 1개로 시작(`regulator_common.c`), 안테나 스위치 레귤레이터 2개
+- PDM 드라이버: STOP은 비동기, 드라이버 RX 큐 기본 4블록(`queue-size`), 큐가 차면 드라이버가 PDM을 멈춤
+- `z_nrf_grtc_wakeup_prepare()`는 `CONFIG_NRF_GRTC_START_SYSCOUNTER` + `CONFIG_POWEROFF`에서만 있음
+- `spi_nor` 드라이버는 런타임 PM으로 쓰지 않을 때 스스로 deep power-down
+- LittleFS: 파일 중간 쓰기는 뒤 블록 전체 재작성, sync 뒤 이어 쓰기는 마지막 블록 복사 → payload_len을 읽을 때 채우는 이유, 16KB sync 간격의 이유
+- 바이트 레이아웃 = `tools/owlproto.py`(고정 벡터 테스트), storage 동작(가상 플래시 테스트), libopus 빌드·인코딩·디코딩(native_sim)
+
+**가정 (보드에서 확인 필요)**:
+- Opus 복잡도 3이 128MHz M33에서 20ms 안에 충분히 끝남(로그 `encode: avg/max`)
+- 마이크가 LEFT 채널(아니면 `CONFIG_OWL_PDM_CHANNEL_RIGHT`), VAD 절대 임계값(`src/vad.c` `min_energy`)
+- PDM 클럭 1–3.5MHz 범위가 PCLK32M에서 나옴(빌드만 확인, `dmic_configure` 실행은 안 해봄)
+- 배터리 분압 안정 10ms면 충분, `adc_raw_to_millivolts_dt` × 2가 실제 전압과 맞음
+- 스레드 스택 크기, BLE 처리량, System OFF 전류, GRTC 1시간 깨우기 실제 동작
+- ARM에서 Opus 인코더 상태 크기가 native_sim과 거의 같음(26KB 안). 아니면 부팅 시 에러 로그 후 녹음만 꺼짐
 
 ## 알아둘 것
 

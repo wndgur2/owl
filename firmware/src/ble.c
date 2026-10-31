@@ -286,7 +286,10 @@ static void op_time_sync(uint64_t unix_ms, int16_t tz, uint32_t *boot_count, uin
 
 static int op_list(uint32_t after_id, struct owl_list_entry *out, int max)
 {
-	/* Close the open event segment so events so far are part of this sync. */
+	/* Also seal here (not only on connect), so events between connect and LIST
+	 * are in this sync too. A listed segment never changes size: only the open,
+	 * unlisted event log grows.
+	 */
 	storage_events_rotate();
 	return storage_list(after_id, out, max);
 }
@@ -533,6 +536,13 @@ static void mtu_exchanged(struct bt_conn *c, uint8_t err, struct bt_gatt_exchang
 
 static struct bt_gatt_exchange_params mtu_params = {.func = mtu_exchanged};
 
+static void seal_events_fn(struct k_work *w)
+{
+	storage_events_rotate();
+}
+
+static K_WORK_DEFINE(seal_events_work, seal_events_fn);
+
 static void connected(struct bt_conn *c, uint8_t err)
 {
 	if (err) {
@@ -552,6 +562,10 @@ static void connected(struct bt_conn *c, uint8_t err)
 		k_sem_give(&tx_credits);
 	}
 	LOG_INF("connected");
+	/* Seal the open event log into a listable segment for this sync (flash work:
+	 * not in this BT RX callback). Later events start a new event segment.
+	 */
+	k_work_submit_to_queue(&app_workq, &seal_events_work);
 
 	/* Ask for the fast-transfer link: MTU 247, 2M PHY, 251-byte packets (§2).
 	 * Phones usually start the MTU exchange themselves; doing it from our side
