@@ -1,0 +1,31 @@
+# Zephyr / west
+build/
+build_*/
+twister-out*/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.iml
+*.apk
+*.aab
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Recordings pulled from the device
+*.ogg
+*.opus
+*.wav
+recordings/
