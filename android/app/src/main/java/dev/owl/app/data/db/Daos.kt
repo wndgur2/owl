@@ -122,6 +122,9 @@ interface SegmentDao {
     @Query("UPDATE segments SET sortTimeMs = :sortTimeMs WHERE rowId = :rowId")
     suspend fun setSortTime(rowId: Long, sortTimeMs: Long)
 
+    @Query("SELECT MAX(bootCount) FROM segments WHERE deviceAddress = :address")
+    suspend fun maxBootCount(address: String): Long?
+
     @Query("SELECT MAX(segmentId) FROM segments WHERE deviceAddress = :address")
     suspend fun maxSegmentId(address: String): Long?
 }

@@ -33,20 +33,24 @@ class FakeDemo(
     private val cafe = DemoPlace("학생회관 카페", 37.5640, 126.9830)
     private val random = Random(42)
 
-    /** Creates the fake pendant. [firstRun] seeds history; otherwise it starts empty, ids continuing. */
-    suspend fun createDevice(firstRun: Boolean, nextId: Long): FakeOwlDevice = withContext(Dispatchers.Default) {
+    /**
+     * Creates the fake pendant. [firstRun] seeds history; otherwise it starts empty with ids and
+     * boot_count continuing after [nextId] / [lastBoot], as if it had been power-cycled while the
+     * app was gone (the fake's "flash" lives in memory only).
+     */
+    suspend fun createDevice(firstRun: Boolean, nextId: Long, lastBoot: Long = 2): FakeOwlDevice = withContext(Dispatchers.Default) {
         val now = clock()
         val dayStart = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val yesterday = { h: Int, m: Int ->
             LocalDate.now().minusDays(1).atTime(LocalTime.of(h, m)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         }
         val dev = FakeOwlDevice(
-            scope, OpusToneSource(), clock, chunkIntervalMs = 3, initialBootCount = 2,
+            scope, OpusToneSource(), clock, chunkIntervalMs = 3, initialBootCount = if (firstRun) 2 else lastBoot,
             bootAgoMs = now - yesterday(8, 0) + 3 * HOUR, initialNextId = nextId,
         )
         dev.dropProbability = 0.005 // a slightly flaky radio exercises gap recovery
         if (!firstRun) {
-            dev.reboot(agoMs = now - yesterday(8, 0))
+            dev.reboot()
             return@withContext dev
         }
         places().forEach { db.places().insert(PlaceEntity(0, it.name, it.lat, it.lon)) }

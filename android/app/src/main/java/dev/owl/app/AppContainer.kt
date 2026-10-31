@@ -143,7 +143,8 @@ class AppContainer(private val context: Context) {
         fake ?: run {
             check(BuildConfig.DEBUG) { "fake device is debug-only" }
             val lastId = database.segments().maxSegmentId("fake")
-            fakeDemo.createDevice(firstRun = lastId == null, nextId = (lastId ?: 0) + 1).also {
+            val lastBoot = database.segments().maxBootCount("fake") ?: 2
+            fakeDemo.createDevice(firstRun = lastId == null, nextId = (lastId ?: 0) + 1, lastBoot = lastBoot).also {
                 fake = it
                 fakeDemo.startRecordingLoop(it)
             }
