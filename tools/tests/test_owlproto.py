@@ -86,6 +86,23 @@ def test_set_recording_request():
     assert p.set_recording_request(5, True) == bytes([0x06, 5, 1])
 
 
+def test_security_constants():
+    assert p.OP_UNPAIR == 0x07 and p.unpair_request(3) == bytes([0x07, 3])
+    assert p.FLAG_PAIRING_OPEN == 0x10
+    assert p.PAIRING_WINDOW_MS == 120_000 and p.UNENCRYPTED_TIMEOUT_MS == 60_000
+    st = p.Status((0, 3, 0), 3900, p.FLAG_PAIRING_OPEN, 0, 1, 0, 1)
+    assert p.Status.unpack(st.pack()).flags & p.FLAG_PAIRING_OPEN
+
+
+def test_pairing_window():
+    assert p.pairing_allowed(10 * 24 * 3600_000, 0, True)  # nobody bonded: always
+    assert p.pairing_allowed(0, 1, False)
+    assert p.pairing_allowed(p.PAIRING_WINDOW_MS - 1, 1, False)
+    assert not p.pairing_allowed(p.PAIRING_WINDOW_MS, 1, False)  # window is [0, 120 s)
+    assert not p.pairing_allowed(1000, 1, True)  # one new bond per window
+    assert not p.pairing_allowed(1000, 2, True)
+
+
 def test_time_mapping():
     syncs = {3: (10_000, 1_700_000_000_000)}
     assert p.to_unix_ms(3, 70_000, syncs) == 1_700_000_060_000

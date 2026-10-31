@@ -2,6 +2,8 @@
 <resources>
     <!-- Device registration (CdmRegistrar). Shown as error messages on the registration screen. -->
     <string name="cdm_unsupported">이 폰에서는 목걸이를 등록할 수 없어요</string>
+    <string name="bond_no_permission">목걸이와 페어링하려면 \'근처 기기\' 권한이 필요해요</string>
+    <string name="bond_failed">목걸이와 페어링하지 못했어요. 다른 폰이 이미 등록돼 있다면 목걸이를 껐다 켠 뒤 2분 안에 다시 등록해 주세요</string>
     <string name="cdm_not_found">목걸이를 찾지 못했어요. 목걸이가 켜져 있고 가까이 있는지 확인해 주세요</string>
     <string name="cdm_cancelled">등록을 취소했어요</string>
     <string name="cdm_no_device">선택한 목걸이 정보를 받지 못했어요. 다시 시도해 주세요</string>

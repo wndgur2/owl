@@ -35,6 +35,7 @@ _MIN_LEN = {  # request payload length per op (longer payloads are accepted, spe
     p.OP_ABORT: 0,
     p.OP_SET_RECORDING: 1,
     p.OP_SET_CONFIG: 5,
+    p.OP_UNPAIR: 0,
 }
 
 
@@ -67,11 +68,14 @@ class OwlDevice:
     time_syncs: list[tuple[int, int, int]] = field(default_factory=list)  # (boot, uptime, phone unix_ms)
     fetch_requests: list[tuple[int, int]] = field(default_factory=list)  # (seg_id, offset), for tests
     bytes_sent: int = 0  # DATA payload bytes handed to the link
+    bonds: list[str] = field(default_factory=list)  # bonded central ids (§2.4: at most one stays)
 
     def __post_init__(self) -> None:
         self._t0 = self.clock()
         self._link: PeripheralLink | None = None
         self._fetch_task: asyncio.Task | None = None
+        self._power_on_t = self._t0  # pairing window start (§2.4)
+        self._window_used = False
 
     # --- clock / storage -----------------------------------------------------
     def uptime_ms(self) -> int:
@@ -83,7 +87,27 @@ class OwlDevice:
         self.boot_count += 1
         self.uptime_offset_ms = 0
         self._t0 = self.clock()
+        self._power_on_t = self._t0
+        self._window_used = False
         self.add_event(p.EVT_POWER_ON, cause)
+
+    # --- security (§2.4) -----------------------------------------------------
+    def pairing_open(self) -> bool:
+        since = int((self.clock() - self._power_on_t) * 1000)
+        return p.pairing_allowed(since, len(self.bonds), self._window_used)
+
+    def is_bonded(self, peer: str) -> bool:
+        return peer in self.bonds
+
+    def pair(self, peer: str) -> bool:
+        """SMP pairing request from `peer`. On success the new bond replaces any other."""
+        if not self.pairing_open():
+            self.log(f"pairing refused for {peer}")
+            return False
+        self._window_used = True
+        self.bonds = [peer]
+        self.log(f"paired with {peer}")
+        return True
 
     def storage_used_kb(self) -> int:
         return math.ceil(sum(len(s.blob) for s in self.segments.values()) / 1024)
@@ -95,6 +119,8 @@ class OwlDevice:
             flags |= p.FLAG_STORAGE_LOW
         if used >= self.storage_total_kb:
             flags |= p.FLAG_STORAGE_FULL
+        if self.pairing_open():
+            flags |= p.FLAG_PAIRING_OPEN
         return p.Status(self.fw_ver, self.battery_mv, flags, used, self.storage_total_kb,
                         len(self.segments), self.boot_count)
 
@@ -259,6 +285,17 @@ class OwlDevice:
                 return reply(p.RESULT_BAD_LENGTH)  # spec gap: no "bad value" code
             self.config[key] = value
             return reply()
+
+        if op == p.OP_UNPAIR:
+            self._cancel_fetch()
+
+            async def forget():
+                self.bonds = []
+                self.log("UNPAIR: all bonds deleted")
+                if self._link is not None:
+                    self._link.drop_central()
+
+            return reply(after=forget)
 
         return reply(p.RESULT_UNKNOWN_OP)
 

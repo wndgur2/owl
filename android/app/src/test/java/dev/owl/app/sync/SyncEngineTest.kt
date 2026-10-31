@@ -302,6 +302,32 @@ class SyncEngineTest {
         assertNotNull(OwlClient(dev, backgroundScope).apply { connect() })
     }
 
+    @Test
+    fun refusedPhoneGetsNotBonded() = runTest {
+        val dev = device()
+        dev.refuseAsNotBonded = true
+        try {
+            OwlClient(dev, backgroundScope).connect()
+            fail()
+        } catch (_: dev.owl.app.device.NotBondedException) {
+        }
+        assertEquals("nothing was touched", emptyList<Long>(), dev.ackedIds)
+    }
+
+    @Test
+    fun unpairDropsTheLinkAndOpensPairing() = runTest {
+        val dev = device()
+        val client = OwlClient(dev, backgroundScope, requestTimeoutMs = 1_000, clock = { now })
+        client.connect()
+        assertFalse(client.readStatus().pairingOpen)
+        client.unpair()
+        assertEquals(Op.UNPAIR, dev.received.last().op)
+        assertFalse("pendant dropped the link", dev.connected)
+        assertTrue(dev.status().pairingOpen)
+        OwlClient(dev, backgroundScope).connect() // registering again "pairs" again
+        assertFalse(dev.status().pairingOpen)
+    }
+
     /** The exact bytes the fake keeps on "flash" for [id] (via a throwaway connection). */
     private suspend fun TestScope.captureBlob(dev: FakeOwlDevice, id: Long): ByteArray {
         val client = OwlClient(dev, backgroundScope)

@@ -39,6 +39,7 @@ enum owl_op {
 	OWL_OP_ACK_SEGMENT = 0x04,
 	OWL_OP_ABORT = 0x05,
 	OWL_OP_SET_RECORDING = 0x06,
+	OWL_OP_UNPAIR = 0x07,
 	OWL_OP_SET_CONFIG = 0x10,
 };
 #define OWL_RESPONSE_BIT 0x80
@@ -100,6 +101,7 @@ enum owl_cause {
 #define OWL_FLAG_RECORDING    (1U << 1) /* user has recording switched on */
 #define OWL_FLAG_STORAGE_LOW  (1U << 2) /* >= 90 % used */
 #define OWL_FLAG_STORAGE_FULL (1U << 3) /* recording paused because flash is full */
+#define OWL_FLAG_PAIRING_OPEN (1U << 4) /* a new pairing would be accepted now (§2.4) */
 
 struct owl_status {
 	uint8_t fw_ver[3];

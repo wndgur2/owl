@@ -4,12 +4,18 @@ Usage (from tools/ or the repo root):
     python sync.py sync --out owl-data            # TIME_SYNC, LIST, FETCH, save, ACK, render
     python sync.py sync --out owl-data --no-ack   # same, but leave everything on the device
     python sync.py status | list
+    python sync.py pair                           # bond with the Owl (once; see "Pairing" below)
+    python sync.py unpair                         # device forgets every bond, then this PC forgets it
     python sync.py set-recording off
     python sync.py set-config bitrate 12000       # dev only (decisions.md #12)
     python sync.py render --out owl-data          # rebuild .ogg/.wav/.csv from raw/ offline
     python sync.py --fake sync --out /tmp/x       # no hardware: in-process fake device
 
 Device selection: strongest Owl-* nearby, or --address / --name.
+
+Pairing (protocol §2.4): the Owl only syncs with its bonded phone/PC. A new
+pairing is accepted when nothing is bonded, or in the first 2 minutes after the
+Owl is turned on (and then replaces the old bond). `status` works unpaired.
 """
 
 from __future__ import annotations
@@ -27,7 +33,7 @@ from owlsync import render  # noqa: E402
 from owlsync.client import OwlClient, ProtocolError  # noqa: E402
 from owlsync.device import CONFIG_NAMES  # noqa: E402
 from owlsync.engine import SyncEngine, SyncFailed, SyncOptions  # noqa: E402
-from owlsync.transport import TransportError  # noqa: E402
+from owlsync.transport import NotPaired, TransportError  # noqa: E402
 
 
 def make_fake_transport(args):
@@ -38,7 +44,7 @@ def make_fake_transport(args):
     dev = OwlDevice(boot_count=2, uptime_offset_ms=2 * 3600_000, log=lambda m: print(f"  [fake] {m}"))
     info = populate(dev, audio_segments=args.fake_segments, seconds=3.0)
     print(f"fake device: {len(dev.segments)} segments + open event log, codec {info['codec']}")
-    return LoopbackTransport(dev, name="Owl-LOOP")
+    return LoopbackTransport(dev, name="Owl-LOOP", auto_pair=getattr(args, "cmd", None) != "status")
 
 
 async def make_transport(args):
@@ -48,12 +54,13 @@ async def make_transport(args):
 
     dev, name = await find(args.address, args.name, args.scan_timeout)
     print(f"using {name} ({dev.address})")
-    return BleakTransport(dev, name)
+    return BleakTransport(dev, name, pair=args.cmd == "pair")
 
 
 def print_status(st: p.Status) -> None:
     flags = [n for bit, n in [(p.FLAG_CHARGING, "charging"), (p.FLAG_RECORDING, "recording"),
-                              (p.FLAG_STORAGE_LOW, "storage-low"), (p.FLAG_STORAGE_FULL, "storage-full")]
+                              (p.FLAG_STORAGE_LOW, "storage-low"), (p.FLAG_STORAGE_FULL, "storage-full"),
+                              (p.FLAG_PAIRING_OPEN, "pairing-open")]
              if st.flags & bit]
     print(f"proto v{st.proto_ver}  fw {'.'.join(map(str, st.fw_ver))}")
     print(f"battery   {st.battery_mv} mV")
@@ -63,6 +70,7 @@ def print_status(st: p.Status) -> None:
 
 async def with_client(args, fn):
     t = await make_transport(args)
+    args._transport = t
     client = OwlClient(t, response_timeout=args.response_timeout, log=print)
     await client.connect()
     try:
@@ -94,9 +102,36 @@ async def cmd_sync(args) -> int:
 
 
 async def cmd_status(args) -> int:
+    # Readable without pairing (§2.4): read the value, no subscriptions.
+    t = await make_transport(args)
+    if args.fake:
+        await t.connect()
+    else:
+        t.on_status = lambda _b: None
+        await t.connect_plain()
+    try:
+        print_status(p.Status.unpack(await t.read_status()))
+    finally:
+        await t.disconnect()
+    return 0
+
+
+async def cmd_pair(args) -> int:
     async def run(c: OwlClient):
-        print_status(await c.read_status())
+        st = await c.read_status()
+        print(f"paired with {c.t.name}; pairing window now {'open' if st.flags & p.FLAG_PAIRING_OPEN else 'closed'}")
     await with_client(args, run)
+    return 0
+
+
+async def cmd_unpair(args) -> int:
+    async def run(c: OwlClient):
+        await c.unpair()
+        print("device deleted its bonds (it accepts a new pairing until one is made)")
+    await with_client(args, run)
+    t = getattr(args, "_transport", None)
+    if t is not None:
+        await t.unpair_local()
     return 0
 
 
@@ -153,7 +188,9 @@ def main(argv=None) -> int:
     s.add_argument("--no-ack", action="store_true", help="do not ACK (device keeps everything)")
     s.add_argument("--attempts", type=int, default=5, help="reconnect attempts without progress")
     s.add_argument("--idle-timeout", type=float, default=2.0, help="s without DATA before re-requesting")
-    sub.add_parser("status", help="read STATUS")
+    sub.add_parser("status", help="read STATUS (works without pairing)")
+    sub.add_parser("pair", help="bond with the Owl (nothing bonded yet, or within 2 min of power-on)")
+    sub.add_parser("unpair", help="UNPAIR: device forgets all bonds, then this computer forgets the device")
     sub.add_parser("list", help="LIST_SEGMENTS (all pages)")
     r = sub.add_parser("set-recording", help="SET_RECORDING on|off")
     r.add_argument("state", choices=["on", "off"])
@@ -167,10 +204,13 @@ def main(argv=None) -> int:
     if args.cmd is None:
         args = ap.parse_args([*(argv if argv is not None else sys.argv[1:]), "sync"])
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING)
-    cmds = {"sync": cmd_sync, "status": cmd_status, "list": cmd_list, "set-recording": cmd_set_recording,
-            "set-config": cmd_set_config, "render": cmd_render}
+    cmds = {"sync": cmd_sync, "status": cmd_status, "pair": cmd_pair, "unpair": cmd_unpair, "list": cmd_list,
+            "set-recording": cmd_set_recording, "set-config": cmd_set_config, "render": cmd_render}
     try:
         return asyncio.run(cmds[args.cmd](args))
+    except NotPaired as e:
+        print(f"not paired: {e}")
+        return 2
     except (TransportError, ProtocolError) as e:
         print(f"error: {e}")
         return 1

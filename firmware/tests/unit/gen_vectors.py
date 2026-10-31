@@ -59,6 +59,7 @@ def main() -> None:
     out.append(c_array("vec_req_ack", p.ack_segment_request(3, 7, 0x12345678)))
     out.append(c_array("vec_req_set_recording_on", p.set_recording_request(4, True)))
     out.append(c_array("vec_req_set_recording_off", p.set_recording_request(5, False)))
+    out.append(c_array("vec_req_unpair", p.unpair_request(4)))
 
     ts = p.Response(p.OP_TIME_SYNC, 9, p.RESULT_OK, (3).to_bytes(4, "little") + (5000).to_bytes(8, "little"))
     out.append(c_array("vec_resp_time_sync", ts.pack()))
@@ -69,6 +70,9 @@ def main() -> None:
 
     out.append(f"#define VEC_DATA_CHUNK_MAX {p.DATA_CHUNK_MAX}\n")
     out.append(f"#define VEC_LIST_MAX {p.LIST_MAX_PER_RESPONSE}\n")
+    out.append(f"#define VEC_FLAG_PAIRING_OPEN 0x{p.FLAG_PAIRING_OPEN:02x}u\n")
+    out.append(f"#define VEC_PAIRING_WINDOW_MS {p.PAIRING_WINDOW_MS}\n")
+    out.append(f"#define VEC_UNENCRYPTED_TIMEOUT_MS {p.UNENCRYPTED_TIMEOUT_MS}\n")
     out.append(f"#define VEC_CRC_123456789 0x{zlib.crc32(b'123456789') & 0xffffffff:08x}u\n")
     sys.stdout.write("".join(out))
 

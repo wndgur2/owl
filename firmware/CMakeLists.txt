@@ -13,6 +13,7 @@ target_sources(app PRIVATE
   src/button_sm.c
   src/led_pattern.c
   src/vad.c
+  src/pair_policy.c
 )
 
 # Zephyr glue.

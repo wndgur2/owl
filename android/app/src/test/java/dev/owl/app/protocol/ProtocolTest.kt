@@ -18,6 +18,17 @@ class ProtocolTest {
     }
 
     @Test
+    fun securityConstantsMatchSpec() {
+        // protocol §2.4, same values as tools/owlproto.py (unpair_request(4) == b"\x07\x04")
+        assertEquals("0704", Requests.unpair(4).toHex())
+        assertEquals(0x10, Status.FLAG_PAIRING_OPEN)
+        assertEquals(120_000L, OwlProtocol.PAIRING_WINDOW_MS)
+        val s = Status.parse(hex(F.STATUS))
+        assertFalse(s.pairingOpen)
+        assertTrue(s.copy(flags = s.flags or Status.FLAG_PAIRING_OPEN).pairingOpen)
+    }
+
+    @Test
     fun status() {
         val s = Status.parse(hex(F.STATUS))
         assertEquals(1, s.protoVer)

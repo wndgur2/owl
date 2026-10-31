@@ -26,6 +26,8 @@ struct owl_ctl_ops {
 	void (*abort)(void);
 	int (*set_recording)(bool on);
 	int (*set_config)(uint8_t key, uint32_t value);
+	/* Delete every bond after the response is sent (§2.4). */
+	int (*unpair)(void);
 };
 
 /*

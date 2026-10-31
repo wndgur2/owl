@@ -11,6 +11,14 @@
  * Flow control: each DATA notification takes a credit; the stack gives it back
  * (notify_done) once the packet has left. With a few credits in flight the link
  * stays busy without exhausting the host's TX buffers.
+ *
+ * Security (protocol §2.4): only the STATUS value is readable on a plain link.
+ * CONTROL writes and every CCCD need an encrypted link, which only a bonded phone
+ * can bring up (LE Secure Connections, Just Works: the pendant has no display or
+ * keypad). The Bluetooth host checks those GATT permissions before our callbacks
+ * run and answers ATT "Insufficient Authentication" (no bond) or "Insufficient
+ * Encryption" (bonded, not encrypted yet). Who may pair at all is pair_policy.c;
+ * bonds live in the settings partition in internal RRAM (prj.conf).
  */
 
 #include <errno.h>
@@ -24,11 +32,13 @@
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
 
 #include "app.h"
 #include "audio.h"
 #include "ble.h"
 #include "control.h"
+#include "pair_policy.h"
 #include "storage.h"
 #include "workq.h"
 
@@ -90,13 +100,16 @@ BT_GATT_SERVICE_DEFINE(owl_svc,
 	BT_GATT_PRIMARY_SERVICE(&svc_uuid),
 	BT_GATT_CHARACTERISTIC(&status_uuid.uuid, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
 			       BT_GATT_PERM_READ, read_status, NULL, NULL),
-	BT_GATT_CCC(status_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	/* STATUS value stays readable unencrypted (no recordings in it, and it tells
+	 * an unpaired phone whether pairing is open: flag bit4). Subscribing does not.
+	 */
+	BT_GATT_CCC(status_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT),
 	BT_GATT_CHARACTERISTIC(&control_uuid.uuid, BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
-			       BT_GATT_PERM_WRITE, NULL, write_control, NULL),
-	BT_GATT_CCC(control_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+			       BT_GATT_PERM_WRITE_ENCRYPT, NULL, write_control, NULL),
+	BT_GATT_CCC(control_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT),
 	BT_GATT_CHARACTERISTIC(&data_uuid.uuid, BT_GATT_CHRC_NOTIFY, BT_GATT_PERM_NONE, NULL,
 			       NULL, NULL),
-	BT_GATT_CCC(data_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	BT_GATT_CCC(data_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT),
 );
 
 /* Attribute indices inside owl_svc.attrs (service, chrc decl, value, ccc, ...). */
@@ -271,6 +284,145 @@ static void stream_stop(void)
 	}
 }
 
+/* ------------------------------------------------------- security (§2.4) */
+
+static struct owl_pair_policy pair_policy;
+static struct k_spinlock pair_lock;
+
+static void count_bond(const struct bt_bond_info *info, void *user_data)
+{
+	(*(int *)user_data)++;
+}
+
+static int bond_count(void)
+{
+	int n = 0;
+
+	bt_foreach_bond(BT_ID_DEFAULT, count_bond, &n);
+	return n;
+}
+
+bool ble_pairing_open(void)
+{
+	int bonds = bond_count();
+	k_spinlock_key_t key = k_spin_lock(&pair_lock);
+	bool open = owl_pair_allowed(&pair_policy, k_uptime_get(), bonds);
+
+	k_spin_unlock(&pair_lock, key);
+	return open;
+}
+
+/* SMP asks this on every Pairing Request (BT RX thread). Re-encrypting with an
+ * existing bond is not pairing and never gets here.
+ */
+static enum bt_security_err pairing_accept(struct bt_conn *c,
+					   const struct bt_conn_pairing_feat *feat)
+{
+	if (!ble_pairing_open()) {
+		LOG_WRN("pairing refused: a phone is bonded and the window is closed");
+		return BT_SECURITY_ERR_PAIR_NOT_ALLOWED;
+	}
+	LOG_INF("pairing accepted");
+	return BT_SECURITY_ERR_SUCCESS;
+}
+
+/* No display / keypad callbacks: SMP reports NoInputNoOutput -> Just Works. */
+static const struct bt_conn_auth_cb auth_cb = {
+	.pairing_accept = pairing_accept,
+};
+
+/* One bond at a time: the newest phone stays, older bonds go (§2.4). Not done
+ * in pairing_complete itself, which runs on the BT RX thread: deleting keys
+ * writes the settings partition.
+ */
+static bt_addr_le_t bond_keep;
+
+static void collect_stale(const struct bt_bond_info *info, void *user_data)
+{
+	bt_addr_le_t *stale = user_data;
+
+	if (!bt_addr_le_eq(&info->addr, &bond_keep) && bt_addr_le_eq(stale, BT_ADDR_LE_ANY)) {
+		bt_addr_le_copy(stale, &info->addr);
+	}
+}
+
+static void prune_bonds_fn(struct k_work *w)
+{
+	for (int i = 0; i < CONFIG_BT_MAX_PAIRED; i++) {
+		bt_addr_le_t stale;
+
+		bt_addr_le_copy(&stale, BT_ADDR_LE_ANY);
+		bt_foreach_bond(BT_ID_DEFAULT, collect_stale, &stale);
+		if (bt_addr_le_eq(&stale, BT_ADDR_LE_ANY)) {
+			break;
+		}
+		LOG_INF("removing the previous phone's bond");
+		bt_unpair(BT_ID_DEFAULT, &stale);
+	}
+	ble_notify_status();
+}
+
+static K_WORK_DEFINE(prune_bonds_work, prune_bonds_fn);
+
+static void pairing_complete(struct bt_conn *c, bool bonded)
+{
+	k_spinlock_key_t key = k_spin_lock(&pair_lock);
+
+	owl_pair_on_bonded(&pair_policy);
+	k_spin_unlock(&pair_lock, key);
+	/* CONFIG_BT_BONDING_REQUIRED: a pairing that would not bond is refused. */
+	LOG_INF("paired, bonded %d", bonded);
+	bt_addr_le_copy(&bond_keep, bt_conn_get_dst(c));
+	k_work_submit_to_queue(&app_workq, &prune_bonds_work);
+}
+
+static void pairing_failed(struct bt_conn *c, enum bt_security_err reason)
+{
+	LOG_WRN("pairing failed: %d", reason);
+}
+
+static void bond_deleted(uint8_t id, const bt_addr_le_t *peer)
+{
+	LOG_INF("bond deleted");
+}
+
+static struct bt_conn_auth_info_cb auth_info_cb = {
+	.pairing_complete = pairing_complete,
+	.pairing_failed = pairing_failed,
+	.bond_deleted = bond_deleted,
+};
+
+/* A link that never got encrypted is a stranger or a refused phone: let it go so
+ * the device's only connection is free for the owner.
+ */
+static void enc_timeout_fn(struct k_work *w)
+{
+	struct bt_conn *c = conn_get();
+
+	if (!c) {
+		return;
+	}
+	if (bt_conn_get_security(c) < BT_SECURITY_L2) {
+		LOG_WRN("not encrypted after %d s, disconnecting", OWL_UNENCRYPTED_TIMEOUT_MS / 1000);
+		bt_conn_disconnect(c, BT_HCI_ERR_AUTH_FAIL);
+	}
+	bt_conn_unref(c);
+}
+
+static K_WORK_DELAYABLE_DEFINE(enc_timeout_work, enc_timeout_fn);
+
+static void unpair_fn(struct k_work *w)
+{
+	/* All bonds; also drops the link of the phone that asked. */
+	int err = bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);
+
+	LOG_INF("UNPAIR: bonds deleted (%d), pairing open", err);
+	ble_notify_status();
+}
+
+/* Delayed so the UNPAIR response leaves before the link goes down. */
+static K_WORK_DELAYABLE_DEFINE(unpair_work, unpair_fn);
+
 /* ------------------------------------------------------- CONTROL ops */
 
 static bool fetch_kick_pending;
@@ -378,6 +530,13 @@ static int op_set_config(uint8_t key, uint32_t value)
 	return app_set_config(key, value);
 }
 
+static int op_unpair(void)
+{
+	stream_stop();
+	k_work_schedule_for_queue(&app_workq, &unpair_work, K_MSEC(300));
+	return OWL_RESULT_OK;
+}
+
 static const struct owl_ctl_ops ctl_ops = {
 	.time_sync = op_time_sync,
 	.list = op_list,
@@ -386,6 +545,7 @@ static const struct owl_ctl_ops ctl_ops = {
 	.abort = op_abort,
 	.set_recording = op_set_recording,
 	.set_config = op_set_config,
+	.unpair = op_unpair,
 };
 
 struct ctl_msg {
@@ -562,6 +722,20 @@ static void connected(struct bt_conn *c, uint8_t err)
 		k_sem_give(&tx_credits);
 	}
 	LOG_INF("connected");
+
+	/* A bonded phone: send a Security Request so it encrypts right away with
+	 * its stored key, instead of waiting for an ATT error. Unknown centrals are
+	 * not asked: that would pop a pairing dialog on any phone that connects.
+	 */
+	if (bt_le_bond_exists(BT_ID_DEFAULT, bt_conn_get_dst(c))) {
+		int e = bt_conn_set_security(c, BT_SECURITY_L2);
+
+		if (e) {
+			LOG_WRN("security request: %d", e);
+		}
+	}
+	k_work_schedule(&enc_timeout_work, K_MSEC(OWL_UNENCRYPTED_TIMEOUT_MS));
+
 	/* Seal the open event log into a listable segment for this sync (flash work:
 	 * not in this BT RX callback). Later events start a new event segment.
 	 */
@@ -597,6 +771,7 @@ static void disconnected(struct bt_conn *c, uint8_t reason)
 	bt_conn_unref(conn);
 	conn = NULL;
 	k_mutex_unlock(&conn_lock);
+	k_work_cancel_delayable(&enc_timeout_work);
 
 	k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
 
@@ -629,6 +804,16 @@ static void le_data_len_updated(struct bt_conn *c, struct bt_conn_le_data_len_in
 	LOG_INF("data len: tx %u rx %u", i->tx_max_len, i->rx_max_len);
 }
 
+static void security_changed(struct bt_conn *c, bt_security_t level, enum bt_security_err err)
+{
+	if (err) {
+		/* e.g. the phone lost its key for us, or we refused to pair */
+		LOG_WRN("security failed: level %d err %d", level, err);
+		return;
+	}
+	LOG_INF("security level %d", level);
+}
+
 BT_CONN_CB_DEFINE(conn_cbs) = {
 	.connected = connected,
 	.disconnected = disconnected,
@@ -636,6 +821,7 @@ BT_CONN_CB_DEFINE(conn_cbs) = {
 	.le_param_updated = le_param_updated,
 	.le_phy_updated = le_phy_updated,
 	.le_data_len_updated = le_data_len_updated,
+	.security_changed = security_changed,
 };
 
 static void mtu_updated(struct bt_conn *c, uint16_t tx, uint16_t rx)
@@ -661,6 +847,25 @@ int ble_init(void)
 		return err;
 	}
 	bt_gatt_cb_register(&gatt_cbs);
+
+	err = bt_conn_auth_cb_register(&auth_cb);
+	if (!err) {
+		err = bt_conn_auth_info_cb_register(&auth_info_cb);
+	}
+	if (err) {
+		LOG_ERR("auth callbacks: %d", err);
+		return err;
+	}
+	/* Bonds and our identity address (BT_SETTINGS). Must come after bt_enable
+	 * and before bt_id_get: the identity is only final once settings are loaded.
+	 */
+	err = settings_load();
+	if (err) {
+		LOG_ERR("settings load: %d", err);
+	}
+	owl_pair_policy_init(&pair_policy, k_uptime_get()); /* window starts at power-on */
+	LOG_INF("%d bonded phone(s), pairing %s", bond_count(),
+		ble_pairing_open() ? "open" : "closed");
 
 	/* Owl-XXXX: low 2 bytes of the (static random) address, as printed (§2). */
 	bt_id_get(addrs, &count);

@@ -3,6 +3,12 @@
 MTU and PHY: bleak cannot request them on macOS (CoreBluetooth negotiates on
 its own) and only reads the MTU on Linux. The client works
 with any MTU because DATA offsets, not chunk sizes, drive reassembly.
+
+Pairing (protocol §2.4): Linux (BlueZ) and Windows pair through `BleakClient.pair()`.
+macOS has no pairing API: CoreBluetooth pairs by itself (system dialog) the first
+time an encrypted attribute is touched, i.e. the first CCCD write in connect().
+Either way a refused pairing surfaces as an ATT error on that write, mapped to
+NotPaired here.
 """
 
 from __future__ import annotations
@@ -13,7 +19,21 @@ from bleak import BleakClient, BleakScanner
 
 import owlproto as p
 
-from .transport import Transport, TransportError
+from .transport import NotPaired, Transport, TransportError
+
+_AUTH_ERRORS = (p.ATT_ERR_INSUFFICIENT_AUTHENTICATION, p.ATT_ERR_INSUFFICIENT_ENCRYPTION)
+# Words the backends use for the same failures (BlueZ D-Bus errors, CoreBluetooth messages).
+_AUTH_WORDS = ("authentication", "encryption", "notpermitted", "not permitted", "notauthorized",
+               "authenticationfailed", "authenticationrejected", "authenticationcanceled", "pairing")
+
+
+def is_auth_error(e: BaseException) -> bool:
+    """True if `e` means "the device wants an encrypted link from a bonded peer"."""
+    code = getattr(e, "code", None)
+    if isinstance(code, int) and code in _AUTH_ERRORS:
+        return True
+    text = str(e).lower().replace(".", " ")
+    return any(w in text for w in _AUTH_WORDS)
 
 
 async def scan(timeout: float = 5.0) -> list[tuple[int, object, str]]:
@@ -44,11 +64,12 @@ async def find(address: str | None = None, name: str | None = None, timeout: flo
 
 
 class BleakTransport(Transport):
-    def __init__(self, device, name: str = "Owl", connect_timeout: float = 15.0):
+    def __init__(self, device, name: str = "Owl", connect_timeout: float = 15.0, pair: bool = False):
         super().__init__()
         self.device = device
         self.name = name
         self.connect_timeout = connect_timeout
+        self.pair_on_connect = pair
         self._client: BleakClient | None = None
 
     @property
@@ -60,6 +81,13 @@ class BleakTransport(Transport):
         return self._client.mtu_size if self._client else 23
 
     async def connect(self) -> None:
+        await self._connect(subscribe=True)
+
+    async def connect_plain(self) -> None:
+        """Link only, no pairing and no subscriptions: enough to read STATUS (§2.4)."""
+        await self._connect(subscribe=False)
+
+    async def _connect(self, subscribe: bool) -> None:
         if self.is_connected:
             return
         self._client = BleakClient(self.device, disconnected_callback=self._lost, timeout=self.connect_timeout)
@@ -71,12 +99,40 @@ class BleakTransport(Transport):
                     await backend._acquire_mtu()
                 except Exception:  # noqa: BLE001 - best effort
                     pass
+            if not subscribe:
+                return
+            if self.pair_on_connect:
+                await self.pair()
             await self._client.start_notify(p.STATUS_UUID, lambda _c, d: self.on_status(bytes(d)))
             await self._client.start_notify(p.CONTROL_UUID, lambda _c, d: self.on_control(bytes(d)))
             await self._client.start_notify(p.DATA_UUID, lambda _c, d: self.on_data(bytes(d)))
+        except NotPaired:
+            await self.disconnect()
+            raise
         except (asyncio.TimeoutError, OSError, Exception) as e:  # noqa: BLE001 - bleak raises many types
             await self.disconnect()
+            if is_auth_error(e):
+                raise NotPaired(f"subscribe refused ({e})") from e
             raise TransportError(f"connect failed: {e}") from e
+
+    async def pair(self) -> None:
+        self._check()
+        try:
+            await self._client.pair()
+        except NotImplementedError:
+            pass  # macOS: CoreBluetooth pairs on the first encrypted access (start_notify)
+        except Exception as e:  # noqa: BLE001
+            raise NotPaired(f"pairing failed ({e})") from e
+
+    async def unpair_local(self) -> None:
+        if self._client is None:
+            return
+        try:
+            await self._client.unpair()
+        except NotImplementedError:
+            print("macOS cannot remove a bond from code: System Settings > Bluetooth > (i) > Forget This Device")
+        except Exception as e:  # noqa: BLE001
+            print(f"local unpair failed: {e}")
 
     def _lost(self, _client) -> None:
         self.on_disconnect()
@@ -100,6 +156,8 @@ class BleakTransport(Transport):
         try:
             await self._client.write_gatt_char(p.CONTROL_UUID, data, response=True)
         except Exception as e:  # noqa: BLE001
+            if is_auth_error(e):
+                raise NotPaired(f"CONTROL write refused ({e})") from e
             raise TransportError(f"CONTROL write failed: {e}") from e
 
     def _check(self) -> None:

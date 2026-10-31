@@ -179,6 +179,10 @@ class OwlClient:
     async def set_recording(self, on: bool) -> None:
         await self.request(p.OP_SET_RECORDING, bytes([1 if on else 0]))
 
+    async def unpair(self) -> None:
+        """UNPAIR: the device deletes every bond and drops the link (§2.4)."""
+        await self.request(p.OP_UNPAIR)
+
     async def set_config(self, key: int, value: int) -> None:
         await self.request(p.OP_SET_CONFIG, struct.pack("<BI", key, value))
 

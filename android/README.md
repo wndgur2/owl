@@ -73,6 +73,7 @@ CompanionDeviceManager ──(목걸이 범위 진입/이탈)──▶ OwlCompan
                                     │  근처에 있는 동안 15분마다 + "지금 동기화" + 앱 켤 때
                                     ▼
                          SyncCoordinator ── 재시도(2s, 5s) 후 실패 → "연결 끊김"
+                           │                  본딩 거절(NotBondedException) → 재시도 없이 "다시 등록 필요"
                            │ OwlClient (seq 매칭, 타임아웃)
                            │   └─ OwlTransport ── BleTransport (실제 GATT)
                            │                   └─ FakeOwlDevice (메모리, debug)
@@ -93,7 +94,7 @@ SyncWorker: 15분 주기 WorkManager (CDM이 못 깨웠을 때의 안전망)
 | `protocol/` | 프로토콜 v1 코덱. 안드로이드 의존 없음. `tools/owlproto.py`와 바이트 단위로 같음 |
 | `device/` | `OwlTransport`(GATT 경계), `OwlClient`(요청/응답), `Battery`(전압→%, 남은 시간) |
 | `device/fake/` | `FakeOwlDevice`(펌웨어 역할), `FakeDemo`(시드·adb 명령), `OpusToneSource` |
-| `ble/` | `BleTransport`, `CdmRegistrar`(A1), `OwlCompanionService` |
+| `ble/` | `BleTransport`, `CdmRegistrar`(A1), `BondManager`(본딩, 프로토콜 2.4장), `OwlCompanionService` |
 | `sync/` | `SyncEngine`, `SyncCoordinator`, `SegmentFiles`, `SyncService`, `SyncWorker` |
 | `data/` | Room 엔티티·DAO, `RoomSyncDb`, `TimelineRepositoryImpl`, `SettingsStore`, `PlaceResolver` |
 | `audio/` | `OpusPlayer` — MediaCodec Opus 디코더 + AudioTrack, 문장 탐색 |
@@ -157,6 +158,16 @@ DB는 v2예요. v1에서 올라올 때 칸만 추가하는 마이그레이션(`M
 python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 ```
 
+## 본딩 (프로토콜 2.4장, `decisions.md` #33–#40)
+
+- 등록: CDM 선택 → `BondManager.bond()`가 `createBond()` 후 `ACTION_BOND_STATE_CHANGED`를 기다림(60초) → 성공해야 등록 저장.
+  목걸이가 거절하면(다른 폰이 본딩돼 있고 켠 지 2분이 지남) CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에 다시" 안내.
+- 동기화: 폰에 본딩이 없으면 연결하지 않고(백그라운드에서 페어링 창이 뜨지 않게) "다시 등록 필요". GATT status 5·15·137,
+  또는 목걸이가 HCI 0x05·0x06으로 끊으면 `NotBondedException` → 재시도하지 않음.
+- 등록 해제: UNPAIR(목걸이가 모든 본딩 삭제, 10초 안에 못 하면 건너뜀) → 폰 본딩 삭제(API 36 `CompanionDeviceManager.removeBond`,
+  31–35는 `BluetoothDevice.removeBond` 리플렉션) → CDM 해제. 폰 본딩 삭제가 안 되면 로그만 남겨요(시스템 블루투스 설정에서 지울 수 있음).
+- 가짜 기기: 본딩을 흉내 내지 않아요. `refuseAsNotBonded`로 거절을, UNPAIR로 STATUS bit4를 시험해요.
+
 ## 실제 목걸이로 확인해야 할 것
 
 가짜 기기와 단위 테스트로는 확인할 수 없는 부분이에요. M4에서 보드+폰으로 확인해요.
@@ -170,6 +181,8 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 - 위치: 백그라운드 위치 권한 + PendingIntent 업데이트가 앱 프로세스 없이 들어오는지
 - `SyncService`의 15분 대기: Doze 중엔 코루틴 타이머가 멈춰서 `setAndAllowWhileIdle` 알람으로 깨워요. 몇 분 늦을 수 있어요. 동기화 한 번에 최대 10분 wake lock
 - GATT 오류(status 133 등) 처리, API 31–32 경로(에뮬레이터는 API 37만 확인)
+- 본딩: 등록 때 확인 창이 안 뜨는지(AOSP 소스로는 CDM 등록 10분 안의 `createBond()`면 자동 승인), 목걸이가 거절할 때 실제로 오는
+  status(137 예상), 리플렉션 `removeBond`가 제조사 ROM에서도 되는지, 목걸이가 키를 잃었을 때 Android 버전별 동작
 - Opus 디코더: Android 디코더는 48kHz 출력만 받아서 OpusHead에 16kHz를 적고 48kHz로 디코딩해요. pre-skip 312, seek pre-roll 80ms
 
 ## 아직 안 된 것 / 다음 마일스톤

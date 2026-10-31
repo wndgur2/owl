@@ -157,6 +157,12 @@ enum class Connection {
 
     /** Sync failed after retries (decisions.md #16). Off and out-of-range look the same. */
     DISCONNECTED,
+
+    /**
+     * The pendant refused this phone: no bond on one side (protocol §2.4). Retrying does not help;
+     * the user unregisters and registers again within 2 minutes of turning the pendant on.
+     */
+    NOT_PAIRED,
 }
 
 data class SyncProgress(

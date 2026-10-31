@@ -15,6 +15,7 @@ target_sources(app PRIVATE
   src/test_button.c
   src/test_led.c
   src/test_vad.c
+  src/test_pair.c
   ${OWL_SRC}/owl_proto.c
   ${OWL_SRC}/control.c
   ${OWL_SRC}/seg_index.c
@@ -23,4 +24,5 @@ target_sources(app PRIVATE
   ${OWL_SRC}/button_sm.c
   ${OWL_SRC}/led_pattern.c
   ${OWL_SRC}/vad.c
+  ${OWL_SRC}/pair_policy.c
 )

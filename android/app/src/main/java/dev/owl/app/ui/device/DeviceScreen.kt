@@ -188,6 +188,7 @@ private fun PendantCard(
         Connection.DISCONNECTED -> Triple(R.string.power_disconnected, colors.error, colors.error)
         Connection.CONNECTING -> Triple(R.string.power_connecting, colors.outline, colors.onSurfaceVariant)
         Connection.UNKNOWN -> Triple(R.string.power_unknown, colors.outline, colors.onSurfaceVariant)
+        Connection.NOT_PAIRED -> Triple(R.string.power_not_paired, colors.error, colors.error)
     }
     Card(color = colors.surfaceContainer) {
         Row(
@@ -225,6 +226,15 @@ private fun PendantCard(
             FilledTonalButton(onClick = onReconnect, modifier = Modifier.padding(start = 64.dp, top = 8.dp, bottom = 4.dp)) {
                 Text(stringResource(R.string.device_connect))
             }
+        }
+
+        if (state.connection == Connection.NOT_PAIRED) {
+            Text(
+                stringResource(R.string.device_not_paired),
+                modifier = Modifier.padding(start = 64.dp, end = 16.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+            )
         }
 
         // Recording state, separate from power (A10), with the SET_RECORDING switch.

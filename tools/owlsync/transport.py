@@ -21,6 +21,18 @@ class TransportError(ConnectionError):
     """Link-level failure: not connected, connection lost, write failed."""
 
 
+class NotPaired(TransportError):
+    """The device refused us (protocol §2.4): no bond, and it does not accept a new
+    pairing right now. Retrying does not help; the user has to act."""
+
+    HINT = ("the Owl only talks to its bonded phone/PC. To pair this computer: turn the Owl "
+            "off and on (button 5 s, twice) and run `sync.py pair` within 2 minutes. "
+            "This replaces the bond of the phone that was registered before.")
+
+    def __init__(self, detail: str = "not paired"):
+        super().__init__(f"{detail}: {self.HINT}")
+
+
 Handler = Callable[[bytes], None]
 
 
@@ -55,6 +67,12 @@ class Transport(ABC):
     async def write_control(self, data: bytes) -> None:
         """Write With Response to CONTROL."""
 
+    async def pair(self) -> None:
+        """Bond with the device (§2.4). Call while connected. Raises NotPaired if refused."""
+
+    async def unpair_local(self) -> None:
+        """Forget the device's keys on this side (after UNPAIR)."""
+
 
 class PeripheralLink(ABC):
     """What the device model sees: a way to notify the connected central."""
@@ -66,6 +84,9 @@ class PeripheralLink(ABC):
     @abstractmethod
     async def notify(self, char_uuid: str, value: bytes) -> None:
         """Raises TransportError if the central is gone."""
+
+    def drop_central(self) -> None:
+        """Device-side disconnect (UNPAIR). Links that cannot do it ignore it."""
 
 
 # --- loopback ----------------------------------------------------------------
@@ -89,9 +110,16 @@ class Faults:
 
 class LoopbackTransport(Transport, PeripheralLink):
     """Client and device in one process. Notifications are delivered via call_soon,
-    so ordering matches a real BLE link (one connection, in-order delivery)."""
+    so ordering matches a real BLE link (one connection, in-order delivery).
 
-    def __init__(self, device, faults: Faults | None = None, mtu: int = p.ATT_MTU, name: str = "Owl-LOOP"):
+    Security (§2.4) is modelled at the link: `peer` is this central's identity.
+    A bonded peer gets an encrypted link on connect (the device's Security Request).
+    Otherwise, like Android and BlueZ do when a CCCD write fails with Insufficient
+    Authentication, connect() tries to pair once (auto_pair) and raises NotPaired
+    if the device refuses. CONTROL writes on an unencrypted link raise NotPaired."""
+
+    def __init__(self, device, faults: Faults | None = None, mtu: int = p.ATT_MTU, name: str = "Owl-LOOP",
+                 peer: str = "pc", auto_pair: bool = True):
         super().__init__()
         self.device = device
         self.faults = faults or Faults()
@@ -100,6 +128,9 @@ class LoopbackTransport(Transport, PeripheralLink):
         self._data_sent = 0
         self.name = name
         self.connect_count = 0
+        self.peer = peer
+        self.auto_pair = auto_pair
+        self.encrypted = False
 
     # central side
     @property
@@ -116,15 +147,32 @@ class LoopbackTransport(Transport, PeripheralLink):
         self._connected = True
         self._data_sent = 0
         self.connect_count += 1
+        self.encrypted = self.device.is_bonded(self.peer)
         self.device.on_connect(self)
+        if not self.encrypted and self.auto_pair:
+            try:
+                await self.pair()
+            except NotPaired:
+                self._drop(notify_central=False)
+                raise
+
+    async def pair(self) -> None:
+        self._check()
+        if not self.device.pair(self.peer):
+            raise NotPaired("device refused pairing (SMP: pairing not allowed)")
+        self.encrypted = True
 
     async def disconnect(self) -> None:
         self._drop(notify_central=False)
+
+    def drop_central(self) -> None:
+        self._drop()
 
     def _drop(self, notify_central: bool = True) -> None:
         if not self._connected:
             return
         self._connected = False
+        self.encrypted = False
         self.device.on_disconnect()
         if notify_central:
             asyncio.get_running_loop().call_soon(self.on_disconnect)
@@ -135,6 +183,8 @@ class LoopbackTransport(Transport, PeripheralLink):
 
     async def write_control(self, data: bytes) -> None:
         self._check()
+        if not self.encrypted:
+            raise NotPaired(f"CONTROL write: ATT error 0x{p.ATT_ERR_INSUFFICIENT_AUTHENTICATION:02x}")
         op = data[0] if data else 0
         if self.faults.busy.get(op, 0) > 0 and len(data) >= 2:
             self.faults.busy[op] -= 1

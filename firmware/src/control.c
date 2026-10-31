@@ -20,6 +20,8 @@ static int payload_len_for(uint8_t op)
 		return 1; /* on u8 */
 	case OWL_OP_SET_CONFIG:
 		return 5; /* key u8, value u32 */
+	case OWL_OP_UNPAIR:
+		return 0;
 	default:
 		return -1;
 	}
@@ -112,6 +114,9 @@ size_t owl_control_handle(const struct owl_ctl_ops *ops, const uint8_t *req, siz
 		break;
 	case OWL_OP_SET_CONFIG:
 		result = ops->set_config(p[0], owl_get_u32(&p[1]));
+		break;
+	case OWL_OP_UNPAIR:
+		result = ops->unpair();
 		break;
 	}
 
