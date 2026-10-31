@@ -109,6 +109,14 @@ jobs:
         with:
           version: ${{ env.NCS_VERSION }}
 
+      # native_sim builds call `make`, which the toolchain image does not ship.
+      # (The PERL vars point at the toolchain's perl and confuse apt's dpkg.)
+      - name: Install make
+        if: hashFiles('owl/firmware/tests/**') != ''
+        run: |
+          env -u PERL5LIB -u PERLLIB apt-get update -qq
+          env -u PERL5LIB -u PERLLIB apt-get install -y -qq --no-install-recommends make
+
       - name: twister (native_sim)
         if: hashFiles('owl/firmware/tests/**') != ''
         working-directory: ncs
