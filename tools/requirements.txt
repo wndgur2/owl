@@ -1,2 +1,2 @@
-bleak>=0.22
-pytest>=8
+bleak==3.0.2
+pytest==9.2.0
