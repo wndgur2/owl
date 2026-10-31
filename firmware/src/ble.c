@@ -1,0 +1,656 @@
+/*
+ * BLE peripheral for protocol v1. See ble.h.
+ *
+ * Threads:
+ *   BT RX (Zephyr) : GATT write callback copies the CONTROL request into a queue
+ *   ble_ctl        : parses it (control.c), does the work, notifies the response
+ *   ble_tx         : streams DATA chunks for FETCH_SEGMENT
+ * Doing the work outside the BT RX context keeps flash reads/CRC (up to ~1 s
+ * for a big segment) from stalling the Bluetooth host.
+ *
+ * Flow control: each DATA notification takes a credit; the stack gives it back
+ * (notify_done) once the packet has left. With a few credits in flight the link
+ * stays busy without exhausting the host's TX buffers.
+ */
+
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/uuid.h>
+#include <zephyr/logging/log.h>
+
+#include "app.h"
+#include "audio.h"
+#include "ble.h"
+#include "control.h"
+#include "storage.h"
+
+LOG_MODULE_REGISTER(ble, CONFIG_OWL_LOG_LEVEL);
+
+#define OWL_UUID(x) BT_UUID_128_ENCODE(0xa2690000 | (x), 0x8c8b, 0x40f7, 0xa91b, 0x3ffa7ab560b9)
+
+static const struct bt_uuid_128 svc_uuid = BT_UUID_INIT_128(OWL_UUID(OWL_UUID_SERVICE));
+static const struct bt_uuid_128 status_uuid = BT_UUID_INIT_128(OWL_UUID(OWL_UUID_STATUS));
+static const struct bt_uuid_128 control_uuid = BT_UUID_INIT_128(OWL_UUID(OWL_UUID_CONTROL));
+static const struct bt_uuid_128 data_uuid = BT_UUID_INIT_128(OWL_UUID(OWL_UUID_DATA));
+
+/* ~1 s advertising interval (units of 0.625 ms), decisions #15. */
+#define ADV_INT_MIN 1600 /* 1000 ms */
+#define ADV_INT_MAX 1680 /* 1050 ms */
+
+#define TX_CREDITS 6
+
+static struct bt_conn *conn;
+static K_MUTEX_DEFINE(conn_lock);
+static atomic_t status_subscribed;
+static atomic_t control_subscribed;
+static atomic_t data_subscribed;
+
+static K_SEM_DEFINE(tx_credits, TX_CREDITS, TX_CREDITS);
+
+/* ------------------------------------------------------------ GATT table */
+
+static ssize_t read_status(struct bt_conn *c, const struct bt_gatt_attr *attr, void *buf,
+			   uint16_t len, uint16_t offset)
+{
+	struct owl_status s;
+	uint8_t v[OWL_STATUS_LEN];
+
+	app_fill_status(&s);
+	owl_status_pack(&s, v);
+	return bt_gatt_attr_read(c, attr, buf, len, offset, v, sizeof(v));
+}
+
+static ssize_t write_control(struct bt_conn *c, const struct bt_gatt_attr *attr,
+			     const void *buf, uint16_t len, uint16_t offset, uint8_t flags);
+
+static void status_ccc(const struct bt_gatt_attr *attr, uint16_t value)
+{
+	atomic_set(&status_subscribed, value == BT_GATT_CCC_NOTIFY);
+}
+
+static void control_ccc(const struct bt_gatt_attr *attr, uint16_t value)
+{
+	atomic_set(&control_subscribed, value == BT_GATT_CCC_NOTIFY);
+}
+
+static void data_ccc(const struct bt_gatt_attr *attr, uint16_t value)
+{
+	atomic_set(&data_subscribed, value == BT_GATT_CCC_NOTIFY);
+}
+
+BT_GATT_SERVICE_DEFINE(owl_svc,
+	BT_GATT_PRIMARY_SERVICE(&svc_uuid),
+	BT_GATT_CHARACTERISTIC(&status_uuid.uuid, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
+			       BT_GATT_PERM_READ, read_status, NULL, NULL),
+	BT_GATT_CCC(status_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	BT_GATT_CHARACTERISTIC(&control_uuid.uuid, BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
+			       BT_GATT_PERM_WRITE, NULL, write_control, NULL),
+	BT_GATT_CCC(control_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	BT_GATT_CHARACTERISTIC(&data_uuid.uuid, BT_GATT_CHRC_NOTIFY, BT_GATT_PERM_NONE, NULL,
+			       NULL, NULL),
+	BT_GATT_CCC(data_ccc, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+);
+
+/* Attribute indices inside owl_svc.attrs (service, chrc decl, value, ccc, ...). */
+#define ATTR_STATUS  (&owl_svc.attrs[2])
+#define ATTR_CONTROL (&owl_svc.attrs[5])
+#define ATTR_DATA    (&owl_svc.attrs[8])
+
+static struct bt_conn *conn_get(void)
+{
+	struct bt_conn *c = NULL;
+
+	k_mutex_lock(&conn_lock, K_FOREVER);
+	if (conn) {
+		c = bt_conn_ref(conn);
+	}
+	k_mutex_unlock(&conn_lock);
+	return c;
+}
+
+/* ATT payload per notification for the negotiated MTU. */
+static uint16_t att_payload(struct bt_conn *c)
+{
+	uint16_t mtu = bt_gatt_get_mtu(c);
+
+	return mtu > 3 ? mtu - 3 : 20;
+}
+
+/* --------------------------------------------------------- DATA stream */
+
+static struct {
+	struct k_spinlock lock;
+	uint32_t id;
+	uint32_t offset;
+	uint32_t gen; /* bumped by every FETCH / ABORT; the streamer stops on change */
+	bool pending;
+} fetch_req;
+
+static K_SEM_DEFINE(tx_kick, 0, 1);
+static atomic_t tx_active;
+static atomic_t tx_id;
+
+/* CRC of what was streamed, if it was streamed in order from offset 0. */
+static struct {
+	struct k_spinlock lock;
+	uint32_t id;
+	uint32_t pos;
+	uint32_t crc;
+	bool valid;
+} crc_cache;
+
+static void notify_done(struct bt_conn *c, void *user_data)
+{
+	k_sem_give(&tx_credits);
+}
+
+static uint32_t fetch_gen(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
+	uint32_t g = fetch_req.gen;
+
+	k_spin_unlock(&fetch_req.lock, key);
+	return g;
+}
+
+static void crc_track(uint32_t id, uint32_t off, const uint8_t *data, uint32_t n)
+{
+	k_spinlock_key_t key = k_spin_lock(&crc_cache.lock);
+
+	if (off == 0) {
+		crc_cache.id = id;
+		crc_cache.pos = 0;
+		crc_cache.crc = 0;
+		crc_cache.valid = true;
+	}
+	if (crc_cache.valid && crc_cache.id == id && crc_cache.pos == off) {
+		crc_cache.crc = owl_crc32(crc_cache.crc, data, n);
+		crc_cache.pos += n;
+	}
+	k_spin_unlock(&crc_cache.lock, key);
+}
+
+static void tx_thread(void *a, void *b, void *c)
+{
+	static uint8_t pkt[OWL_ATT_PAYLOAD];
+
+	for (;;) {
+		k_sem_take(&tx_kick, K_FOREVER);
+
+		k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
+		bool go = fetch_req.pending;
+		uint32_t id = fetch_req.id;
+		uint32_t off = fetch_req.offset;
+		uint32_t gen = fetch_req.gen;
+
+		fetch_req.pending = false;
+		k_spin_unlock(&fetch_req.lock, key);
+		if (!go) {
+			continue;
+		}
+
+		struct bt_conn *cn = conn_get();
+
+		if (!cn) {
+			continue;
+		}
+		atomic_set(&tx_id, id);
+		atomic_set(&tx_active, 1);
+
+		uint16_t chunk = MIN(OWL_DATA_CHUNK_MAX, att_payload(cn) - OWL_DATA_HDR_LEN);
+		uint32_t start = off;
+		int64_t t0 = k_uptime_get();
+
+		while (fetch_gen() == gen) {
+			int n = storage_read(id, off, &pkt[OWL_DATA_HDR_LEN], chunk);
+
+			if (n <= 0) {
+				if (n < 0) {
+					LOG_WRN("fetch %u read at %u: %d", id, off, n);
+				}
+				break;
+			}
+			if (k_sem_take(&tx_credits, K_SECONDS(5))) {
+				LOG_WRN("fetch %u: link stalled, giving up", id);
+				break;
+			}
+			owl_put_u32(&pkt[0], id);
+			owl_put_u32(&pkt[4], off);
+
+			struct bt_gatt_notify_params np = {
+				.attr = ATTR_DATA,
+				.data = pkt,
+				.len = OWL_DATA_HDR_LEN + n,
+				.func = notify_done,
+			};
+			int err = bt_gatt_notify_cb(cn, &np);
+
+			if (err == -ENOMEM) {
+				k_sem_give(&tx_credits);
+				k_msleep(5);
+				continue; /* same offset again */
+			}
+			if (err) {
+				k_sem_give(&tx_credits);
+				LOG_WRN("fetch %u notify: %d", id, err);
+				break;
+			}
+			crc_track(id, off, &pkt[OWL_DATA_HDR_LEN], n);
+			off += n;
+		}
+
+		int64_t ms = k_uptime_get() - t0;
+
+		LOG_INF("fetch %u: sent %u..%u in %d ms (%u B/s)", id, start, off, (int)ms,
+			ms > 0 ? (unsigned int)((off - start) * 1000LL / ms) : 0);
+		atomic_set(&tx_active, 0);
+		bt_conn_unref(cn);
+	}
+}
+
+K_THREAD_DEFINE(ble_tx_tid, 2048, tx_thread, NULL, NULL, NULL, 7, 0, 0);
+
+/* Stops a running stream and waits (briefly) until it has let go of the file. */
+static void stream_stop(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
+
+	fetch_req.gen++;
+	fetch_req.pending = false;
+	k_spin_unlock(&fetch_req.lock, key);
+	for (int i = 0; i < 100 && atomic_get(&tx_active); i++) {
+		k_msleep(10);
+	}
+}
+
+/* ------------------------------------------------------- CONTROL ops */
+
+static bool fetch_kick_pending;
+
+static void op_time_sync(uint64_t unix_ms, int16_t tz, uint32_t *boot_count, uint64_t *uptime)
+{
+	*boot_count = storage_boot_count();
+	*uptime = (uint64_t)k_uptime_get();
+	/* The device keeps no wall clock (§4); this log is only for bring-up. */
+	LOG_INF("time sync: phone %llu ms, tz %d -> boot %u uptime %llu", unix_ms, tz,
+		*boot_count, *uptime);
+}
+
+static int op_list(uint32_t after_id, struct owl_list_entry *out, int max)
+{
+	/* Close the open event segment so events so far are part of this sync. */
+	storage_events_rotate();
+	return storage_list(after_id, out, max);
+}
+
+static int op_fetch(uint32_t id, uint32_t offset)
+{
+	struct owl_list_entry e;
+
+	if (!storage_seg_info(id, &e)) {
+		return OWL_RESULT_NO_SEGMENT;
+	}
+	if (offset > e.size) {
+		return OWL_RESULT_BAD_LENGTH;
+	}
+	if (!atomic_get(&data_subscribed)) {
+		LOG_WRN("FETCH without DATA subscription");
+	}
+	k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
+
+	fetch_req.gen++; /* stops any stream in progress */
+	fetch_req.id = id;
+	fetch_req.offset = offset;
+	fetch_req.pending = true;
+	k_spin_unlock(&fetch_req.lock, key);
+	/* The stream starts after the OK response is queued (see ctl_thread). */
+	fetch_kick_pending = true;
+	return OWL_RESULT_OK;
+}
+
+static int op_ack(uint32_t id, uint32_t crc)
+{
+	struct owl_list_entry e;
+	uint32_t mine = 0;
+	bool cached = false;
+
+	if (!storage_seg_info(id, &e)) {
+		return OWL_RESULT_NO_SEGMENT;
+	}
+	if (atomic_get(&tx_active) && (uint32_t)atomic_get(&tx_id) == id) {
+		stream_stop();
+	}
+
+	k_spinlock_key_t key = k_spin_lock(&crc_cache.lock);
+
+	if (crc_cache.valid && crc_cache.id == id && crc_cache.pos == e.size) {
+		mine = crc_cache.crc;
+		cached = true;
+	}
+	k_spin_unlock(&crc_cache.lock, key);
+
+	if (!cached && storage_crc(id, &mine)) {
+		return OWL_RESULT_BUSY;
+	}
+	if (mine != crc) {
+		LOG_WRN("ack %u: crc %08x != ours %08x, keeping it", id, crc, mine);
+		return OWL_RESULT_CRC_MISMATCH;
+	}
+	/* Only here, after a verified ACK, is a segment ever deleted (PRD D4). */
+	if (storage_delete(id)) {
+		return OWL_RESULT_BUSY;
+	}
+	return OWL_RESULT_OK;
+}
+
+static void op_abort(void)
+{
+	stream_stop();
+}
+
+static int op_set_recording(bool on)
+{
+	return app_set_recording(on, OWL_CAUSE_APP);
+}
+
+static int op_set_config(uint8_t key, uint32_t value)
+{
+	return app_set_config(key, value);
+}
+
+static const struct owl_ctl_ops ctl_ops = {
+	.time_sync = op_time_sync,
+	.list = op_list,
+	.fetch = op_fetch,
+	.ack = op_ack,
+	.abort = op_abort,
+	.set_recording = op_set_recording,
+	.set_config = op_set_config,
+};
+
+struct ctl_msg {
+	uint8_t len;
+	uint8_t data[32];
+};
+
+K_MSGQ_DEFINE(ctl_q, sizeof(struct ctl_msg), 8, 4);
+
+static ssize_t write_control(struct bt_conn *c, const struct bt_gatt_attr *attr,
+			     const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+{
+	struct ctl_msg m;
+
+	if (offset != 0) {
+		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+	}
+	m.len = (uint8_t)MIN(len, sizeof(m.data));
+	memcpy(m.data, buf, m.len);
+	if (m.len >= 1 && m.data[0] == OWL_OP_ABORT) {
+		/* Stop the stream right away, not after queued requests. */
+		k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
+
+		fetch_req.gen++;
+		fetch_req.pending = false;
+		k_spin_unlock(&fetch_req.lock, key);
+	}
+	if (k_msgq_put(&ctl_q, &m, K_NO_WAIT)) {
+		/* Phone sent too many requests without waiting for answers. */
+		uint8_t busy[3] = {m.data[0] | OWL_RESPONSE_BIT, m.len > 1 ? m.data[1] : 0,
+				   OWL_RESULT_BUSY};
+
+		bt_gatt_notify(c, ATTR_CONTROL, busy, sizeof(busy));
+	}
+	return len;
+}
+
+static void ctl_thread(void *a, void *b, void *c)
+{
+	static uint8_t resp[OWL_ATT_PAYLOAD];
+	struct ctl_msg m;
+
+	for (;;) {
+		k_msgq_get(&ctl_q, &m, K_FOREVER);
+
+		struct bt_conn *cn = conn_get();
+
+		if (!cn) {
+			continue;
+		}
+		fetch_kick_pending = false;
+		size_t n = owl_control_handle(&ctl_ops, m.data, m.len, resp,
+					      MIN(sizeof(resp), att_payload(cn)));
+
+		LOG_DBG("ctl op %02x seq %u -> result %u", m.data[0], m.len > 1 ? m.data[1] : 0,
+			n >= 3 ? resp[2] : 0xff);
+		if (n) {
+			int err = bt_gatt_notify(cn, ATTR_CONTROL, resp, n);
+
+			if (err) {
+				LOG_WRN("ctl notify: %d", err);
+			}
+		}
+		if (fetch_kick_pending) {
+			k_sem_give(&tx_kick);
+		}
+		bt_conn_unref(cn);
+		ble_notify_status(); /* pending count / flags may have changed */
+	}
+}
+
+K_THREAD_DEFINE(ble_ctl_tid, 2048, ctl_thread, NULL, NULL, NULL, 8, 0, 0);
+
+/* ------------------------------------------------------- STATUS notify */
+
+static void status_work_fn(struct k_work *w)
+{
+	struct bt_conn *cn = conn_get();
+
+	if (!cn) {
+		return;
+	}
+	if (atomic_get(&status_subscribed)) {
+		struct owl_status s;
+		uint8_t v[OWL_STATUS_LEN];
+
+		app_fill_status(&s);
+		owl_status_pack(&s, v);
+		bt_gatt_notify(cn, ATTR_STATUS, v, sizeof(v));
+	}
+	bt_conn_unref(cn);
+}
+
+static K_WORK_DELAYABLE_DEFINE(status_work, status_work_fn);
+
+void ble_notify_status(void)
+{
+	/* Coalesce bursts of changes into one notification. */
+	k_work_schedule(&status_work, K_MSEC(100));
+}
+
+/* ------------------------------------------------------- advertising */
+
+static char name[sizeof("Owl-XXXX")];
+
+static int adv_start(void)
+{
+	static const uint8_t svc_uuid_bytes[] = {OWL_UUID(OWL_UUID_SERVICE)};
+	const struct bt_data ad[] = {
+		BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+		BT_DATA(BT_DATA_UUID128_ALL, svc_uuid_bytes, sizeof(svc_uuid_bytes)),
+		BT_DATA(BT_DATA_NAME_COMPLETE, name, strlen(name)),
+	}; /* 3 + 18 + 10 = 31 bytes: exactly one legacy advertising packet */
+	const struct bt_le_adv_param param =
+		BT_LE_ADV_PARAM_INIT(BT_LE_ADV_OPT_CONN, ADV_INT_MIN, ADV_INT_MAX, NULL);
+
+	int err = bt_le_adv_start(&param, ad, ARRAY_SIZE(ad), NULL, 0);
+
+	if (err && err != -EALREADY) {
+		LOG_ERR("adv start: %d", err);
+		return err;
+	}
+	LOG_INF("advertising as %s", name);
+	return 0;
+}
+
+static atomic_t stopped;
+
+static void adv_work_fn(struct k_work *w)
+{
+	if (!atomic_get(&stopped)) {
+		adv_start();
+	}
+}
+
+static K_WORK_DEFINE(adv_work, adv_work_fn);
+
+/* ------------------------------------------------------- connection */
+
+static void connected(struct bt_conn *c, uint8_t err)
+{
+	if (err) {
+		LOG_WRN("connect failed: 0x%02x", err);
+		return;
+	}
+	k_mutex_lock(&conn_lock, K_FOREVER);
+	if (conn) {
+		k_mutex_unlock(&conn_lock);
+		bt_conn_disconnect(c, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+		return; /* one phone at a time */
+	}
+	conn = bt_conn_ref(c);
+	k_mutex_unlock(&conn_lock);
+	k_sem_reset(&tx_credits);
+	for (int i = 0; i < TX_CREDITS; i++) {
+		k_sem_give(&tx_credits);
+	}
+	LOG_INF("connected");
+
+	/* Ask for the fast-transfer link: 2M PHY, 251-byte packets (§2). */
+	int e = bt_conn_le_phy_update(c, BT_CONN_LE_PHY_PARAM_2M);
+
+	if (e) {
+		LOG_WRN("phy update: %d", e);
+	}
+	e = bt_conn_le_data_len_update(c, BT_LE_DATA_LEN_PARAM_MAX);
+	if (e) {
+		LOG_WRN("data len update: %d", e);
+	}
+}
+
+static void disconnected(struct bt_conn *c, uint8_t reason)
+{
+	k_mutex_lock(&conn_lock, K_FOREVER);
+	if (conn != c) {
+		k_mutex_unlock(&conn_lock);
+		return;
+	}
+	bt_conn_unref(conn);
+	conn = NULL;
+	k_mutex_unlock(&conn_lock);
+
+	k_spinlock_key_t key = k_spin_lock(&fetch_req.lock);
+
+	fetch_req.gen++;
+	fetch_req.pending = false;
+	k_spin_unlock(&fetch_req.lock, key);
+	LOG_INF("disconnected (0x%02x)", reason);
+}
+
+static void recycled(void)
+{
+	/* The connection object is free again: advertise so the phone can come back. */
+	k_work_submit(&adv_work);
+}
+
+static void le_param_updated(struct bt_conn *c, uint16_t interval, uint16_t latency,
+			     uint16_t timeout)
+{
+	LOG_INF("conn params: interval %u.%02u ms, latency %u", interval * 125 / 100,
+		interval * 125 % 100, latency);
+}
+
+static void le_phy_updated(struct bt_conn *c, struct bt_conn_le_phy_info *p)
+{
+	LOG_INF("phy: tx %u rx %u", p->tx_phy, p->rx_phy);
+}
+
+static void le_data_len_updated(struct bt_conn *c, struct bt_conn_le_data_len_info *i)
+{
+	LOG_INF("data len: tx %u rx %u", i->tx_max_len, i->rx_max_len);
+}
+
+BT_CONN_CB_DEFINE(conn_cbs) = {
+	.connected = connected,
+	.disconnected = disconnected,
+	.recycled = recycled,
+	.le_param_updated = le_param_updated,
+	.le_phy_updated = le_phy_updated,
+	.le_data_len_updated = le_data_len_updated,
+};
+
+static void mtu_updated(struct bt_conn *c, uint16_t tx, uint16_t rx)
+{
+	LOG_INF("mtu: tx %u rx %u", tx, rx);
+}
+
+static struct bt_gatt_cb gatt_cbs = {
+	.att_mtu_updated = mtu_updated,
+};
+
+/* ---------------------------------------------------------------- public */
+
+int ble_init(void)
+{
+	bt_addr_le_t addrs[1];
+	size_t count = ARRAY_SIZE(addrs);
+	int err;
+
+	err = bt_enable(NULL);
+	if (err) {
+		LOG_ERR("bt_enable: %d", err);
+		return err;
+	}
+	bt_gatt_cb_register(&gatt_cbs);
+
+	/* Owl-XXXX: low 2 bytes of the (static random) address, as printed (§2). */
+	bt_id_get(addrs, &count);
+	snprintf(name, sizeof(name), "Owl-%02X%02X", count ? addrs[0].a.val[1] : 0,
+		 count ? addrs[0].a.val[0] : 0);
+	bt_set_name(name);
+
+	return adv_start();
+}
+
+bool ble_is_connected(void)
+{
+	struct bt_conn *c = conn_get();
+
+	if (c) {
+		bt_conn_unref(c);
+	}
+	return c != NULL;
+}
+
+void ble_stop(void)
+{
+	atomic_set(&stopped, 1);
+	stream_stop();
+	bt_le_adv_stop();
+
+	struct bt_conn *c = conn_get();
+
+	if (c) {
+		bt_conn_disconnect(c, BT_HCI_ERR_REMOTE_POWER_OFF);
+		bt_conn_unref(c);
+		for (int i = 0; i < 50 && ble_is_connected(); i++) {
+			k_msleep(10);
+		}
+	}
+}

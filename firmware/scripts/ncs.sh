@@ -12,7 +12,8 @@
 set -euo pipefail
 
 NCS_VERSION="${NCS_VERSION:-v3.4.1}"
-IMAGE="ghcr.io/nrfconnect/sdk-nrf-toolchain:${NCS_VERSION}"
+# Local image = official toolchain image + make/multilib for native_sim (Dockerfile).
+IMAGE="owl-ncs:${NCS_VERSION}"
 VOLUME="owl-ncs-${NCS_VERSION}"
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 
@@ -23,6 +24,8 @@ run() {
 }
 
 if [[ "${1:-}" == "--setup" ]]; then
+	docker build --platform linux/amd64 --build-arg "NCS_VERSION=${NCS_VERSION}" \
+		-t "${IMAGE}" "$(dirname "$0")"
 	docker volume create "${VOLUME}" >/dev/null
 	docker run --rm --platform linux/amd64 -v "${VOLUME}:/ncs" -w /ncs "${IMAGE}" \
 		"(test -d .west || west init -m https://github.com/nrfconnect/sdk-nrf --mr ${NCS_VERSION}) && west update --narrow -o=--depth=1"

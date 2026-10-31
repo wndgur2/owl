@@ -1,0 +1,107 @@
+# Owl application options. Defaults are the "product" settings; the debugging
+# knobs are here so bring-up can change them with -D or a .conf overlay.
+
+menu "Owl"
+
+module = OWL
+module-str = Owl
+source "subsys/logging/Kconfig.template.log_config"
+
+choice OWL_CODEC
+	prompt "Audio codec stored in segments"
+	default OWL_CODEC_OPUS
+
+config OWL_CODEC_OPUS
+	bool "Opus (codec 1), 16 kHz mono"
+	help
+	  The product codec (PRD D3): ~2 KB/s at 16 kbps, about 2 hours of
+	  speech on the 16 MB flash.
+
+config OWL_CODEC_PCM16
+	bool "Raw PCM16 (codec 0), debug only"
+	help
+	  M1 debugging path: no encoder, 32 KB/s, the flash fills in about
+	  8 minutes. Useful to tell mic problems from codec problems.
+
+endchoice
+
+config OWL_OPUS_COMPLEXITY
+	int "Opus encoder complexity (0-10)"
+	range 0 10
+	default 3
+	help
+	  CPU vs. quality. Check the "encode: avg ... us" log line on the
+	  board: the average must stay well below 20000 us per frame.
+
+config OWL_OPUS_ARM_DSP
+	bool "Use Opus' ARM DSP inline assembly"
+	default y
+	help
+	  Cortex-M33 with the DSP extension runs Opus' ARMv5E multiply macros.
+
+config OWL_OPUS_ENC_MEM
+	int "Static memory for the Opus encoder state (bytes)"
+	default 32768
+
+config OWL_AUDIO_STACK_SIZE
+	int "Recorder thread stack (bytes)"
+	default 24576
+	help
+	  Opus is built with VAR_ARRAYS, so its scratch buffers live on this
+	  stack. Watch the thread analyzer output in the uart.conf build.
+
+config OWL_REC_RING_SIZE
+	int "RAM ring between encoder and flash writer (bytes)"
+	default 32768 if OWL_CODEC_PCM16
+	default 8192
+	help
+	  Absorbs flash erase stalls (up to ~0.4 s per 4 KiB sector).
+	  8 KiB is ~4 s of Opus.
+
+config OWL_PDM_CHANNEL_RIGHT
+	bool "Read the mic on the RIGHT PDM channel"
+	help
+	  The mic's L/R strap decides on which clock edge it drives data.
+	  If the M0 bring-up shows rms ~0 on LEFT, set this.
+
+config OWL_MIC_GAIN_SHIFT
+	int "Digital mic gain as a left shift (0 = none, 1 = +6 dB, ...)"
+	range 0 4
+	default 0
+
+config OWL_VAD_HANGOVER_MS
+	int "Silence that ends a segment (ms)"
+	default 1500
+
+config OWL_VAD_PREROLL_MS
+	int "Audio kept from before speech onset (ms)"
+	default 200
+
+config OWL_SEG_INDEX_MAX
+	int "Max closed segments kept on flash"
+	default 4096
+	help
+	  8 bytes of RAM each. 4096 matches the number of 4 KiB flash blocks,
+	  which already bounds the number of files.
+
+config OWL_STORAGE_RESERVE_KB
+	int "Free space kept for events and file system metadata (KiB)"
+	default 128
+
+config OWL_BATTERY_PERIOD_S
+	int "Battery check interval while on (s)"
+	default 60
+
+config OWL_BATTERY_CHECK_S
+	int "Wake interval while off for low battery (s)"
+	default 3600
+
+config OWL_VBAT_SETTLE_MS
+	int "Battery divider settle time before the ADC read (ms)"
+	default 10
+	help
+	  Seeed's example uses 100 ms. Increase if readings are noisy.
+
+endmenu
+
+source "Kconfig.zephyr"
