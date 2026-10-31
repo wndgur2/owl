@@ -70,6 +70,10 @@ static void check_battery(void)
 		all_ok = false;
 		return;
 	}
+	/* vbat_pwr is regulator-boot-on, i.e. it starts with one reference held.
+	 * Drop it, or the enable/disable pair below never switches the divider off.
+	 */
+	regulator_disable(vbat_reg);
 	int mv = battery_read_mv();
 
 	/* On USB with no battery attached this reads the charger output (~4.2 V) or noise. */

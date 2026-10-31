@@ -9,6 +9,19 @@ Zephyr RTOS + nRF Connect SDK 앱. 보드: Seeed XIAO nRF54L15 Sense.
 3. 보드 정의는 SDK에 들어 있어요(`xiao_nrf54l15/nrf54l15/cpuapp`). 별도 board root 불필요
 4. 플래시용 OpenOCD: `brew install openocd`
 
+## Docker로 빌드 (보드·NCS 설치 없이)
+
+NCS 버전은 **v3.4.1**로 고정해요. 공식 툴체인 이미지(`ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.1`, amd64 전용 — Apple Silicon에선 에뮬레이션)를 쓰고, NCS 작업 공간(약 5GB)은 Docker 볼륨 `owl-ncs-v3.4.1`에 둬요. `firmware/scripts/ncs.sh`가 레포를 작업 공간 안(`/ncs/owl`)에 마운트해서 명령을 실행해요.
+
+```bash
+docker pull --platform linux/amd64 ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.1
+firmware/scripts/ncs.sh --setup      # west init -m sdk-nrf --mr v3.4.1 && west update (한 번만)
+firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build/fw firmware'
+firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build/fw-uart firmware -- -DEXTRA_CONF_FILE=uart.conf'
+```
+
+결과물: `build/fw/merged.hex` (레포 루트의 `build/`는 gitignore). 굽기는 macOS에서 `west flash -d build/fw` 또는 nRF Connect for Desktop으로.
+
 ## 빌드와 굽기
 
 ```bash
@@ -29,7 +42,7 @@ west build -p -b xiao_nrf54l15/nrf54l15/cpuapp firmware
 | `boards/xiao_nrf54l15_nrf54l15_cpuapp.overlay` | 외장 플래시(D3 CS), 마스터 버튼(D1), 배터리 ADC |
 | `src/main.c` | **M0 bring-up**: 배터리 전압, 플래시 JEDEC/읽기쓰기, 마이크 1초 레벨 측정, 버튼 |
 
-> 이 코드는 아직 **한 번도 빌드해보지 않았어요.** 보드 도착 후 첫 빌드에서 오류가 나면 그게 M0의 첫 작업이에요.
+> NCS v3.4.1에서 빌드 확인(기본 / `uart.conf` 둘 다). 보드에서 실행은 아직 안 해봤어요.
 
 ## M0 체크 결과 읽기
 
