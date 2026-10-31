@@ -7,6 +7,7 @@ import dev.owl.app.model.AudioUsage
 import dev.owl.app.model.DeviceController
 import dev.owl.app.model.DeviceRegistrar
 import dev.owl.app.model.Exporter
+import dev.owl.app.model.PlacesRepository
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.model.TimelineRepository
@@ -27,6 +28,8 @@ data class SettingsUiState(
     val fakeDeviceAvailable: Boolean = false,
     val usingFakeDevice: Boolean = false,
     val exporting: Boolean = false,
+    /** Named places (A5/A7), null until known. */
+    val namedPlaceCount: Int? = null,
 )
 
 sealed interface SettingsEvent {
@@ -39,6 +42,7 @@ class SettingsViewModel(
     private val registrar: DeviceRegistrar,
     controller: DeviceController,
     private val exporter: Exporter,
+    places: PlacesRepository,
 ) : ViewModel() {
     private val exporting = kotlinx.coroutines.flow.MutableStateFlow(false)
     private val events = Channel<SettingsEvent>(Channel.BUFFERED)
@@ -59,7 +63,7 @@ class SettingsViewModel(
             usingFakeDevice = device.isFake,
             exporting = busy,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
+    }.combine(places.places()) { s, list -> s.copy(namedPlaceCount = list.size) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
 
     fun setLocationEnabled(on: Boolean) {
         viewModelScope.launch { settings.setLocationEnabled(on) }

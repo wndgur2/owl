@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +63,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenRetention: () -> Unit,
+    onOpenPlaces: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenGuide: () -> Unit,
     onUnregistered: () -> Unit,
@@ -104,6 +106,7 @@ fun SettingsScreen(
         snackbar = snackbar,
         onBack = onBack,
         onOpenRetention = onOpenRetention,
+        onOpenPlaces = onOpenPlaces,
         onToggleLocation = { on ->
             when {
                 !on -> viewModel.setLocationEnabled(false)
@@ -149,6 +152,7 @@ fun SettingsContent(
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
     onOpenRetention: () -> Unit,
+    onOpenPlaces: () -> Unit,
     onToggleLocation: (Boolean) -> Unit,
     onExport: () -> Unit,
     onOpenPrivacy: () -> Unit,
@@ -186,6 +190,17 @@ fun SettingsContent(
                 icon = Icons.Outlined.LocationOn,
                 modifier = Modifier.toggleable(value = state.locationEnabled, role = Role.Switch, onValueChange = onToggleLocation),
                 trailing = { Switch(checked = state.locationEnabled, onCheckedChange = null) },
+            )
+            OwlListRow(
+                title = stringResource(R.string.places_title),
+                subtitle = when (val n = state.namedPlaceCount) {
+                    null -> null
+                    0 -> stringResource(R.string.places_summary_none)
+                    else -> stringResource(R.string.places_summary, n)
+                },
+                icon = Icons.Outlined.Place,
+                onClick = onOpenPlaces,
+                trailing = chevron,
             )
 
             OwlDivider(Modifier.padding(vertical = 4.dp))
@@ -268,11 +283,11 @@ private fun SettingsPreview() {
         SettingsContent(
             state = SettingsUiState(
                 retention = RetentionPolicy.DAYS_30, locationEnabled = true, registeredName = "Owl-3F2A",
-                fakeDeviceAvailable = true, usingFakeDevice = true,
+                fakeDeviceAvailable = true, usingFakeDevice = true, namedPlaceCount = 4,
             ),
             backgroundLocationGranted = true,
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onOpenRetention = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onUnregister = {},
+            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onUnregister = {},
         )
     }
 }

@@ -4,14 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.owl.app.model.AudioPlayer
 import dev.owl.app.model.EntryDetail
+import dev.owl.app.model.PlacesRepository
 import dev.owl.app.model.PlayerState
 import dev.owl.app.model.TimelineRepository
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -33,11 +37,16 @@ class EntryViewModel(
     private val id: Long,
     private val initialSeekMs: Long?,
     private val repository: TimelineRepository,
+    private val places: PlacesRepository,
     private val player: AudioPlayer,
 ) : ViewModel() {
     private var loadedOnce = false
     private var loadedFiles: List<File>? = null
     private val deleting = MutableStateFlow(false)
+    private val placeFailures = Channel<Unit>(Channel.CONFLATED)
+
+    /** One event per failed "이 장소 이름 붙이기", for a snackbar. */
+    val placeFailureFlow: Flow<Unit> = placeFailures.receiveAsFlow()
 
     private val detail = repository.entry(id).onEach { d ->
         if (d == null) return@onEach
@@ -103,6 +112,13 @@ class EntryViewModel(
     }
 
     suspend fun transcriptText(): String = repository.transcriptText(id)
+
+    /** Names (or renames) this entry's place; the entry flow then shows the new name. */
+    fun namePlace(name: String) {
+        viewModelScope.launch {
+            places.nameEntryPlace(id, name).onFailure { placeFailures.send(Unit) }
+        }
+    }
 
     fun delete(onDone: () -> Unit) {
         deleting.value = true

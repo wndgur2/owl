@@ -17,6 +17,8 @@ import dev.owl.app.ui.entry.EntryScreen
 import dev.owl.app.ui.entry.EntryViewModel
 import dev.owl.app.ui.onboarding.OnboardingScreen
 import dev.owl.app.ui.onboarding.OnboardingViewModel
+import dev.owl.app.ui.places.PlacesScreen
+import dev.owl.app.ui.places.PlacesViewModel
 import dev.owl.app.ui.settings.GuideScreen
 import dev.owl.app.ui.settings.PrivacyScreen
 import dev.owl.app.ui.settings.RetentionScreen
@@ -35,6 +37,7 @@ private object Routes {
     const val ENTRY = "entry/{id}?at={at}"
     const val SETTINGS = "settings"
     const val RETENTION = "retention"
+    const val PLACES = "places"
     const val PRIVACY = "privacy"
     const val GUIDE = "guide"
 
@@ -88,7 +91,7 @@ fun OwlRoot(container: AppContainer) {
                     val id = entry.arguments?.getLong("id") ?: 0L
                     val at = entry.arguments?.getLong("at")?.takeIf { it >= 0 }
                     EntryScreen(
-                        owlViewModel { EntryViewModel(id, at, container.timelineRepository, container.newAudioPlayer()) },
+                        owlViewModel { EntryViewModel(id, at, container.timelineRepository, container.placesRepository, container.newAudioPlayer()) },
                         onBack = { nav.popBackStack() },
                     )
                 }
@@ -97,10 +100,12 @@ fun OwlRoot(container: AppContainer) {
                         owlViewModel {
                             SettingsViewModel(
                                 container.settingsRepository, container.deviceRegistrar, container.deviceController, container.exporter,
+                                container.placesRepository,
                             )
                         },
                         onBack = { nav.popBackStack() },
                         onOpenRetention = { nav.navigate(Routes.RETENTION) },
+                        onOpenPlaces = { nav.navigate(Routes.PLACES) },
                         onOpenPrivacy = { nav.navigate(Routes.PRIVACY) },
                         onOpenGuide = { nav.navigate(Routes.GUIDE) },
                         onUnregistered = { nav.resetTo(Routes.ONBOARDING) },
@@ -111,6 +116,9 @@ fun OwlRoot(container: AppContainer) {
                         owlViewModel { RetentionViewModel(container.settingsRepository, container.timelineRepository) },
                         onBack = { nav.popBackStack() },
                     )
+                }
+                composable(Routes.PLACES) {
+                    PlacesScreen(owlViewModel { PlacesViewModel(container.placesRepository) }, onBack = { nav.popBackStack() })
                 }
                 composable(Routes.PRIVACY) { PrivacyScreen(onBack = { nav.popBackStack() }) }
                 composable(Routes.GUIDE) { GuideScreen(onBack = { nav.popBackStack() }) }

@@ -60,12 +60,14 @@ class OwlFormats(private val context: Context) {
         return "$day ${hm(ms)}"
     }
 
-    /** "12분" / "약 3분" / "40초". */
+    /** "12분" / "약 3분" / "40초" / "1시간 25분" (merged entries can run long). */
     fun duration(ms: Long, estimate: Boolean): String {
-        val text = if (ms < 60_000) {
-            context.getString(R.string.duration_seconds, (ms / 1000).coerceAtLeast(1))
-        } else {
-            context.getString(R.string.duration_minutes, (ms / 60_000.0).roundToLong())
+        val minutes = (ms / 60_000.0).roundToLong()
+        val text = when {
+            ms < 60_000 -> context.getString(R.string.duration_seconds, (ms / 1000).coerceAtLeast(1))
+            minutes < 60 -> context.getString(R.string.duration_minutes, minutes)
+            minutes % 60 == 0L -> context.getString(R.string.duration_hours, minutes / 60)
+            else -> context.getString(R.string.duration_hours_minutes, minutes / 60, minutes % 60)
         }
         return if (estimate) context.getString(R.string.about_prefix, text) else text
     }
@@ -79,12 +81,15 @@ class OwlFormats(private val context: Context) {
         return if (h > 0) String.format(locale, "%d:%02d:%02d", h, m, s) else String.format(locale, "%d:%02d", m, s)
     }
 
-    /** Place name, coordinates when unnamed, "장소 없음" when absent. */
-    fun place(place: Place?): String = when {
-        place == null -> context.getString(R.string.place_none)
-        place.name != null -> place.name
-        else -> String.format(locale, "%.4f, %.4f", place.latitude, place.longitude)
-    }
+    /**
+     * The user-given name, else "알 수 없는 장소" — for unnamed places and for entries without a
+     * GPS fix alike. No reverse geocoding (PRD N8); coordinates only appear as detail ([coordinates]).
+     */
+    fun place(place: Place?): String = place?.name ?: context.getString(R.string.place_unknown)
+
+    /** "37.5665, 126.9780" (~10 m precision). */
+    fun coordinates(latitude: Double, longitude: Double): String =
+        String.format(locale, "%.4f, %.4f", latitude, longitude)
 
     fun megabytes(mb: Double): String =
         if (mb >= 10 || mb == mb.roundToInt().toDouble()) mb.roundToInt().toString() else String.format(locale, "%.1f", mb)

@@ -2,10 +2,15 @@ package dev.owl.app.ui.timeline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.owl.app.model.StandaloneBookmark
 import dev.owl.app.model.TimelineItem
 import dev.owl.app.model.TimelineRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -13,11 +18,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class TimelineUiState(
     /** Null until the first page arrives. */
     val items: List<TimelineItem>? = null,
+    /** Standalone bookmarks (A9) within the loaded range, oldest first. */
+    val bookmarks: List<StandaloneBookmark> = emptyList(),
     val rows: List<TimelineRow> = emptyList(),
     val bookmarkedOnly: Boolean = false,
     /** The repository returned a full page, so older records may exist. */
@@ -37,15 +45,31 @@ class TimelineViewModel(private val repository: TimelineRepository) : ViewModel(
 
     private data class Query(val limit: Int, val bookmarkedOnly: Boolean)
 
-    private val page = combine(limit, bookmarkedOnly, ::Query).flatMapLatest { q ->
-        repository.timeline(q.limit, q.bookmarkedOnly).map { items ->
+    private val page = combine(limit, bookmarkedOnly, ::Query).flatMapLatest(::pageFor)
+
+    /**
+     * Entries, plus the standalone bookmarks from the oldest loaded entry on (all of them once
+     * everything is loaded). Bookmarks show in both filter modes: they are bookmarks themselves.
+     * The bookmark query is only redone when that start time changes, not on every entry update
+     * (receive progress ticks often).
+     */
+    private fun pageFor(q: Query): Flow<TimelineUiState> = channelFlow {
+        val items = MutableStateFlow<List<TimelineItem>?>(null)
+        launch { repository.timeline(q.limit, q.bookmarkedOnly).collect { items.value = it } }
+        val loaded = items.filterNotNull()
+        val bookmarks = loaded
+            .map { list -> if (list.size >= q.limit) list.firstNotNullOfOrNull { it.startUnixMs } else null }
+            .distinctUntilChanged()
+            .flatMapLatest { since -> repository.standaloneBookmarks(since) }
+        combine(loaded, bookmarks) { list, marks ->
             TimelineUiState(
-                items = items,
-                rows = buildTimelineRows(items),
+                items = list,
+                bookmarks = marks,
+                rows = buildTimelineRows(mergeTimeline(list, marks)),
                 bookmarkedOnly = q.bookmarkedOnly,
-                canLoadMore = items.size >= q.limit,
+                canLoadMore = list.size >= q.limit,
             )
-        }
+        }.collect { send(it) }
     }
 
     val state: StateFlow<TimelineUiState> = combine(page, jumpTarget) { p, jump -> p.copy(jumpTarget = jump) }

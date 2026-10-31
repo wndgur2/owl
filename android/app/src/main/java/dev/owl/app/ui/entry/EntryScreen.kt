@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material3.AlertDialog
@@ -67,10 +69,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,6 +92,7 @@ import dev.owl.app.ui.components.EmptyState
 import dev.owl.app.ui.components.OwlFormats
 import dev.owl.app.ui.components.rememberOwlFormats
 import dev.owl.app.ui.components.toLocalDate
+import dev.owl.app.ui.places.PlaceNameDialog
 import dev.owl.app.ui.theme.OwlTheme
 import dev.owl.app.ui.theme.disabledContainer
 import dev.owl.app.ui.theme.disabledContent
@@ -101,6 +106,10 @@ fun EntryScreen(viewModel: EntryViewModel, onBack: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     val copied = stringResource(R.string.entry_copied)
     val clipLabel = stringResource(R.string.entry_clip_label)
+    val placeFailed = stringResource(R.string.place_name_failed)
+    LaunchedEffect(viewModel) {
+        viewModel.placeFailureFlow.collect { snackbar.showSnackbar(placeFailed) }
+    }
     EntryContent(
         state = state,
         snackbar = snackbar,
@@ -121,6 +130,7 @@ fun EntryScreen(viewModel: EntryViewModel, onBack: () -> Unit) {
             }
         },
         onDelete = { viewModel.delete(onBack) },
+        onNamePlace = viewModel::namePlace,
     )
 }
 
@@ -155,10 +165,12 @@ fun EntryContent(
     onSetPreserve: (Boolean) -> Unit,
     onCopyText: () -> Unit,
     onDelete: () -> Unit,
+    onNamePlace: (String) -> Unit,
 ) {
     val formats = rememberOwlFormats()
     val detail = state.detail
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var namingPlace by rememberSaveable { mutableStateOf(false) }
 
     val title = when {
         detail == null -> ""
@@ -173,7 +185,13 @@ fun EntryContent(
     Scaffold(
         topBar = {
             BackTopBar(title = title, onBack = onBack) {
-                if (detail != null) EntryMenu(detail, formats, onSetPreserve, onCopyText, onDelete = { confirmDelete = true })
+                if (detail != null) {
+                    EntryMenu(
+                        detail, formats, onSetPreserve, onCopyText,
+                        onNamePlace = { namingPlace = true },
+                        onDelete = { confirmDelete = true },
+                    )
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -195,9 +213,23 @@ fun EntryContent(
                     body = null,
                     modifier = Modifier.align(Alignment.Center),
                 )
-                else -> EntryBody(detail, state.player, formats, onSeek)
+                else -> EntryBody(detail, state.player, formats, onSeek, onPlaceClick = { namingPlace = true })
             }
         }
+    }
+
+    val place = detail?.item?.place
+    if (namingPlace && place != null) {
+        PlaceNameDialog(
+            title = stringResource(if (place.name != null) R.string.place_name_rename else R.string.place_name_add),
+            initialName = place.name,
+            coordinates = if (place.name == null) formats.coordinates(place.latitude, place.longitude) else null,
+            onDismiss = { namingPlace = false },
+            onSave = {
+                namingPlace = false
+                onNamePlace(it)
+            },
+        )
     }
 
     if (confirmDelete) {
@@ -224,6 +256,7 @@ private fun EntryMenu(
     formats: OwlFormats,
     onSetPreserve: (Boolean) -> Unit,
     onCopyText: () -> Unit,
+    onNamePlace: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -269,6 +302,18 @@ private fun EntryMenu(
                 open = false
             },
         )
+        DropdownMenuItem(
+            text = {
+                Text(stringResource(if (item.place?.name != null) R.string.place_name_rename else R.string.place_name_add))
+            },
+            leadingIcon = { Icon(Icons.Outlined.EditLocationAlt, null) },
+            // No GPS fix for this recording: nothing to name.
+            enabled = item.place != null,
+            onClick = {
+                open = false
+                onNamePlace()
+            },
+        )
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
         DropdownMenuItem(
             text = { Text(stringResource(R.string.delete_entry)) },
@@ -286,13 +331,13 @@ private fun EntryMenu(
 }
 
 @Composable
-private fun OutlinedTag(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        color = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    ) {
+private fun OutlinedTag(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+) {
+    val content: @Composable () -> Unit = {
         Row(
             Modifier.height(32.dp).padding(start = 8.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -302,10 +347,30 @@ private fun OutlinedTag(icon: androidx.compose.ui.graphics.vector.ImageVector, t
             Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+    val shape = RoundedCornerShape(8.dp)
+    val clickable = if (onClick != null) {
+        Modifier.clip(shape).clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
+    } else {
+        Modifier
+    }
+    Surface(
+        modifier = clickable,
+        shape = shape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        content = content,
+    )
 }
 
 @Composable
-private fun EntryBody(detail: EntryDetail, player: PlayerState, formats: OwlFormats, onSeek: (Long) -> Unit) {
+private fun EntryBody(
+    detail: EntryDetail,
+    player: PlayerState,
+    formats: OwlFormats,
+    onSeek: (Long) -> Unit,
+    onPlaceClick: () -> Unit,
+) {
     val item = detail.item
     val lines = remember(detail.sentences, detail.bookmarkOffsetsMs) { buildLines(detail.sentences, detail.bookmarkOffsetsMs) }
     val current = detail.sentences.indexOfLast { it.startMs <= player.positionMs }
@@ -322,7 +387,14 @@ private fun EntryBody(detail: EntryDetail, player: PlayerState, formats: OwlForm
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTag(Icons.Outlined.Place, formats.place(item.place))
+            // Tapping the place opens the naming dialog; without a GPS fix there is nothing to name.
+            val place = item.place
+            OutlinedTag(
+                Icons.Outlined.Place,
+                formats.place(place),
+                onClick = if (place != null) onPlaceClick else null,
+                onClickLabel = stringResource(if (place?.name != null) R.string.place_name_rename else R.string.place_name_add),
+            )
             if (item.bookmarkCount > 0) {
                 OutlinedTag(Icons.Outlined.BookmarkBorder, stringResource(R.string.bookmark_count, item.bookmarkCount))
             }
@@ -537,6 +609,7 @@ private fun EntryPreview() {
             ),
             snackbar = remember { SnackbarHostState() },
             onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onCycleSpeed = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
+            onNamePlace = {},
         )
     }
 }
@@ -554,6 +627,7 @@ private fun EntryDeletedPreview() {
             ),
             snackbar = remember { SnackbarHostState() },
             onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onCycleSpeed = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
+            onNamePlace = {},
         )
     }
 }
@@ -570,6 +644,7 @@ private fun EntryPendingPreview() {
             ),
             snackbar = remember { SnackbarHostState() },
             onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onCycleSpeed = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
+            onNamePlace = {},
         )
     }
 }
