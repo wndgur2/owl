@@ -23,6 +23,19 @@
 
 타임라인의 "39.2373, -123.1500"은 에뮬레이터 기본 GPS 위치예요. 이름 붙은 장소가 없을 때 좌표로 보이는 경우예요(역지오코딩 안 함, N8).
 
+## 타임라인 항목 합치기, 녹음 밖 북마크, 장소 이름 (2026-11-01)
+
+| 화면 | 라이트 | 다크 |
+|---|---|---|
+| 타임라인 · 19:15 항목 = 세그먼트 2개(150초 + 90초, 간격 40초) 합침, 21:05·21:11 녹음 밖 북마크, "알 수 없는 장소" | [timeline-entries-light](timeline-entries-light.png) | |
+| 타임라인 · 22:41 기록에서 "Dorm 302"로 이름 붙인 뒤 (근처 북마크에도 적용) | [timeline-places-light](timeline-places-light.png) | [timeline-places-dark](timeline-places-dark.png) |
+| 기록 상세 · 이 장소 이름 붙이기 | [entry-name-place-light](entry-name-place-light.png) | |
+| 기록 상세 · 합친 항목 (4:00, 경계 뒤 문장 시각 19:17:14 → 19:18:03) | [entry-merged-light](entry-merged-light.png) | [entry-merged-dark](entry-merged-dark.png) |
+| 검색 · 북마크만 (녹음 밖 북마크 포함) | [search-bookmarks-light](search-bookmarks-light.png) | [search-bookmarks-dark](search-bookmarks-dark.png) |
+| 설정 › 장소 | [places-light](places-light.png) | [places-dark](places-dark.png) |
+
+장소 이름은 adb로 한글을 입력할 수 없어서 영어("Dorm 302")로 넣었어요.
+
 ## 동기화 확인 로그
 
 전체 동기화 (첫 등록, 시드 데이터):

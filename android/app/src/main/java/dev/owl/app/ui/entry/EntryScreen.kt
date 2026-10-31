@@ -423,17 +423,14 @@ private fun EntryBody(
                 items(lines, key = { if (it is EntryLine.Text) "s${it.sentence.index}" else "m${(it as EntryLine.Mark).n}" }) { line ->
                     when (line) {
                         is EntryLine.Mark -> BookmarkMarker(
-                            if (item.startUnixMs != null) formats.hms(item.startUnixMs + line.offsetMs) else formats.clock(line.offsetMs),
+                            detail.clockAt(line.offsetMs)?.let { formats.hms(it) } ?: formats.clock(line.offsetMs),
                         )
                         is EntryLine.Text -> {
                             val isCurrent = detail.sentences.getOrNull(current)?.index == line.sentence.index
                             SentenceRow(
                                 sentence = line.sentence,
-                                label = if (item.startUnixMs != null) {
-                                    formats.hms(item.startUnixMs + line.sentence.startMs)
-                                } else {
-                                    formats.clock(line.sentence.startMs)
-                                },
+                                label = detail.clockAt(line.sentence.startMs)?.let { formats.hms(it) }
+                                    ?: formats.clock(line.sentence.startMs),
                                 current = isCurrent,
                                 playing = isCurrent && player.playing,
                                 onClick = { onSeek(line.sentence.startMs) },

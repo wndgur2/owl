@@ -68,6 +68,7 @@ class TimelineRepositoryImpl(
                 bookmarkOffsetsMs = marks.map { entry.offsetOf(it) },
                 audioFiles = entry.audioFiles(),
                 audioDeleteAtMs = entry.parts.mapNotNull { RetentionRules.deleteAt(policy, it) }.minOrNull(),
+                partStarts = entry.partStarts(),
             )
         }
     }
@@ -89,7 +90,8 @@ class TimelineRepositoryImpl(
                 .sortedWith(compareByDescending<Pair<SentenceEntity, Pair<Entry, Int>>> { it.second.first.sortTimeMs }.thenBy { it.second.first.offsetOfSentence(it.first) })
                 .map { (sentence, pair) ->
                     val (e, n) = pair
-                    SearchHit(e.toItem(n), e.sentence(sentence))
+                    val hit = e.sentence(sentence)
+                    SearchHit(e.toItem(n), hit, e.clockAt(hit.startMs))
                 }
         }
     }
@@ -205,6 +207,14 @@ internal class Entry(val key: Long, val rows: List<SegmentRow>) {
             s.filePath?.let(::File)?.takeIf { !s.audioDeleted && s.state != SegmentState.RECEIVING && it.exists() }
         }
         return if (files.any { it == null }) emptyList() else files.filterNotNull()
+    }
+
+    fun partStarts(): List<Pair<Long, Long?>> = parts.mapIndexed { i, p -> starts[i] to p.startUnixMs }
+
+    /** Real time at entry offset [offsetMs]; parts were recorded with gaps, so map per part. */
+    fun clockAt(offsetMs: Long): Long? {
+        val i = starts.dropLast(1).indexOfLast { it <= offsetMs }.coerceAtLeast(0)
+        return parts[i].startUnixMs?.plus(offsetMs - starts[i])
     }
 
     private fun startOf(segmentRowId: Long): Long = starts[parts.indexOfFirst { it.rowId == segmentRowId }.coerceAtLeast(0)]

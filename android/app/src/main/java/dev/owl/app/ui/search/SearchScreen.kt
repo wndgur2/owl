@@ -406,8 +406,8 @@ private fun BookmarkResultRow(bookmark: StandaloneBookmark, formats: OwlFormats)
 @Composable
 private fun SearchResultRow(hit: SearchHit, query: String, highlight: SpanStyle, formats: OwlFormats, onClick: () -> Unit) {
     val item = hit.item
-    val start = item.startUnixMs
-    val time = if (start != null) formats.hm(start + (hit.sentence?.startMs ?: 0)) else stringResource(R.string.time_unknown)
+    val at = hit.atUnixMs
+    val time = if (at != null) formats.hm(at) else stringResource(R.string.time_unknown)
     val meta = stringResource(R.string.meta_time_place, time, formats.place(item.place))
     val body = hit.sentence?.text ?: item.preview.orEmpty()
     Column(

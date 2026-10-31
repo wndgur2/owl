@@ -103,7 +103,18 @@ data class EntryDetail(
     val audioFiles: List<File>,
     /** When retention will delete the audio, null if never (preserved / policy "지우지 않음"). */
     val audioDeleteAtMs: Long?,
-)
+    /**
+     * (entry offset, real start time) of each part, for [clockAt]. Offsets are continuous but the
+     * parts were recorded with gaps between them, so "start + offset" would drift.
+     */
+    val partStarts: List<Pair<Long, Long?>> = emptyList(),
+) {
+    /** Real time at entry offset [offsetMs], or null when the time is unknown. */
+    fun clockAt(offsetMs: Long): Long? {
+        val part = partStarts.lastOrNull { it.first <= offsetMs } ?: return item.startUnixMs?.plus(offsetMs)
+        return part.second?.plus(offsetMs - part.first)
+    }
+}
 
 enum class SearchPeriod { ALL, TODAY, LAST_7_DAYS, LAST_30_DAYS }
 
@@ -120,6 +131,8 @@ data class SearchHit(
     val item: TimelineItem,
     /** The matching sentence; null if the hit came from filters only (empty query). */
     val sentence: Sentence?,
+    /** Real time of [sentence] (or of the entry start), null if unknown. */
+    val atUnixMs: Long? = item.startUnixMs,
 )
 
 /** PRD A14 / decisions.md #11. Default is [DAYS_30]. */
