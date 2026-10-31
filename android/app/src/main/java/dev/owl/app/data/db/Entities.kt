@@ -16,6 +16,7 @@ import dev.owl.app.model.SegmentState
         Index(value = ["deviceAddress", "segmentId"], unique = true),
         Index(value = ["sortTimeMs"]),
         Index(value = ["deviceAddress", "bootCount"]),
+        Index(value = ["entryKey"]),
     ],
 )
 data class SegmentEntity(
@@ -51,7 +52,12 @@ data class SegmentEntity(
     val receivedAtMs: Long,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    /** Copy of the named place's name (null = "알 수 없는 장소"); kept in sync by PlaceResolver. */
     val placeName: String? = null,
+    /** Timeline entry this segment belongs to (row id of the entry's first segment); null until grouped. */
+    val entryKey: Long? = null,
+    /** The named place ([PlaceEntity.rowId]) the location falls in. */
+    val placeId: Long? = null,
 )
 
 /** One entry of an event-log segment (protocol §3.3). Bookmarks are event 1. */
@@ -72,6 +78,8 @@ data class EventEntity(
     val unixMs: Long?,
     val event: Int,
     val arg: Int,
+    /** Bookmarks only: the timeline entry it belongs to, -1 = standalone, null = not grouped yet. */
+    val entryKey: Long? = null,
 )
 
 /** A TIME_SYNC pair: at phone time [phoneUnixMs] the device was at ([bootCount], [deviceUptimeMs]). */
@@ -101,7 +109,7 @@ data class PlaceEntity(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val radiusM: Double = 150.0,
+    val radiusM: Double = dev.owl.app.data.PLACE_RADIUS_M,
 )
 
 /** One transcript sentence with its timing inside the recording (A6, A8). */

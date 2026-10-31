@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.owl.app.model.SegmentState
 
 @Database(
@@ -13,7 +15,7 @@ import dev.owl.app.model.SegmentState
         SegmentEntity::class, EventEntity::class, TimeSyncEntity::class, LocationEntity::class,
         PlaceEntity::class, SentenceEntity::class, StatusSampleEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -28,7 +30,23 @@ abstract class OwlDatabase : RoomDatabase() {
 
     companion object {
         fun create(context: Context): OwlDatabase =
-            Room.databaseBuilder(context, OwlDatabase::class.java, "owl.db").build()
+            Room.databaseBuilder(context, OwlDatabase::class.java, "owl.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
+
+        /**
+         * v2: timeline entries (merged segments), bookmark → entry assignment, named places.
+         * Additive only, so recordings stored by v1 survive; EntryIndexer fills the new columns.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE segments ADD COLUMN entryKey INTEGER")
+                db.execSQL("ALTER TABLE segments ADD COLUMN placeId INTEGER")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_segments_entryKey ON segments (entryKey)")
+                db.execSQL("ALTER TABLE events ADD COLUMN entryKey INTEGER")
+                db.execSQL("UPDATE places SET radiusM = ${dev.owl.app.data.PLACE_RADIUS_M}")
+            }
+        }
     }
 }
 

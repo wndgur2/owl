@@ -19,8 +19,8 @@ class JsonExporterTest {
         JsonExporter.write(
             w,
             listOf(
-                ExportRecord(1_793_440_000_000, 60_000, "집", 37.5, 127.0, listOf(1_000), listOf(Triple(0L, 5_000L, "안녕"))),
-                ExportRecord(null, null, null, null, null, emptyList(), emptyList()),
+                ExportRecord("recording", 1_793_440_000_000, 60_000, "집", 37.5, 127.0, listOf(1_000), listOf(Triple(0L, 5_000L, "안녕"))),
+                ExportRecord("bookmark", null, null, null, null, null, emptyList(), emptyList()),
             ),
             ZoneId.of("Asia/Seoul"),
         )
@@ -29,6 +29,6 @@ class JsonExporterTest {
         assertTrue(json.contains("+09:00\""))
         assertTrue(json.contains("\"place\":\"집\""))
         assertTrue(json.contains("{\"startMs\":0,\"endMs\":5000,\"text\":\"안녕\"}"))
-        assertTrue(json.contains("{\"start\":null,\"durationMs\":null,\"place\":null"))
+        assertTrue(json.contains("{\"kind\":\"bookmark\",\"start\":null,\"durationMs\":null,\"place\":null"))
     }
 }
