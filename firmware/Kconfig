@@ -84,6 +84,14 @@ config OWL_SEG_INDEX_MAX
 	  8 bytes of RAM each. 4096 matches the number of 4 KiB flash blocks,
 	  which already bounds the number of files.
 
+config OWL_SEG_SYNC_KB
+	int "Commit audio to flash every N KiB"
+	default 16
+	help
+	  A power cut loses at most this much (+ the 4 KiB RAM buffer).
+	  16 KiB is ~8 s of Opus. Every commit copies one partly written
+	  4 KiB block, so smaller values cost flash wear.
+
 config OWL_STORAGE_RESERVE_KB
 	int "Free space kept for events and file system metadata (KiB)"
 	default 128

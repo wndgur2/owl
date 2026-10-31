@@ -31,6 +31,7 @@ static const struct device *const vbat_reg = DEVICE_DT_GET(DT_NODELABEL(vbat_pwr
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(USER_NODE, master_button_gpios);
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 static const struct device *const flash = DEVICE_DT_GET(DT_ALIAS(ext_flash));
+static const struct device *const mic_pwr = DEVICE_DT_GET(DT_NODELABEL(pdm_imu_pwr));
 
 static K_MUTEX_DEFINE(adc_lock);
 static bool adc_ok;
@@ -41,6 +42,10 @@ int power_init(void)
 		LOG_ERR("battery ADC not ready");
 		return -ENODEV;
 	}
+	/* vbat_pwr is regulator-boot-on (starts with one reference held): drop it so the
+	 * enable/disable pair in power_battery_mv() really switches the divider off.
+	 */
+	regulator_disable(vbat_reg);
 	adc_ok = true;
 	return 0;
 }
@@ -84,6 +89,10 @@ void power_system_off(bool timer_wake)
 	}
 
 	pm_device_action_run(flash, PM_DEVICE_ACTION_SUSPEND); /* flash deep power-down */
+	/* GPIO levels survive System OFF: make sure mic + IMU are unpowered. On the
+	 * stay-off path the rail still holds its boot-on reference; otherwise this is a no-op.
+	 */
+	regulator_disable(mic_pwr);
 
 	/* Button press (line goes low) wakes the chip from System OFF. */
 	gpio_pin_interrupt_configure_dt(&button, GPIO_INT_LEVEL_ACTIVE);

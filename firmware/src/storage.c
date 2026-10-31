@@ -7,9 +7,15 @@
  *     payload_len is NOT patched when a segment closes; on flash it stays
  *     0xFFFFFFFF and storage_read() fills in the real value (size - 32) on the
  *     way out. Every byte the phone receives is still exactly protocol §3.
- *   - Nothing written is durable until fs_sync()/fs_close(). Audio is written in
- *     whole 4 KiB blocks and synced after each one (~2 s of Opus); events are
- *     synced one by one (decisions #19).
+ *   - Nothing written is durable until fs_sync()/fs_close(). Audio goes to the
+ *     file in 4 KiB writes and is synced every CONFIG_OWL_SEG_SYNC_KB (~8 s of
+ *     Opus). Each sync costs a copy of the partly filled last block (file blocks
+ *     start with skip-list pointers, so writes never end block-aligned), which
+ *     is why we don't sync every write. Events are synced one by one
+ *     (decisions #19).
+ *   - fs_statvfs() walks the whole file system, so it runs rarely; in between,
+ *     usage is estimated, and published in a spinlock-protected copy that
+ *     audio and the BT RX thread read without waiting for the flash.
  *
  * File names carry id and type so boot does not have to open every file:
  *   seg/0000002a.1    closed audio segment id 0x2a
@@ -58,7 +64,9 @@ static struct {
 	bool open;
 	struct fs_file_t f;
 	uint32_t id;
+	bool failed; /* a write failed: refuse appends until the segment is ended */
 	size_t fill;
+	uint32_t unsynced;
 	uint8_t buf[WRITE_BUF];
 } aw; /* audio writer */
 
@@ -80,8 +88,14 @@ static struct {
 	uint64_t total;
 	uint64_t free_at_stat;
 	uint64_t written_since_stat;
+	uint64_t freed_since_stat;
+	uint32_t changes_since_stat;
 	bool full;
 } space;
+
+/* Lock-free copy for readers that must not wait on the flash (BT RX, audio). */
+static struct k_spinlock pub_lock;
+static struct storage_usage pub;
 
 static storage_space_cb_t space_cb;
 
@@ -141,14 +155,26 @@ static void refresh_space_locked(void)
 		space.total = (uint64_t)sv.f_blocks * sv.f_frsize;
 		space.free_at_stat = (uint64_t)sv.f_bfree * sv.f_frsize;
 		space.written_since_stat = 0;
+		space.freed_since_stat = 0;
+		space.changes_since_stat = 0;
+	}
+}
+
+/* Exact numbers now and then; cheap estimates in between (statvfs walks the FS). */
+static void maybe_refresh_space_locked(void)
+{
+	if (++space.changes_since_stat >= 16) {
+		refresh_space_locked();
 	}
 }
 
 static uint64_t free_estimate_locked(void)
 {
+	uint64_t free = space.free_at_stat + space.freed_since_stat;
 	uint64_t used = space.written_since_stat + aw.fill;
 
-	return space.free_at_stat > used ? space.free_at_stat - used : 0;
+	free = MIN(free, space.total);
+	return free > used ? free - used : 0;
 }
 
 /* Updates the full flag with hysteresis. Returns true if full. */
@@ -165,7 +191,31 @@ static bool check_full_locked(void)
 		space.full = false;
 		LOG_INF("storage has space again (free %u KiB)", (unsigned int)(free / 1024));
 	}
+
+	uint64_t used = space.total > free ? space.total - free : 0;
+	struct storage_usage u = {
+		.total_kb = (uint32_t)(space.total / 1024),
+		.used_kb = (uint32_t)(used / 1024),
+		.pending = (uint16_t)MIN(ix.count + ((ew.open && ew.count) ? 1 : 0), UINT16_MAX),
+		.low = space.total && used * 10 >= space.total * 9,
+		.full = space.full,
+	};
+	k_spinlock_key_t key = k_spin_lock(&pub_lock);
+
+	pub = u;
+	k_spin_unlock(&pub_lock, key);
 	return space.full;
+}
+
+/* LittleFS itself ran out: trust it over our estimate until space is freed. */
+static void note_enospc_locked(int err)
+{
+	if (err == -ENOSPC) {
+		space.free_at_stat = 0;
+		space.freed_since_stat = 0;
+		space.written_since_stat = 0;
+		check_full_locked();
+	}
 }
 
 static void reader_close_locked(void)
@@ -230,7 +280,11 @@ static int repair_locked(const char *name, uint32_t id, uint8_t type, uint32_t s
 	}
 	fs_close(&f);
 
-	if (good <= OWL_SEG_HDR_LEN || err) {
+	if (err) {
+		LOG_ERR("recover %s: truncate failed (%d), retry next boot", name, err);
+		return err;
+	}
+	if (good <= OWL_SEG_HDR_LEN) {
 		LOG_WRN("recover %s: nothing usable, deleting", name);
 		fs_unlink(path);
 		return 0;
@@ -359,6 +413,7 @@ int storage_init(void)
 	}
 	state_load_locked();
 	refresh_space_locked();
+	check_full_locked();
 	k_mutex_unlock(&lock);
 
 	LOG_INF("mounted: %u / %u KiB free, boot_count %u",
@@ -433,12 +488,19 @@ int storage_set_config(uint8_t key, uint32_t value)
 	return res;
 }
 
-/* Allocates the next id and persists it before any file uses it. */
+/* Allocates the next id and persists it before any file uses it; 0 if that failed
+ * (an unpersisted id could be handed out again after a reboot).
+ */
 static uint32_t alloc_id_locked(void)
 {
 	uint32_t id = st.next_seg_id++;
+	int err = state_save_locked();
 
-	state_save_locked();
+	if (err) {
+		LOG_ERR("cannot persist next id: %d", err);
+		note_enospc_locked(err);
+		return 0;
+	}
 	return id;
 }
 
@@ -497,18 +559,28 @@ int storage_seg_begin(uint8_t codec, uint8_t frame_ms, uint64_t start_uptime_ms)
 
 	k_mutex_lock(&lock, K_FOREVER);
 	if (aw.open) {
-		err = -EBUSY;
-		goto out;
+		/* The END for it got lost: close it rather than wedge the recorder. */
+		LOG_WRN("segment %u still open, closing it", (unsigned int)aw.id);
+		k_mutex_unlock(&lock);
+		storage_seg_end();
+		k_mutex_lock(&lock, K_FOREVER);
 	}
 	if (check_full_locked()) {
 		err = -ENOSPC;
 		goto out;
 	}
 	aw.id = alloc_id_locked();
+	if (aw.id == 0) {
+		err = space.full ? -ENOSPC : -EIO;
+		goto out;
+	}
 	err = open_segment_locked(&aw.f, aw.id, OWL_SEG_AUDIO, codec, frame_ms,
 				  start_uptime_ms, aw.buf);
+	note_enospc_locked(err);
 	if (!err) {
 		aw.open = true;
+		aw.failed = false;
+		aw.unsynced = 0;
 		aw.fill = OWL_SEG_HDR_LEN;
 		LOG_DBG("segment %u begins at %u ms", (unsigned int)aw.id,
 			(unsigned int)start_uptime_ms);
@@ -518,21 +590,33 @@ out:
 	return err;
 }
 
-static int flush_audio_locked(void)
+/* Writes the RAM buffer to the file; syncs when enough is unsynced or `sync`. */
+static int flush_audio_locked(bool sync)
 {
-	if (aw.fill == 0) {
-		return 0;
-	}
-	ssize_t n = fs_write(&aw.f, aw.buf, aw.fill);
+	int err = 0;
 
-	if (n != (ssize_t)aw.fill) {
-		LOG_ERR("segment %u write: %d", (unsigned int)aw.id, (int)n);
-		return n < 0 ? (int)n : -EIO;
+	if (aw.fill > 0) {
+		ssize_t n = fs_write(&aw.f, aw.buf, aw.fill);
+
+		if (n != (ssize_t)aw.fill) {
+			err = n < 0 ? (int)n : -ENOSPC; /* short write = out of space */
+		} else {
+			space.written_since_stat += aw.fill;
+			aw.unsynced += aw.fill;
+		}
+		/* Never leave a full buffer behind: the next append would overrun it. */
+		aw.fill = 0;
 	}
-	space.written_since_stat += aw.fill;
-	aw.fill = 0;
-	/* Commit, so a power cut loses at most the RAM buffer (~2 s of Opus). */
-	return fs_sync(&aw.f);
+	if (!err && (sync || aw.unsynced >= CONFIG_OWL_SEG_SYNC_KB * 1024U)) {
+		err = fs_sync(&aw.f);
+		aw.unsynced = 0;
+	}
+	if (err) {
+		LOG_ERR("segment %u write: %d", (unsigned int)aw.id, err);
+		aw.failed = true;
+		note_enospc_locked(err);
+	}
+	return err;
 }
 
 int storage_seg_append(const void *frame, uint16_t len)
@@ -542,7 +626,7 @@ int storage_seg_append(const void *frame, uint16_t len)
 	int err = 0;
 
 	k_mutex_lock(&lock, K_FOREVER);
-	if (!aw.open) {
+	if (!aw.open || aw.failed) {
 		err = -EINVAL;
 		goto out;
 	}
@@ -556,7 +640,8 @@ int storage_seg_append(const void *frame, uint16_t len)
 	for (size_t i = 0; i < 2U + len && !err; i++) {
 		aw.buf[aw.fill++] = i < 2 ? lenb[i] : src[i - 2];
 		if (aw.fill == WRITE_BUF) {
-			err = flush_audio_locked();
+			err = flush_audio_locked(false);
+			check_full_locked(); /* publish the new estimate */
 		}
 	}
 out:
@@ -573,11 +658,12 @@ int storage_seg_end(void)
 		k_mutex_unlock(&lock);
 		return 0;
 	}
-	err = flush_audio_locked();
+	err = aw.failed ? 0 : flush_audio_locked(true);
 	aw.open = false;
+	aw.failed = false;
 	int cerr = close_segment_locked(&aw.f, aw.id, OWL_SEG_AUDIO);
 
-	refresh_space_locked();
+	maybe_refresh_space_locked();
 	check_full_locked();
 	LOG_INF("segment %u closed", (unsigned int)aw.id);
 	k_mutex_unlock(&lock);
@@ -610,6 +696,10 @@ int storage_event(uint8_t event, uint8_t arg)
 	if (!ew.open) {
 		/* Events are tiny and always kept, even when audio is paused for space. */
 		ew.id = alloc_id_locked();
+		if (ew.id == 0) {
+			err = -EIO;
+			goto out;
+		}
 		err = open_segment_locked(&ew.f, ew.id, OWL_SEG_EVENTS, OWL_CODEC_PCM16, 0, now,
 					  hdr);
 		if (!err && fs_write(&ew.f, hdr, sizeof(hdr)) != sizeof(hdr)) {
@@ -631,6 +721,7 @@ int storage_event(uint8_t event, uint8_t arg)
 	if (ew.count >= EVENTS_PER_SEGMENT) {
 		events_close_locked();
 	}
+	check_full_locked();
 out:
 	k_mutex_unlock(&lock);
 	LOG_INF("event %u arg %u at %u ms%s", event, arg, (unsigned int)now, err ? " FAILED" : "");
@@ -644,6 +735,7 @@ int storage_events_rotate(void)
 	k_mutex_lock(&lock, K_FOREVER);
 	if (ew.open && ew.count > 0) {
 		err = events_close_locked();
+		check_full_locked();
 	}
 	k_mutex_unlock(&lock);
 	return err;
@@ -757,9 +849,11 @@ int storage_delete(uint32_t id)
 	err = fs_unlink(path);
 	if (err == 0 || err == -ENOENT) {
 		owl_seg_index_remove(&ix, id);
+		/* Whole blocks come back; metadata is noise. statvfs corrects us later. */
+		space.freed_since_stat += ROUND_UP((uint64_t)e.size, BLOCK);
 		err = 0;
 	}
-	refresh_space_locked();
+	maybe_refresh_space_locked();
 	check_full_locked();
 	k_mutex_unlock(&lock);
 
@@ -772,22 +866,29 @@ int storage_delete(uint32_t id)
 
 void storage_get_usage(struct storage_usage *u)
 {
-	k_mutex_lock(&lock, K_FOREVER);
-	uint64_t free = free_estimate_locked();
-	uint64_t used = space.total > free ? space.total - free : 0;
+	k_spinlock_key_t key = k_spin_lock(&pub_lock);
 
-	u->total_kb = (uint32_t)(space.total / 1024);
-	u->used_kb = (uint32_t)(used / 1024);
-	u->pending = (uint16_t)MIN(ix.count + ((ew.open && ew.count) ? 1 : 0), UINT16_MAX);
-	u->low = space.total && used * 10 >= space.total * 9;
-	u->full = check_full_locked();
-	k_mutex_unlock(&lock);
+	*u = pub;
+	k_spin_unlock(&pub_lock, key);
 }
 
 void storage_set_space_cb(storage_space_cb_t cb)
 {
 	space_cb = cb;
 }
+
+#if defined(CONFIG_ZTEST)
+void storage_test_power_cut(void)
+{
+	/* As if the battery fell out: nothing is closed or flushed, RAM is lost. */
+	fs_unmount(&FS_FSTAB_ENTRY(DT_NODELABEL(owl_lfs)));
+	memset(&aw, 0, sizeof(aw));
+	memset(&ew, 0, sizeof(ew));
+	memset(&rd, 0, sizeof(rd));
+	memset(&space, 0, sizeof(space));
+	memset(&st, 0, sizeof(st));
+}
+#endif
 
 void storage_flush(void)
 {

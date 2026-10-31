@@ -30,6 +30,7 @@
 #include "ble.h"
 #include "control.h"
 #include "storage.h"
+#include "workq.h"
 
 LOG_MODULE_REGISTER(ble, CONFIG_OWL_LOG_LEVEL);
 
@@ -255,7 +256,7 @@ static void tx_thread(void *a, void *b, void *c)
 	}
 }
 
-K_THREAD_DEFINE(ble_tx_tid, 2048, tx_thread, NULL, NULL, NULL, 7, 0, 0);
+K_THREAD_DEFINE(ble_tx_tid, 3072, tx_thread, NULL, NULL, NULL, 7, 0, 0);
 
 /* Stops a running stream and waits (briefly) until it has let go of the file. */
 static void stream_stop(void)
@@ -325,7 +326,16 @@ static int op_ack(uint32_t id, uint32_t crc)
 		return OWL_RESULT_NO_SEGMENT;
 	}
 	if (atomic_get(&tx_active) && (uint32_t)atomic_get(&tx_id) == id) {
-		stream_stop();
+		/* Stop that stream, but keep a FETCH for another segment that may be queued. */
+		k_spinlock_key_t k = k_spin_lock(&fetch_req.lock);
+
+		fetch_req.gen++;
+		k_spin_unlock(&fetch_req.lock, k);
+		for (int i = 0; i < 100 && atomic_get(&tx_active) &&
+				(uint32_t)atomic_get(&tx_id) == id;
+		     i++) {
+			k_msleep(10);
+		}
 	}
 
 	k_spinlock_key_t key = k_spin_lock(&crc_cache.lock);
@@ -444,7 +454,7 @@ static void ctl_thread(void *a, void *b, void *c)
 	}
 }
 
-K_THREAD_DEFINE(ble_ctl_tid, 2048, ctl_thread, NULL, NULL, NULL, 8, 0, 0);
+K_THREAD_DEFINE(ble_ctl_tid, 4096, ctl_thread, NULL, NULL, NULL, 8, 0, 0);
 
 /* ------------------------------------------------------- STATUS notify */
 
@@ -470,8 +480,10 @@ static K_WORK_DELAYABLE_DEFINE(status_work, status_work_fn);
 
 void ble_notify_status(void)
 {
-	/* Coalesce bursts of changes into one notification. */
-	k_work_schedule(&status_work, K_MSEC(100));
+	/* Coalesce bursts of changes into one notification. Not on the system work
+	 * queue: building STATUS takes the storage lock, which may wait on flash.
+	 */
+	k_work_schedule_for_queue(&app_workq, &status_work, K_MSEC(100));
 }
 
 /* ------------------------------------------------------- advertising */
@@ -512,6 +524,15 @@ static K_WORK_DEFINE(adv_work, adv_work_fn);
 
 /* ------------------------------------------------------- connection */
 
+static void mtu_exchanged(struct bt_conn *c, uint8_t err, struct bt_gatt_exchange_params *p)
+{
+	if (err) {
+		LOG_WRN("mtu exchange: %u", err);
+	}
+}
+
+static struct bt_gatt_exchange_params mtu_params = {.func = mtu_exchanged};
+
 static void connected(struct bt_conn *c, uint8_t err)
 {
 	if (err) {
@@ -532,8 +553,16 @@ static void connected(struct bt_conn *c, uint8_t err)
 	}
 	LOG_INF("connected");
 
-	/* Ask for the fast-transfer link: 2M PHY, 251-byte packets (§2). */
-	int e = bt_conn_le_phy_update(c, BT_CONN_LE_PHY_PARAM_2M);
+	/* Ask for the fast-transfer link: MTU 247, 2M PHY, 251-byte packets (§2).
+	 * Phones usually start the MTU exchange themselves; doing it from our side
+	 * too covers centrals that don't (else DATA chunks would be 12 bytes).
+	 */
+	int e = bt_gatt_exchange_mtu(c, &mtu_params);
+
+	if (e && e != -EALREADY) {
+		LOG_WRN("mtu exchange: %d", e);
+	}
+	e = bt_conn_le_phy_update(c, BT_CONN_LE_PHY_PARAM_2M);
 
 	if (e) {
 		LOG_WRN("phy update: %d", e);

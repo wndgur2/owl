@@ -79,4 +79,7 @@ void storage_set_space_cb(storage_space_cb_t cb);
 /* Flush anything buffered (before System OFF). */
 void storage_flush(void);
 
+/* Tests only: unmount without closing anything and forget RAM state. */
+void storage_test_power_cut(void);
+
 #endif /* OWL_STORAGE_H_ */

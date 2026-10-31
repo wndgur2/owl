@@ -41,6 +41,11 @@
 	};
 };
 
+&pdm20 {
+	/* Filled blocks the driver may hold for us before it stops the PDM: 240 ms. */
+	queue-size = <12>;
+};
+
 &xiao_spi {
 	status = "okay";
 	cs-gpios = <&xiao_d 3 GPIO_ACTIVE_LOW>;

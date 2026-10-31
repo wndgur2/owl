@@ -175,6 +175,9 @@ static void writer_thread(void *a, void *b, void *c)
 
 		switch (hdr[0]) {
 		case MSG_BEGIN:
+			if (seg_open) {
+				storage_seg_end(); /* its END was lost */
+			}
 			err = storage_seg_begin(CODEC, FRAME_MS, owl_get_u64(payload));
 			seg_open = err == 0;
 			drop = !seg_open;
@@ -193,20 +196,23 @@ static void writer_thread(void *a, void *b, void *c)
 			break;
 		}
 
-		if (err == -ENOSPC) {
+		if (err) {
+			/* Keep what is on flash and skip the rest of this segment. */
 			if (seg_open) {
-				storage_seg_end(); /* keep what we have */
+				storage_seg_end();
 				seg_open = false;
 			}
 			drop = true;
-			set_full(true);
-		} else if (err) {
-			LOG_ERR("writer: msg %u err %d", hdr[0], err);
+			if (err == -ENOSPC) {
+				set_full(true);
+			} else {
+				LOG_ERR("writer: msg %u err %d", hdr[0], err);
+			}
 		}
 	}
 }
 
-K_THREAD_DEFINE(writer_tid, 2048, writer_thread, NULL, NULL, NULL, 6, 0, -1);
+K_THREAD_DEFINE(writer_tid, 4096, writer_thread, NULL, NULL, NULL, 6, 0, -1);
 
 /* ------------------------------------------------------------- encoder */
 
@@ -392,17 +398,25 @@ static int mic_start(void)
 	dcfg.channel.req_chan_map_lo = dmic_build_channel_map(
 		0, 0, IS_ENABLED(CONFIG_OWL_PDM_CHANNEL_RIGHT) ? PDM_CHAN_RIGHT : PDM_CHAN_LEFT);
 
-	if (mic_pwr && device_is_ready(mic_pwr)) {
-		regulator_enable(mic_pwr);
-		k_msleep(5); /* MEMS mic power-up */
-	}
-	int err = dmic_configure(dmic, &dcfg);
+	static bool configured;
+	int err = 0;
 
+	if (mic_pwr && device_is_ready(mic_pwr)) {
+		regulator_enable(mic_pwr); /* includes the rail's 5 ms startup delay */
+	}
+	/* The PDM keeps its configuration across stop/start; set it up once. */
+	if (!configured) {
+		err = dmic_configure(dmic, &dcfg);
+		configured = err == 0;
+	}
 	if (!err) {
 		err = dmic_trigger(dmic, DMIC_TRIGGER_START);
 	}
 	if (err) {
 		LOG_ERR("mic start: %d", err);
+		if (mic_pwr && device_is_ready(mic_pwr)) {
+			regulator_disable(mic_pwr);
+		}
 	}
 	return err;
 }
@@ -410,7 +424,11 @@ static int mic_start(void)
 static void mic_stop(void)
 {
 	dmic_trigger(dmic, DMIC_TRIGGER_STOP);
-	/* Return any blocks still queued in the driver. */
+	/* STOP is asynchronous: the PDM finishes the block in flight, then the driver
+	 * marks itself inactive. Starting again before that would be ignored.
+	 */
+	k_msleep(2 * FRAME_MS + 10);
+	/* Return the filled blocks we never read. */
 	void *buf;
 	size_t size;
 
@@ -529,11 +547,12 @@ static void audio_thread(void *a, void *b, void *c)
 				break;
 			case OWL_SEG_END:
 				encode_and_post(pcm);
+				/* If END doesn't fit, the writer closes the segment at the next BEGIN. */
 				post(MSG_END, NULL, 0, NULL, 0);
 				break;
 			case OWL_SEG_ROLLOVER:
-				post(MSG_END, NULL, 0, NULL, 0);
-				broken = !post_begin(now - FRAME_MS);
+				broken = !post(MSG_END, NULL, 0, NULL, 0) ||
+					 !post_begin(now - FRAME_MS);
 				codec_reset();
 				encode_and_post(pcm);
 				break;
