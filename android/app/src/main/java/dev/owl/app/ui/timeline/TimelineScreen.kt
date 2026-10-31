@@ -60,6 +60,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -236,7 +238,7 @@ fun TimelineContent(
                 val items = state.items
                 when {
                     items == null -> Unit
-                    items.isEmpty() -> dev.owl.app.ui.components.EmptyState(
+                    items.isEmpty() && state.bookmarks.isEmpty() -> dev.owl.app.ui.components.EmptyState(
                         icon = if (state.bookmarkedOnly) Icons.Outlined.BookmarkBorder else Icons.Outlined.GraphicEq,
                         title = stringResource(if (state.bookmarkedOnly) R.string.timeline_empty_bookmarks else R.string.timeline_empty),
                         body = stringResource(
@@ -256,6 +258,7 @@ fun TimelineContent(
                                 is TimelineRow.Day -> DayDivider(row.date, formats)
                                 is TimelineRow.PlaceHeader -> PlaceHeaderRow(row, formats)
                                 is TimelineRow.Item -> TimelineCard(row.item, formats, onClick = { onOpenEntry(row.item.id) })
+                                is TimelineRow.Bookmark -> StandaloneBookmarkRow(row.bookmark.timeMs, formats)
                             }
                         }
                     }
@@ -343,6 +346,29 @@ private fun PlaceHeaderRow(row: TimelineRow.PlaceHeader, formats: OwlFormats) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * A bookmark pressed while nothing was recording (A9). Low emphasis, same look as the bookmark
+ * marker inside an entry; there is no recording to open, so it is not clickable.
+ */
+@Composable
+fun StandaloneBookmarkRow(timeMs: Long?, formats: OwlFormats, modifier: Modifier = Modifier) {
+    val time = if (timeMs != null) formats.hm(timeMs) else stringResource(R.string.time_unknown)
+    val description = stringResource(R.string.standalone_bookmark_description, time)
+    Row(
+        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clearAndSetSemantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(Icons.Filled.Bookmark, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
+        Text(
+            stringResource(R.string.standalone_bookmark, time),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -461,7 +487,11 @@ private fun TimelinePreview() {
     OwlTheme {
         Surface(color = MaterialTheme.colorScheme.background) {
             TimelineContent(
-                state = TimelineUiState(items = SampleData.timeline, rows = buildTimelineRows(SampleData.timeline)),
+                state = TimelineUiState(
+                    items = SampleData.timeline,
+                    bookmarks = SampleData.standaloneBookmarks,
+                    rows = buildTimelineRows(mergeTimeline(SampleData.timeline, SampleData.standaloneBookmarks)),
+                ),
                 onBookmarkedOnly = {}, onLoadOlder = {}, onJumpTo = {}, onJumpHandled = {}, onOpenEntry = {}, onOpenPlaces = {},
             )
         }

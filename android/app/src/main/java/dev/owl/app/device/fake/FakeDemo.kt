@@ -53,13 +53,16 @@ class FakeDemo(
             dev.reboot()
             return@withContext dev
         }
-        places().forEach { db.places().insert(PlaceEntity(0, it.name, it.lat, it.lon)) }
+        // "집" stays unnamed so the "알 수 없는 장소" → "이 장소 이름 붙이기" flow can be tried.
+        places().filter { it != home }.forEach { db.places().insert(PlaceEntity(0, it.name, it.lat, it.lon)) }
         // Boot 2: never synced, so this one keeps an unknown time.
         dev.recordAudio(durationMs = 40_000, agoMs = now - yesterday(7, 0))
         dev.reboot(agoMs = now - yesterday(8, 0))
         // Boot 3 (current): yesterday evening and today.
         val plan = mutableListOf(
             Triple(yesterday(19, 15), 150_000L, library),
+            // 40 s after the previous one ends: merged into one timeline entry (gap ≤ 2 min).
+            Triple(yesterday(19, 18), 90_000L, library),
             Triple(yesterday(19, 42), 60_000L, library),
             Triple(yesterday(22, 41), 120_000L, home),
         )
@@ -76,6 +79,9 @@ class FakeDemo(
         }
         dev.bookmark(agoMs = now - (todayPlan[1].first + 20_000))
         dev.bookmark(agoMs = now - (plan[0].first + 63_000))
+        // Pressed during silence, between recordings: a standalone bookmark (A9).
+        dev.bookmark(agoMs = now - yesterday(21, 5))
+        recordFixes(home, yesterday(21, 5), 0)
         dev
     }
 

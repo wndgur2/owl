@@ -49,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -67,6 +69,7 @@ import dev.owl.app.model.SearchFilter
 import dev.owl.app.model.SearchHit
 import dev.owl.app.model.SearchPeriod
 import dev.owl.app.model.Sentence
+import dev.owl.app.model.StandaloneBookmark
 import dev.owl.app.ui.components.EmptyState
 import dev.owl.app.ui.components.OwlFormats
 import dev.owl.app.ui.components.rememberOwlFormats
@@ -250,7 +253,7 @@ fun SearchContent(
                     modifier = Modifier.align(Alignment.Center),
                 )
                 results == null -> Unit
-                results.hits.isEmpty() -> EmptyState(
+                results.isEmpty -> EmptyState(
                     icon = Icons.Outlined.SearchOff,
                     title = stringResource(R.string.search_empty_title),
                     body = stringResource(R.string.search_empty_body),
@@ -272,18 +275,48 @@ private fun periodLabel(p: SearchPeriod): String = stringResource(
     },
 )
 
-private data class HitGroup(val date: LocalDate?, val hits: List<SearchHit>)
+/** A result line: a transcript hit, or a standalone bookmark (filter-only bookmark search). */
+private sealed interface ResultLine {
+    val key: String
+    val date: LocalDate?
 
-/** Consecutive hits on the same day share a header; order is the repository's. */
-private fun groupByDay(hits: List<SearchHit>): List<HitGroup> {
-    val out = ArrayList<HitGroup>()
+    data class Hit(val hit: SearchHit) : ResultLine {
+        override val key: String get() = "r-${hit.item.id}-${hit.sentence?.index}"
+        override val date: LocalDate? get() = hit.item.startUnixMs?.toLocalDate()
+    }
+
+    data class Mark(val bookmark: StandaloneBookmark) : ResultLine {
+        override val key: String get() = "b-${bookmark.id}"
+        override val date: LocalDate? get() = bookmark.timeMs?.toLocalDate()
+    }
+}
+
+private data class LineGroup(val date: LocalDate?, val lines: List<ResultLine>)
+
+/**
+ * Hits keep the repository's order (newest first); each bookmark goes before the first timed hit
+ * older than it. Consecutive lines on the same day share a header.
+ */
+private fun groupByDay(hits: List<SearchHit>, bookmarks: List<StandaloneBookmark>): List<LineGroup> {
+    val marks = bookmarks.sortedByDescending { it.sortTimeMs }
+    val lines = ArrayList<ResultLine>(hits.size + marks.size)
+    var next = 0
     for (hit in hits) {
-        val date = hit.item.startUnixMs?.toLocalDate()
+        val start = hit.item.startUnixMs
+        if (start != null) {
+            while (next < marks.size && marks[next].sortTimeMs > start) lines += ResultLine.Mark(marks[next++])
+        }
+        lines += ResultLine.Hit(hit)
+    }
+    while (next < marks.size) lines += ResultLine.Mark(marks[next++])
+
+    val out = ArrayList<LineGroup>()
+    for (line in lines) {
         val last = out.lastOrNull()
-        if (last != null && last.date == date) {
-            out[out.lastIndex] = last.copy(hits = last.hits + hit)
+        if (last != null && last.date == line.date) {
+            out[out.lastIndex] = last.copy(lines = last.lines + line)
         } else {
-            out += HitGroup(date, listOf(hit))
+            out += LineGroup(line.date, listOf(line))
         }
     }
     return out
@@ -291,8 +324,9 @@ private fun groupByDay(hits: List<SearchHit>): List<HitGroup> {
 
 @Composable
 private fun SearchResultList(results: SearchResults, formats: OwlFormats, onOpenEntry: (Long, Long?) -> Unit) {
-    val groups = remember(results.hits) { groupByDay(results.hits) }
+    val groups = remember(results.hits, results.bookmarks) { groupByDay(results.hits, results.bookmarks) }
     val count = remember(results.hits) { results.hits.map { it.item.id }.distinct().size }
+    val marks = results.bookmarks.size
     val query = results.filter.query.trim()
     val highlight = SpanStyle(
         background = MaterialTheme.colorScheme.primaryContainer,
@@ -302,7 +336,11 @@ private fun SearchResultList(results: SearchResults, formats: OwlFormats, onOpen
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
         item(key = "count") {
             Text(
-                stringResource(R.string.search_count, count),
+                when {
+                    marks == 0 -> stringResource(R.string.search_count, count)
+                    count == 0 -> stringResource(R.string.search_count_bookmarks, marks)
+                    else -> stringResource(R.string.search_count_with_bookmarks, count, marks)
+                },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -322,19 +360,55 @@ private fun SearchResultList(results: SearchResults, formats: OwlFormats, onOpen
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
-            items(group.hits, key = { "r-${it.item.id}-${it.sentence?.index}" }) { hit ->
-                SearchResultRow(hit, query, highlight, formats, onClick = { onOpenEntry(hit.item.id, hit.sentence?.startMs) })
+            items(group.lines, key = { it.key }) { line ->
+                when (line) {
+                    is ResultLine.Hit -> SearchResultRow(
+                        line.hit, query, highlight, formats,
+                        onClick = { onOpenEntry(line.hit.item.id, line.hit.sentence?.startMs) },
+                    )
+                    is ResultLine.Mark -> BookmarkResultRow(line.bookmark, formats)
+                }
             }
         }
+    }
+}
+
+/** A standalone bookmark: no recording to open, so it is shown but not clickable. */
+@Composable
+private fun BookmarkResultRow(bookmark: StandaloneBookmark, formats: OwlFormats) {
+    val time = bookmark.timeMs?.let { formats.hm(it) } ?: stringResource(R.string.time_unknown)
+    val description = stringResource(R.string.standalone_bookmark_description, time)
+    val place = formats.place(bookmark.place)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 24.dp, top = 10.dp, bottom = 10.dp)
+            .clearAndSetSemantics { contentDescription = "$description, $place" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(Icons.Filled.Bookmark, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
+        Text(
+            stringResource(R.string.standalone_bookmark, time),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        Text(
+            place,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 @Composable
 private fun SearchResultRow(hit: SearchHit, query: String, highlight: SpanStyle, formats: OwlFormats, onClick: () -> Unit) {
     val item = hit.item
-    val start = item.startUnixMs
-    val time = if (start != null) formats.hm(start + (hit.sentence?.startMs ?: 0)) else stringResource(R.string.time_unknown)
-    val meta = if (item.place != null) stringResource(R.string.meta_time_place, time, formats.place(item.place)) else time
+    val at = hit.atUnixMs
+    val time = if (at != null) formats.hm(at) else stringResource(R.string.time_unknown)
+    val meta = stringResource(R.string.meta_time_place, time, formats.place(item.place))
     val body = hit.sentence?.text ?: item.preview.orEmpty()
     Column(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 16.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
@@ -399,6 +473,25 @@ private fun SearchPreview() {
                     filter = SearchFilter(query = "마감"),
                     results = SearchResults(SearchFilter(query = "마감"), hits),
                     placeNames = listOf("중앙도서관", "집"),
+                ),
+                openPlaceMenu = false, onPlaceMenuOpened = {}, onQuery = {}, onPeriod = {}, onPlace = {},
+                onBookmarkedOnly = {}, onPreservedOnly = {}, onOpenEntry = { _, _ -> },
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 390, heightDp = 700, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun SearchBookmarksPreview() {
+    val filter = SearchFilter(bookmarkedOnly = true)
+    val hits = SampleData.timeline.filter { it.bookmarkCount > 0 }.map { SearchHit(it, null) }
+    OwlTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            SearchContent(
+                state = SearchUiState(
+                    filter = filter,
+                    results = SearchResults(filter, hits, SampleData.standaloneBookmarks),
                 ),
                 openPlaceMenu = false, onPlaceMenuOpened = {}, onQuery = {}, onPeriod = {}, onPlace = {},
                 onBookmarkedOnly = {}, onPreservedOnly = {}, onOpenEntry = { _, _ -> },

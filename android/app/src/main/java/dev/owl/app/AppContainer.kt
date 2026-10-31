@@ -10,6 +10,8 @@ import dev.owl.app.sync.SyncService
 import dev.owl.app.sync.SyncWorker
 import dev.owl.app.data.LocationStore
 import dev.owl.app.data.PlaceResolver
+import dev.owl.app.data.EntryIndexer
+import dev.owl.app.data.PlacesRepositoryImpl
 import dev.owl.app.data.RegisteredDevice
 import dev.owl.app.data.RegistrationStore
 import dev.owl.app.data.RoomSyncDb
@@ -28,6 +30,7 @@ import dev.owl.app.model.Exporter
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.model.TimelineRepository
+import dev.owl.app.model.PlacesRepository
 import dev.owl.app.retention.RetentionManager
 import dev.owl.app.retention.RetentionWorker
 import dev.owl.app.stt.DemoTranscriber
@@ -68,6 +71,7 @@ class AppContainer(private val context: Context) {
 
     val locationSink: LocationSink by lazy { LocationStore(database) }
     private val placeResolver by lazy { PlaceResolver(database) }
+    private val entryIndexer by lazy { EntryIndexer(database) }
     val retentionManager by lazy { RetentionManager(database.segments()) }
     val transcriptionQueue by lazy { TranscriptionQueue(database) { transcriber() } }
 
@@ -79,7 +83,9 @@ class AppContainer(private val context: Context) {
         return if (fake && BuildConfig.DEBUG) DemoTranscriber() else PlaceholderTranscriber()
     }
 
-    val timelineRepository: TimelineRepository by lazy { TimelineRepositoryImpl(database, settingsStore.retention) }
+    val timelineRepository: TimelineRepository by lazy {
+        TimelineRepositoryImpl(database, settingsStore.retention, reindex = { entryIndexer.rebuild() })
+    }
 
     private val coordinator: SyncCoordinator by lazy {
         SyncCoordinator(
@@ -93,6 +99,7 @@ class AppContainer(private val context: Context) {
             afterSync = { report ->
                 settingsStore.current()?.let { syncDb.placeUnknownTimes(it.address) }
                 placeResolver.resolve()
+                entryIndexer.rebuild()
                 if (report.fetched > 0) TranscribeWorker.enqueue(context)
                 retentionManager.apply(currentRetention())
             },
@@ -125,6 +132,7 @@ class AppContainer(private val context: Context) {
     }
 
     val locationRecorder by lazy { LocationRecorder(context) }
+    val placesRepository: PlacesRepository by lazy { PlacesRepositoryImpl(database, placeResolver) }
     val exporter: Exporter by lazy { JsonExporter(database, context.contentResolver) }
 
     /** A new player per Entry screen; the caller releases it. */
@@ -159,6 +167,8 @@ class AppContainer(private val context: Context) {
         RetentionWorker.schedule(context)
         TranscribeWorker.enqueue(context)
         appScope.launch {
+            // Data from before an app update (or a v1 DB) gets grouped and labelled right away.
+            runCatching { placeResolver.resolve(); entryIndexer.rebuild() }
             val dev = settingsStore.current() ?: return@launch
             if (dev.isFake) coordinator.setDevicePresent(true)
             SyncService.start(context, SyncTrigger.APP_START)

@@ -2,7 +2,9 @@ package dev.owl.app.export
 
 import android.content.ContentResolver
 import android.net.Uri
+import dev.owl.app.data.assemble
 import dev.owl.app.data.db.OwlDatabase
+import kotlinx.coroutines.flow.first
 import dev.owl.app.model.Exporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,22 +32,25 @@ class JsonExporter(
         }
     }
 
+    /** One record per timeline entry (merged segments), plus bookmarks made outside recordings. */
     suspend fun collect(): List<ExportRecord> {
-        val bookmarks = db.events().allBookmarks().groupBy { it.deviceAddress to it.bootCount }
-        return db.segments().allAudio().map { s ->
-            val marks = if (s.bootCount != null && s.startUptimeMs != null) {
-                bookmarks[s.deviceAddress to s.bootCount].orEmpty()
-                    .filter { it.uptimeMs in s.startUptimeMs..(s.startUptimeMs + (s.durationMs ?: 0)) }
-                    .map { it.uptimeMs - s.startUptimeMs }
-            } else {
-                emptyList()
-            }
+        val entries = assemble(db.segments().allAudioRows().first()).map { e ->
+            val sentences = e.sentences(e.parts.flatMap { db.sentences().forSegment(it.rowId) })
             ExportRecord(
-                start = s.startUnixMs, durationMs = s.durationMs, placeName = s.placeName,
-                latitude = s.latitude, longitude = s.longitude, bookmarksMs = marks,
-                sentences = db.sentences().forSegment(s.rowId).map { Triple(it.startMs, it.endMs, it.text) },
+                kind = "recording", start = e.parts.first().startUnixMs, durationMs = e.toItem(0).durationMs,
+                placeName = e.place?.name, latitude = e.place?.latitude, longitude = e.place?.longitude,
+                bookmarksMs = db.events().entryBookmarksOnce(e.key).map { e.offsetOf(it) },
+                sentences = sentences.map { Triple(it.startMs, it.endMs, it.text) },
+                sortTimeMs = e.sortTimeMs,
             )
         }
+        val bookmarks = db.events().standaloneBookmarks(Long.MIN_VALUE).first().map { b ->
+            ExportRecord(
+                kind = "bookmark", start = b.timeMs, durationMs = 0, placeName = null, latitude = null, longitude = null,
+                bookmarksMs = listOf(0), sentences = emptyList(), sortTimeMs = b.sortTimeMs,
+            )
+        }
+        return (entries + bookmarks).sortedBy { it.sortTimeMs }
     }
 
     companion object {
@@ -54,7 +59,7 @@ class JsonExporter(
             w.write("{\"format\":\"owl-export\",\"version\":1,\"exportedAt\":${str(fmt.format(Instant.now().atZone(zone)))},\"records\":[")
             records.forEachIndexed { i, r ->
                 if (i > 0) w.write(",")
-                w.write("\n{\"start\":${r.start?.let { str(fmt.format(Instant.ofEpochMilli(it).atZone(zone))) } ?: "null"}")
+                w.write("\n{\"kind\":${str(r.kind)},\"start\":${r.start?.let { str(fmt.format(Instant.ofEpochMilli(it).atZone(zone))) } ?: "null"}")
                 w.write(",\"durationMs\":${r.durationMs ?: "null"}")
                 w.write(",\"place\":${r.placeName?.let(::str) ?: "null"}")
                 w.write(",\"latitude\":${r.latitude ?: "null"},\"longitude\":${r.longitude ?: "null"}")
@@ -87,6 +92,8 @@ class JsonExporter(
 }
 
 data class ExportRecord(
+    /** "recording" (a timeline entry) or "bookmark" (pressed outside any recording). */
+    val kind: String,
     val start: Long?,
     val durationMs: Long?,
     val placeName: String?,
@@ -94,4 +101,5 @@ data class ExportRecord(
     val longitude: Double?,
     val bookmarksMs: List<Long>,
     val sentences: List<Triple<Long, Long, String>>,
+    val sortTimeMs: Long = 0,
 )

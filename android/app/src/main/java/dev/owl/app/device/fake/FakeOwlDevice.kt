@@ -300,9 +300,9 @@ class FakeOwlDevice(
         val id = nextId++
         val header = SegmentHeader(
             type = SegmentType.EVENTS, codec = Codec.PCM16, frameMs = 0, id = id, bootCount = bootCount,
-            startUptimeMs = pendingEvents.first().uptimeMs, sampleRate = 16_000, channels = 1, payloadLen = 0,
+            startUptimeMs = pendingEvents.minOf { it.uptimeMs }, sampleRate = 16_000, channels = 1, payloadLen = 0,
         )
-        stored[id] = Segments.buildEvents(header, pendingEvents.toList())
+        stored[id] = Segments.buildEvents(header, pendingEvents.sortedBy { it.uptimeMs })
         pendingEvents.clear()
     }
 

@@ -9,7 +9,7 @@
     <string name="now">지금</string>
     <string name="time_unknown">시각 알 수 없음</string>
     <string name="time_range">%1$s – %2$s</string>
-    <string name="place_none">장소 없음</string>
+    <string name="place_unknown">알 수 없는 장소</string>
     <string name="meta_time_place">%1$s · %2$s</string>
     <string name="bookmark">북마크</string>
     <string name="bookmark_count">북마크 %1$d</string>
@@ -18,6 +18,8 @@
     <string name="about_prefix">약 %1$s</string>
     <string name="duration_minutes">%1$d분</string>
     <string name="duration_seconds">%1$d초</string>
+    <string name="duration_hours">%1$d시간</string>
+    <string name="duration_hours_minutes">%1$d시간 %2$d분</string>
     <string name="size_kb">%1$d KB</string>
     <string name="size_mb">%1$s MB</string>
     <string name="size_gb">%1$s GB</string>
@@ -27,6 +29,7 @@
     <string name="action_move">이동</string>
     <string name="action_allow">허용</string>
     <string name="action_open_settings">설정 열기</string>
+    <string name="action_save">저장</string>
 
     <!-- java.time patterns (Korean literals) -->
     <string name="fmt_day_long" translatable="false">M월 d일 EEEE</string>
@@ -51,6 +54,8 @@
     <string name="timeline_empty">아직 기록이 없어요</string>
     <string name="timeline_empty_body">목걸이가 녹음한 대화가 여기에 시간순으로 쌓여요.</string>
     <string name="timeline_empty_bookmarks">북마크한 기록이 없어요</string>
+    <string name="standalone_bookmark">%1$s · 북마크</string>
+    <string name="standalone_bookmark_description">%1$s, 녹음 없이 남긴 북마크</string>
     <string name="timeline_empty_bookmarks_body">목걸이 버튼을 짧게 누르면 그 순간이 북마크로 남아요.</string>
 
     <!-- Entry (A8, A14) -->
@@ -81,6 +86,30 @@
     <string name="entry_delete_title">이 기록을 삭제할까요?</string>
     <string name="entry_delete_body">텍스트와 음성이 모두 지워지고 되돌릴 수 없어요.</string>
 
+    <!-- Place naming (A5/A7; no reverse geocoding, N8) -->
+    <string name="place_name_add">이 장소 이름 붙이기</string>
+    <string name="place_name_rename">장소 이름 바꾸기</string>
+    <string name="place_name_body">이 근처에서 한 다른 기록에도 같은 이름이 붙어요.</string>
+    <string name="place_name_body_coordinates">%1$s 근처예요. 이 근처에서 한 다른 기록에도 같은 이름이 붙어요.</string>
+    <string name="place_name_label">장소 이름</string>
+    <string name="place_name_placeholder">예: 중앙도서관</string>
+    <string name="place_name_failed">장소 이름을 붙이지 못했어요. 다시 해 보세요.</string>
+
+    <!-- Places (Settings › 장소) -->
+    <string name="places_title">장소</string>
+    <string name="places_summary">이름 붙인 장소 %1$d곳</string>
+    <string name="places_summary_none">아직 이름 붙인 장소가 없어요</string>
+    <string name="places_intro">이름은 이 폰에만 저장돼요. 이름이 없는 곳은 ‘알 수 없는 장소’로 보여요.</string>
+    <string name="places_entry_count">기록 %1$d개</string>
+    <string name="places_delete">이름 지우기</string>
+    <string name="places_delete_title">‘%1$s’ 이름을 지울까요?</string>
+    <string name="places_delete_body">기록은 그대로 남고 ‘알 수 없는 장소’로 보여요.</string>
+    <string name="places_delete_confirm">지우기</string>
+    <string name="places_change_failed">바꾸지 못했어요. 다시 해 보세요.</string>
+    <string name="places_empty_title">이름 붙인 장소가 없어요</string>
+    <string name="places_empty_body">기록 상세 화면에서 장소를 누르거나 메뉴의 ‘이 장소 이름 붙이기’로 이름을 붙일 수 있어요.</string>
+    <string name="places_hint">새 이름은 기록 상세 화면에서 붙여요. 주소를 찾으려고 외부 서비스에 묻지 않아요.</string>
+
     <!-- Search (A11) -->
     <string name="search_placeholder">지난 대화 검색</string>
     <string name="search_clear">검색어 지우기</string>
@@ -94,6 +123,8 @@
     <string name="search_bookmarked_only">북마크만</string>
     <string name="search_preserved_only">보존됨</string>
     <string name="search_count">%1$d개 기록에서 찾았어요</string>
+    <string name="search_count_bookmarks">북마크 %1$d개를 찾았어요</string>
+    <string name="search_count_with_bookmarks">%1$d개 기록과 북마크 %2$d개를 찾았어요</string>
     <string name="search_today_header">오늘 · %1$s</string>
     <string name="search_idle_title">지난 대화를 찾아보세요</string>
     <string name="search_idle_body">말했던 단어로 찾을 수 있어요. 기간·장소·북마크로 거를 수도 있어요.</string>

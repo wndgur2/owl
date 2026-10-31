@@ -100,5 +100,20 @@ class OpusSegment(val header: SegmentHeader, val frames: List<ByteArray>) {
             if (header.channels !in 1..2) throw ProtocolException("unsupported channel count ${header.channels}")
             return OpusSegment(header, Segments.audioFrames(bytes))
         }
+
+        /**
+         * A timeline entry of several segments plays as one recording: their frames back to
+         * back. All parts must share frame length, sample rate and channels.
+         */
+        fun concat(parts: List<OpusSegment>): OpusSegment {
+            require(parts.isNotEmpty()) { "no segments" }
+            val h = parts.first().header
+            for (p in parts) {
+                if (p.header.frameMs != h.frameMs || p.header.sampleRate != h.sampleRate || p.header.channels != h.channels) {
+                    throw ProtocolException("segment ${p.header.id} has a different audio format")
+                }
+            }
+            return if (parts.size == 1) parts.first() else OpusSegment(h, parts.flatMap { it.frames })
+        }
     }
 }
