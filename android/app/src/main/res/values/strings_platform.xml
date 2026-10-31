@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Device registration (CdmRegistrar). Shown as error messages on the registration screen. -->
+    <string name="cdm_unsupported">이 폰에서는 목걸이를 등록할 수 없어요</string>
+    <string name="cdm_not_found">목걸이를 찾지 못했어요. 목걸이가 켜져 있고 가까이 있는지 확인해 주세요</string>
+    <string name="cdm_cancelled">등록을 취소했어요</string>
+    <string name="cdm_no_device">선택한 목걸이 정보를 받지 못했어요. 다시 시도해 주세요</string>
+    <string name="cdm_fake_unavailable">이 버전에서는 테스트 기기를 쓸 수 없어요</string>
+</resources>
