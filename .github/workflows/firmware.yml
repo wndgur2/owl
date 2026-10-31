@@ -1,0 +1,129 @@
+# Firmware: build the Zephyr app with nRF Connect SDK, and run unit tests if any.
+#
+# Layout inside the job ($GITHUB_WORKSPACE):
+#   owl/    this repository
+#   ncs/    NCS west workspace (nrf/, zephyr/, modules/ ...), cached
+#   build/  build output, one folder per variant
+name: firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firmware/**"
+      - "protocol/**"
+      - ".github/workflows/firmware.yml"
+      - ".github/actions/ncs-setup/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "firmware/**"
+      - "protocol/**"
+      - ".github/workflows/firmware.yml"
+      - ".github/actions/ncs-setup/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # To upgrade NCS: change this AND the two `image:` tags below (container tags
+  # cannot read env), then check that both builds still pass.
+  NCS_VERSION: v3.4.1
+  BOARD: xiao_nrf54l15/nrf54l15/cpuapp
+
+jobs:
+  build:
+    name: build (${{ matrix.variant }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.1
+    defaults:
+      run:
+        # Required: the toolchain image only sets PATH etc. inside bash.
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Default prj.conf = battery build, UART off
+          - variant: default
+            extra_args: ""
+          # USB debugging build, serial logs on
+          - variant: uart
+            extra_args: -DEXTRA_CONF_FILE=uart.conf
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: owl
+
+      - uses: ./owl/.github/actions/ncs-setup
+        with:
+          version: ${{ env.NCS_VERSION }}
+
+      - name: west build
+        working-directory: ncs
+        run: >
+          west build --pristine -b "$BOARD"
+          -d ../build/${{ matrix.variant }}
+          ../owl/firmware
+          -- ${{ matrix.extra_args }}
+
+      - name: Upload hex files
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-${{ matrix.variant }}
+          # merged.hex = everything to flash; firmware/zephyr/zephyr.hex = app image only
+          path: |
+            build/${{ matrix.variant }}/merged.hex
+            build/${{ matrix.variant }}/firmware/zephyr/zephyr.hex
+          if-no-files-found: error
+
+  # ztest suites under firmware/tests/, run on the host (native_sim) by twister.
+  # Skipped until firmware/tests/ exists.
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: owl
+
+      # hashFiles() returns '' when nothing matches; it only works after checkout.
+      - name: Skip notice
+        if: hashFiles('owl/firmware/tests/**') == ''
+        run: echo "::notice::firmware/tests/ not found - skipping twister"
+
+      - uses: ./owl/.github/actions/ncs-setup
+        if: hashFiles('owl/firmware/tests/**') != ''
+        with:
+          version: ${{ env.NCS_VERSION }}
+
+      - name: twister (native_sim)
+        if: hashFiles('owl/firmware/tests/**') != ''
+        working-directory: ncs
+        run: >
+          west twister -T ../owl/firmware/tests -p native_sim
+          --inline-logs -v --outdir ../twister-out
+
+      - name: Upload twister report
+        if: always() && hashFiles('owl/firmware/tests/**') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: twister-report
+          path: |
+            twister-out/twister.json
+            twister-out/twister_report.xml
+            twister-out/**/handler.log
+            twister-out/**/build.log
+          if-no-files-found: ignore

@@ -1,0 +1,39 @@
+# https://editorconfig.org — most editors (VS Code with the EditorConfig extension,
+# Android Studio) apply these automatically.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Zephyr style: tabs, shown 8 wide (see firmware/.clang-format)
+[*.{c,h}]
+indent_style = tab
+indent_size = 8
+
+[{CMakeLists.txt,*.cmake}]
+indent_size = 2
+
+[{*.conf,*.overlay,*.dts,*.dtsi,Kconfig*}]
+indent_style = tab
+indent_size = 8
+
+[*.{kt,kts,java,gradle}]
+indent_size = 4
+
+[*.py]
+indent_size = 4
+
+[*.{md,yml,yaml,json,xml,html,svg}]
+indent_size = 2
+
+# Two trailing spaces are a line break in Markdown
+[*.md]
+trim_trailing_whitespace = false
+
+[{Makefile,*.mk}]
+indent_style = tab

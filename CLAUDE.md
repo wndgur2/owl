@@ -10,3 +10,4 @@ Offline wearable lifelogging pendant. Monorepo: `protocol/` (spec), `firmware/` 
 - Pin assignments live in `firmware/boards/*.overlay` and must match `hardware/wiring.md`.
 - Record design decisions in `docs/decisions.md`; update `docs/roadmap.md` when a milestone closes.
 - Protocol tests: `python3 tools/tests/test_owlproto.py`.
+- CI (`.github/workflows/`): `tools.yml` (pytest), `firmware.yml` (NCS v3.4.1 container, default + uart builds, twister on `native_sim` if `firmware/tests/` exists), `android.yml` (no-op until `android/gradlew` exists). Path-filtered; run the same commands locally before pushing. Bump NCS in `firmware.yml` (`NCS_VERSION` + both `image:` tags) together.

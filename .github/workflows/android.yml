@@ -1,0 +1,74 @@
+# Android app: build, unit tests, lint.
+# Until the Gradle project exists (android/gradlew), every step after checkout
+# is skipped and the job passes, so this check can be required from day one.
+name: android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v7
+
+      # hashFiles() returns '' when no file matches. It only works after checkout,
+      # which is why each step below repeats the same `if`.
+      - name: Skip notice
+        if: hashFiles('android/gradlew') == ''
+        working-directory: .
+        run: echo "::notice::android/gradlew not found - skipping Android build"
+
+      - uses: actions/setup-java@v6
+        if: hashFiles('android/gradlew') != ''
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Caches Gradle dependencies and wrapper between runs.
+      - uses: gradle/actions/setup-gradle@v6
+        if: hashFiles('android/gradlew') != ''
+
+      - name: Build, unit test, lint
+        if: hashFiles('android/gradlew') != ''
+        run: ./gradlew assembleDebug testDebugUnitTest lint
+
+      - name: Upload debug APK
+        if: hashFiles('android/gradlew') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      # Upload reports even when the build failed, so lint/test errors can be read.
+      - name: Upload lint and test reports
+        if: always() && hashFiles('android/gradlew') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
+          if-no-files-found: ignore
