@@ -4,8 +4,8 @@ PC(macOS)에서 돌리는 Python 도구예요. 앱 없이 펌웨어만 따로 �
 
 | 파일 | 용도 |
 |---|---|
-| `lpproto.py` | 프로토콜 레퍼런스 구현. 바이트 레이아웃의 정답지 |
-| `tests/test_lpproto.py` | `protocol/ble-protocol.md`의 숫자(청크 236바이트, 헤더 32바이트 등)를 검증 |
+| `owlproto.py` | 프로토콜 레퍼런스 구현. 바이트 레이아웃의 정답지 |
+| `tests/test_owlproto.py` | `protocol/ble-protocol.md`의 숫자(청크 236바이트, 헤더 32바이트 등)를 검증 |
 | `ble_scan.py` | 근처 Owl 찾기, STATUS 읽기 |
 
 ```bash

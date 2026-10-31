@@ -32,6 +32,7 @@ OP_LIST_SEGMENTS = 0x02
 OP_FETCH_SEGMENT = 0x03
 OP_ACK_SEGMENT = 0x04
 OP_ABORT = 0x05
+OP_SET_RECORDING = 0x06
 OP_SET_CONFIG = 0x10
 RESPONSE_BIT = 0x80
 
@@ -47,17 +48,26 @@ SEG_TYPE_EVENTS = 2
 CODEC_PCM16 = 0
 CODEC_OPUS = 1
 
-EVT_BUTTON_SHORT = 1
-EVT_BUTTON_LONG = 2
-EVT_STORAGE_FULL = 3
-EVT_BATTERY_LOW = 4
+EVT_BOOKMARK = 1
+EVT_RECORDING_OFF = 2  # arg: CAUSE_BUTTON / CAUSE_APP
+EVT_RECORDING_ON = 3  # arg: CAUSE_BUTTON / CAUSE_APP
+EVT_STORAGE_FULL = 4
+EVT_BATTERY_LOW = 5
+EVT_POWER_OFF = 6  # arg: CAUSE_BUTTON / CAUSE_BATTERY
+EVT_POWER_ON = 7  # arg: CAUSE_BUTTON / CAUSE_CHARGED / CAUSE_OTHER
+
+CAUSE_BUTTON = 0
+CAUSE_APP = 1
+CAUSE_BATTERY = 2
+CAUSE_CHARGED = 3
+CAUSE_OTHER = 4
 
 # --- STATUS ------------------------------------------------------------------
 _STATUS = struct.Struct("<B3sHBBIIHHI")
 assert _STATUS.size == 24
 
-FLAG_CHARGING = 1 << 0
-FLAG_RECORDING = 1 << 1
+FLAG_CHARGING = 1 << 0  # on hold: the board has no charge-status pin (PRD 10 H)
+FLAG_RECORDING = 1 << 1  # recording switched on by the user
 FLAG_STORAGE_LOW = 1 << 2
 FLAG_STORAGE_FULL = 1 << 3
 
@@ -105,6 +115,10 @@ def fetch_segment_request(seq: int, seg_id: int, offset: int = 0) -> bytes:
 
 def ack_segment_request(seq: int, seg_id: int, crc32: int) -> bytes:
     return request(OP_ACK_SEGMENT, seq, struct.pack("<II", seg_id, crc32))
+
+
+def set_recording_request(seq: int, on: bool) -> bytes:
+    return request(OP_SET_RECORDING, seq, bytes([1 if on else 0]))
 
 
 @dataclass
@@ -182,7 +196,7 @@ class SegmentAssembler:
 # --- Segment -----------------------------------------------------------------
 _SEG_HDR = struct.Struct("<4sBBBBIIQHBBI")
 assert _SEG_HDR.size == 32
-SEG_MAGIC = b"LPSG"
+SEG_MAGIC = b"OWLS"
 
 
 @dataclass
@@ -230,6 +244,12 @@ def iter_audio_frames(segment: bytes) -> Iterator[bytes]:
 
 
 _EVENT = struct.Struct("<QBB")
+
+
+def build_event_segment(hdr: SegmentHeader, events: list[tuple[int, int, int]]) -> bytes:
+    payload = b"".join(_EVENT.pack(*e) for e in events)
+    hdr.payload_len = len(payload)
+    return hdr.pack() + payload
 
 
 def iter_events(segment: bytes) -> Iterator[tuple[int, int, int]]:

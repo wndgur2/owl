@@ -17,6 +17,7 @@ CompanionDeviceManager ──(목걸이 범위 진입)──▶ CompanionDeviceS
                                                       │ 시작
                                                       ▼
                                    SyncService (foreground, type=connectedDevice)
+                                     │  근처에 있는 동안 15분마다 + "지금 동기화" + 앱 켤 때
                                      ├─ BleClient: protocol/ble-protocol.md 구현
                                      ├─ SegmentStore: 파일 저장 → 그 다음에 ACK
                                      └─ TimeSync: (boot_count, uptime) ↔ 폰 시각
@@ -26,6 +27,10 @@ CompanionDeviceManager ──(목걸이 범위 진입)──▶ CompanionDeviceS
 
 LocationRecorder: FusedLocationProvider + PendingIntent (앱 프로세스 없어도 기록)
 ```
+
+## 자동 백업 끄기
+
+`decisions.md` #22 — Android 기본값이면 앱 데이터(녹음, Room DB)가 Google Drive로 백업돼서 PRD N8 위반이에요. 프로젝트를 만들자마자 `AndroidManifest.xml`에서 `android:allowBackup="false"`로 바꾸고, `dataExtractionRules`(Android 12+)에서 `cloud-backup`·`device-transfer`를 모두 제외해요.
 
 ## STT 엔진: 온디바이스로 결정
 

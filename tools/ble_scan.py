@@ -16,7 +16,7 @@ import asyncio
 
 from bleak import BleakClient, BleakScanner
 
-import lpproto as p
+import owlproto as p
 
 
 async def scan(timeout: float) -> list:

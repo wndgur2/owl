@@ -25,5 +25,5 @@ docs/       PRD(기준 문서), 아키텍처, 설계 결정, 로드맵
 
 ```bash
 # 하드웨어 없이 바로 돌려볼 수 있는 것
-python3 tools/tests/test_lpproto.py
+python3 tools/tests/test_owlproto.py
 ```

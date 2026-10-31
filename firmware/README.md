@@ -40,4 +40,7 @@ west build -p -b xiao_nrf54l15/nrf54l15/cpuapp firmware
 ## 알아둘 것
 
 - 보드 dts에서 마이크/IMU 전원(`pdm_imu_pwr`)과 안테나 스위치가 **부팅 시 항상 켜짐**. 저전력 단계(M5)에서 꺼야 할 대상
-- 배터리 전압은 3.5V 아래에서 System OFF 권장 (벅 컨버터 특성, `docs/decisions.md`)
+- 배터리: 3.6V 아래 경고, 3.5V 아래 System OFF. 배터리로 꺼졌을 때만 GRTC로 1시간마다 깨어나 3.8V 이상이면 켬 (`docs/decisions.md` #8, #20)
+- 보드에 **충전 상태 핀·USB 꽂힘 감지 핀이 없어요**(회로도 V1.2). 충전 LED는 충전 칩(SGM40567)이 직접 켜요
+- 회로도 V1.2에 UART 역류 방지(U12)가 추가됐어요. 받은 보드가 V1.2면 "UART 켜면 배터리 부팅 실패"가 안 생길 수 있어요 → M0에서 확인 (`docs/decisions.md` #9)
+- `main.c`의 배터리 분압 안정 대기는 10ms예요. Seeed 위키 예제는 100ms라, 값이 흔들리면 늘려요

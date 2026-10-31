@@ -1,6 +1,6 @@
-"""Checks that tools/lpproto.py matches the numbers in protocol/ble-protocol.md.
+"""Checks that tools/owlproto.py matches the numbers in protocol/ble-protocol.md.
 
-Run from the repo root:  python -m pytest tools/tests   (or)   python tools/tests/test_lpproto.py
+Run from the repo root:  python -m pytest tools/tests   (or)   python tools/tests/test_owlproto.py
 """
 
 import os
@@ -9,7 +9,7 @@ import sys
 import zlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import lpproto as p  # noqa: E402
+import owlproto as p  # noqa: E402
 
 
 def test_sizes_match_spec():
@@ -66,6 +66,24 @@ def test_control_response():
     r = p.Response(p.OP_TIME_SYNC, 9, p.RESULT_OK, (3).to_bytes(4, "little") + (5000).to_bytes(8, "little"))
     back = p.Response.unpack(r.pack())
     assert back.op == p.OP_TIME_SYNC and p.parse_time_sync_response(back.payload) == (3, 5000)
+
+
+def test_event_segment_roundtrip():
+    events = [
+        (1_000, p.EVT_BOOKMARK, 0),
+        (2_000, p.EVT_RECORDING_OFF, p.CAUSE_BUTTON),
+        (3_000, p.EVT_RECORDING_ON, p.CAUSE_APP),
+        (4_000, p.EVT_POWER_OFF, p.CAUSE_BATTERY),
+    ]
+    hdr = p.SegmentHeader(p.SEG_TYPE_EVENTS, p.CODEC_PCM16, 0, 12, 3, 0, 16000, 1, 0)
+    seg = p.build_event_segment(hdr, events)
+    assert seg[:4] == b"OWLS" and len(seg) == 32 + 10 * len(events)
+    assert list(p.iter_events(seg)) == events
+
+
+def test_set_recording_request():
+    assert p.set_recording_request(4, False) == bytes([0x06, 4, 0])
+    assert p.set_recording_request(5, True) == bytes([0x06, 5, 1])
 
 
 def test_time_mapping():
