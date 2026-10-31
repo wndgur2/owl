@@ -1,0 +1,2 @@
+# Optional: fake_owl.py BLE peripheral mode (macOS CoreBluetooth). Not needed for tests or CI.
+bless==0.3.0
