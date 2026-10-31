@@ -12,6 +12,8 @@ int ble_init(void);
 /* Push a STATUS notification if a phone is subscribed (cheap to call often). */
 void ble_notify_status(void);
 bool ble_is_connected(void);
+/* Would a new pairing be accepted now (STATUS flag bit4, protocol §2.4)? */
+bool ble_pairing_open(void);
 /* Disconnect and stop advertising (before System OFF). */
 void ble_stop(void);
 

@@ -20,7 +20,7 @@ firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build
 # M0 bring-up 앱
 firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build/bringup firmware/bringup -- -DEXTRA_CONF_FILE=uart.conf'
 
-# 하드웨어 없는 테스트 (native_sim, 54개: 로직 45 + 가상 플래시 위 storage 8 + libopus 1)
+# 하드웨어 없는 테스트 (native_sim, 60개: 로직 51 + 가상 플래시 위 storage 8 + libopus 1)
 firmware/scripts/ncs.sh 'west twister -T firmware/tests -p native_sim -O build/twister'
 ```
 
@@ -85,14 +85,15 @@ PDM 마이크 ─▶ audio 스레드: VAD ─▶ Opus ─▶ [RAM 링 8KB] ─�
 | `src/button_sm.[ch]` | 버튼 짧게/2초/5초 상태 기계 | 없음 (테스트됨) |
 | `src/led_pattern.[ch]` | LED 패턴 시퀀서(`decisions.md` #21) | 없음 (테스트됨) |
 | `src/vad.[ch]` | 에너지+ZCR VAD, 세그먼트 경계(시작·hangover·최대 길이) | 없음 (테스트됨) |
+| `src/pair_policy.[ch]` | 누가 페어링할 수 있나: 본딩 없음 → 언제나, 본딩 있음 → 켠 뒤 120초 안에 한 번(프로토콜 2.4장) | 없음 (테스트됨) |
 | `src/storage.[ch]` | LittleFS: 세그먼트 파일, 이벤트, 상태 파일, 복구, 공간 관리 | 플래시 |
 | `src/audio.[ch]` | PDM 캡처, VAD 적용, Opus/PCM 인코딩, writer 스레드 | 마이크 |
-| `src/ble.[ch]` | GATT 서비스, 광고, 연결 설정, FETCH 스트리밍(흐름 제어) | 라디오 |
+| `src/ble.[ch]` | GATT 서비스(권한: 암호화 필요), 광고, 연결 설정, FETCH 스트리밍(흐름 제어), 페어링 콜백·본딩 정리·UNPAIR | 라디오 |
 | `src/ui.[ch]` | LED GPIO와 버튼 GPIO(디바운스 30ms) | GPIO |
 | `src/power.[ch]` | 배터리 ADC, System OFF, GRTC 깨우기 | ADC·GRTC |
 | `src/main.c` | 부팅 순서, 모듈 연결 | |
 | `bringup/` | **M0 bring-up 앱**(따로 빌드): 배터리, 플래시 JEDEC·읽기쓰기, 마이크 rms, 버튼, System OFF 깨우기 | |
-| `tests/unit/` | native_sim ztest 7개 스위트(순수 로직). `vectors.h`는 `tools/owlproto.py`로 생성 | |
+| `tests/unit/` | native_sim ztest 8개 스위트(순수 로직). `vectors.h`는 `tools/owlproto.py`로 생성 | |
 | `tests/opus/` | libopus를 같은 `cmake/opus.cmake`·같은 인코더 설정으로 native_sim에서 빌드: 16kbps 근처, 20ms wideband 패킷, 디코딩 레벨 확인 | |
 | `tests/storage/` | `storage.c`를 native_sim의 가상 플래시 + LittleFS에서: 세그먼트 바이트, 재부팅 id, 이벤트, 삭제, **전원 끊김 복구**, 가득 참/재개 | |
 | `Kconfig` | 앱 옵션(`CONFIG_OWL_*`): 코덱, 복잡도, PDM 채널, 마이크 게인, VAD hangover 등 | |
@@ -103,6 +104,9 @@ PDM 마이크 ─▶ audio 스레드: VAD ─▶ Opus ─▶ [RAM 링 8KB] ─�
 |---|---|
 | `0x000000–0xFFEFFF` | LittleFS `/lfs` (블록 4KB × 4095) |
 | `0xFFF000–0xFFFFFF` | bring-up 앱의 지우기·쓰기 테스트용 4KB (본 앱이 안 씀) |
+
+본딩 키(BLE 페어링 정보)는 외장 플래시가 아니라 **칩 안 RRAM**의 `storage_partition`(`0x174000`, 36KiB, NCS 보드 기본 배치)에
+Zephyr settings(ZMS)로 저장돼요. 앱 코드는 0번지부터 약 330KB라 겹치지 않아요(빌드된 `zephyr.dts`로 확인). LittleFS나 bring-up 섹터와는 상관없어요.
 
 - `/lfs/state` — 28바이트 상태(CRC 포함). LittleFS가 닫을 때 통째로 바꿔서 전원이 끊겨도 옛 값 아니면 새 값
 - `/lfs/seg/0000002a.1` — 세그먼트 id 0x2a, 타입 1(오디오). `.2` = 이벤트. 쓰는 중이면 `.1.w`
@@ -134,6 +138,7 @@ PDM 마이크 ─▶ audio 스레드: VAD ─▶ Opus ─▶ [RAM 링 8KB] ─�
 - **꺼진 상태에서 켜기**: 버튼을 누르면 칩이 깨어나(=재부팅) 부팅 후 5초까지 계속 눌려 있는지 확인. 아니면 다시 System OFF
 - **배터리**: 60초마다. 3.6V 아래 이벤트 5 + 30초마다 3번 깜빡(3.7V 위로 올라가면 해제), 3.5V 아래 3번 연속(5초 간격)이면 정리 후 System OFF + GRTC 1시간 깨우기. 깨어나서 3.8V 이상이면 켜짐(이벤트 7 arg 3)
 - **BLE**: `Owl-XXXX`로 1초마다 광고(서비스 UUID 포함, 31바이트 꽉 참). 연결되면 2M PHY·DLE 251 요청, 연결 간격 15–30ms 요청. 한 번에 폰 하나
+- **BLE 보안**(프로토콜 2.4장): LE Secure Connections + Just Works 본딩만. STATUS 값 읽기 말고는 전부 암호화된 연결이 필요해요. 새 페어링은 본딩된 폰이 없을 때, 또는 켠 뒤 120초 안에 한 번만(`pairing_accept`). 새 본딩이 생기면 이전 폰의 본딩을 지워요. 본딩된 폰이 연결하면 기기가 먼저 Security Request를 보내요. 60초 안에 암호화가 안 되면 연결을 끊어요(HCI 0x05). UNPAIR(op 7)를 받으면 응답 뒤 모든 본딩을 지우고 끊어요
 - **결과 코드**: 짧은 요청 = 2, 모르는 op = 1, 없는 세그먼트 = 3, CRC 불일치 = 4(지우지 않음), 플래시 오류·큐 가득 = 5. 프로토콜에 "잘못된 값" 코드가 없어서 범위를 벗어난 `SET_CONFIG`·`SET_RECORDING` 값도 2
 
 ## Bring-up 체크리스트 (M0–M3)
@@ -182,6 +187,11 @@ VAD가 너무 둔하거나 예민하면 M0의 rms를 보고 `src/vad.c`의 `min_
 |---|---|
 | 광고 | `advertising as Owl-XXXX`, `tools/ble_scan.py`에 보임 |
 | 연결 | `connected`, `mtu: tx 247`, `phy: tx 2 rx 2`, `data len: tx 251`, `conn params: interval 15–30 ms` |
+| 첫 등록(본딩) | 부팅 로그 `0 bonded phone(s), pairing open` → 앱 등록 → `pairing accepted`, `security level 2`, `paired, bonded 1`. 리셋 후 `1 bonded phone(s), pairing open`, 2분 뒤 STATUS bit4 = 0 |
+| 다시 연결 | 본딩된 폰: `connected` 바로 뒤 `security level 2`(기기가 보낸 Security Request) |
+| 모르는 폰 거절 | 켠 지 2분 넘은 기기에 다른 폰(nRF Connect)으로 연결 → STATUS 읽기는 됨, CONTROL 쓰기·구독은 ATT 0x05, 페어링 시도는 `pairing refused`. 60초 뒤 `not encrypted after 60 s` |
+| 폰 바꾸기 | 껐다 켠 뒤 2분 안에 새 폰 등록 → `removing the previous phone's bond`. 옛 폰은 `security failed`(키 없음) |
+| 등록 해제 | 앱에서 등록 해제 → `UNPAIR: bonds deleted`, 연결 끊김, STATUS bit4 = 1 |
 | 동기화 | `tools/sync.py`: `time sync: ...` → LIST → `fetch N: sent 0..size in T ms (B/s)` → `segment N deleted` |
 | 이어받기 | 전송 중 폰 끄기 → 다시 연결해 offset부터 FETCH → ACK OK |
 | CRC 불일치 | 틀린 CRC로 ACK → `keeping it`, 세그먼트 남아 있음 |
@@ -202,6 +212,7 @@ M5에서: 실제 전류 측정, 3.5V 차단과 1시간 깨우기(가변 전원�
 - `spi_nor` 드라이버는 런타임 PM으로 쓰지 않을 때 스스로 deep power-down
 - LittleFS: 파일 중간 쓰기는 뒤 블록 전체 재작성, sync 뒤 이어 쓰기는 마지막 블록 복사 → payload_len을 읽을 때 채우는 이유, 16KB sync 간격의 이유
 - 바이트 레이아웃 = `tools/owlproto.py`(고정 벡터 테스트), storage 동작(가상 플래시 테스트), libopus 빌드·인코딩·디코딩(native_sim)
+- Zephyr SMP(v3.4.1 소스): `pairing_accept`는 Pairing Request마다 불림. 그 전에 "이미 본딩된 상대의 Just Works 재페어링"을 거절하는 검사가 있어서 `CONFIG_BT_SMP_ALLOW_UNAUTH_OVERWRITE=y`가 필요. GATT 권한 검사는 키가 없으면 ATT 0x05, 키는 있는데 암호화 전이면 0x0F. `bt_unpair`는 연결된 상대면 끊음. `FILE_SYSTEM=y`면 settings 기본 저장소가 파일이라 `CONFIG_SETTINGS_ZMS`를 직접 지정
 
 **가정 (보드에서 확인 필요)**:
 - Opus 복잡도 3이 128MHz M33에서 20ms 안에 충분히 끝남(로그 `encode: avg/max`)
@@ -209,11 +220,12 @@ M5에서: 실제 전류 측정, 3.5V 차단과 1시간 깨우기(가변 전원�
 - PDM 클럭 1–3.5MHz 범위가 PCLK32M에서 나옴(빌드만 확인, `dmic_configure` 실행은 안 해봄)
 - 배터리 분압 안정 10ms면 충분, `adc_raw_to_millivolts_dt` × 2가 실제 전압과 맞음
 - 스레드 스택 크기, BLE 처리량, System OFF 전류, GRTC 1시간 깨우기 실제 동작
+- 페어링 흐름 전체(Android 확인 창, 거절될 때 폰이 보는 오류, Security Request 후 자동 암호화, RRAM에 본딩 저장·리셋 후 유지)
 - ARM에서 Opus 인코더 상태 크기가 native_sim과 거의 같음(26KB 안). 아니면 부팅 시 에러 로그 후 녹음만 꺼짐
 
 ## 알아둘 것
 
-- **보안 없음**: 프로토콜 v1에 페어링·인증이 없어서 근처의 누구나 연결해 녹음을 받아갈 수 있어요(ACK로 지우기도 가능). PRD N8(내 폰에만)과 충돌 — PR 설명에 제안 적음
+- **Just Works의 한계**: 기기에 화면·키패드가 없어서 페어링하는 순간의 중간자 공격은 못 막아요. 그 순간이 등록할 때(본딩 없음) 또는 켠 뒤 2분뿐이라 받아들였어요(`decisions.md` #33)
 - 보드 dts의 `pdm_imu_pwr`·`vbat_pwr`는 `regulator-boot-on`이라 참조 1개를 쥔 채 시작해요. 코드가 시작할 때 한 번 내려놓아야 enable/disable이 실제로 켜고 꺼요(마이크·IMU 전원은 녹음할 때만 켬)
 - 안테나 스위치(`rfsw_ctl`, `rfsw_pwr`)는 BLE에 필요해서 건드리지 않아요
 - 외장 플래시는 `zephyr,pm-device-runtime-auto`로 쓰지 않을 때 자동으로 deep power-down

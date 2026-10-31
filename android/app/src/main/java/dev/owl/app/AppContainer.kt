@@ -118,6 +118,7 @@ class AppContainer(private val context: Context) {
             override suspend fun onAssociationResult(data: Intent?) = cdm.onAssociationResult(data).onSuccess { onRegistered() }
             override suspend fun registerFakeDevice() = cdm.registerFakeDevice().onSuccess { onRegistered() }
             override suspend fun unregister() {
+                coordinator.forgetOnDevice() // UNPAIR on the pendant first, while we still have the bond
                 cdm.unregister()
                 SyncWorker.cancelPeriodic(context)
                 coordinator.setDevicePresent(false)

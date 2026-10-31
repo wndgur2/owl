@@ -144,7 +144,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel, onDone: () -> Unit) {
         viewModel.eventFlow.collect { e ->
             when (e) {
                 is OnboardingEvent.LaunchChooser -> chooserLauncher.launch(IntentSenderRequest.Builder(e.sender).build())
-                OnboardingEvent.RegistrationFailed -> snackbar.showSnackbar(failed)
+                is OnboardingEvent.RegistrationFailed -> snackbar.showSnackbar(e.message ?: failed)
             }
         }
     }

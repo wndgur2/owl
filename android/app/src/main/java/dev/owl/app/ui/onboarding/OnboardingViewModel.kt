@@ -27,7 +27,8 @@ data class OnboardingUiState(
 sealed interface OnboardingEvent {
     /** Show the CompanionDeviceManager chooser. */
     data class LaunchChooser(val sender: IntentSender) : OnboardingEvent
-    data object RegistrationFailed : OnboardingEvent
+    /** [message]: the registrar's user-facing reason (e.g. the pendant refused pairing), if any. */
+    data class RegistrationFailed(val message: String? = null) : OnboardingEvent
 }
 
 /** A1 registration through [DeviceRegistrar]; the permission checklist lives in the screen (needs an Activity). */
@@ -52,16 +53,16 @@ class OnboardingViewModel(
     fun startAssociation() = launchOnce {
         registrar.startAssociation().fold(
             onSuccess = { sender -> if (sender != null) events.send(OnboardingEvent.LaunchChooser(sender)) },
-            onFailure = { events.send(OnboardingEvent.RegistrationFailed) },
+            onFailure = { events.send(OnboardingEvent.RegistrationFailed(it.message)) },
         )
     }
 
     fun onAssociationResult(data: Intent?) = launchOnce {
-        if (registrar.onAssociationResult(data).isFailure) events.send(OnboardingEvent.RegistrationFailed)
+        registrar.onAssociationResult(data).onFailure { events.send(OnboardingEvent.RegistrationFailed(it.message)) }
     }
 
     fun registerFakeDevice() = launchOnce {
-        if (registrar.registerFakeDevice().isFailure) events.send(OnboardingEvent.RegistrationFailed)
+        registrar.registerFakeDevice().onFailure { events.send(OnboardingEvent.RegistrationFailed(it.message)) }
     }
 
     fun finish(onDone: () -> Unit) {

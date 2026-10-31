@@ -25,7 +25,7 @@ import owlproto as p
 from . import render
 from .client import FetchStalled, OwlClient, ProtocolError
 from .timesync import SyncRecord, TimeStore, local_tz_offset_min
-from .transport import Transport, TransportError
+from .transport import NotPaired, Transport, TransportError
 
 
 class SegmentStore:
@@ -153,6 +153,8 @@ class SyncEngine:
             except (TransportError, ConnectionError, asyncio.TimeoutError, OSError) as e:
                 if isinstance(e, (FileNotFoundError, PermissionError, IsADirectoryError)):
                     raise
+                if isinstance(e, NotPaired):
+                    raise SyncFailed(str(e)) from e  # retrying cannot help (§2.4)
                 failures = 0 if self._progress else failures + 1
                 if failures >= self.o.max_attempts:
                     raise SyncFailed(f"giving up after {failures} failed attempts: {e}") from e

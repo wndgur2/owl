@@ -19,9 +19,9 @@
 | 마일스톤 | 코드 | 남은 것 |
 |---|---|---|
 | M0 | `firmware/bringup/` 빌드 통과 | 보드에서 체크리스트(`firmware/README.md`) |
-| M1–M3 | `firmware/` 빌드 통과, `native_sim` 테스트 54개 통과. `tools/sync.py`, 가짜 기기(`tools/fake_owl.py`) | 보드에서 녹음·VAD 임계값·Opus 인코딩 시간·BLE 처리량 확인 |
+| M1–M3 | `firmware/` 빌드 통과, `native_sim` 테스트 60개 통과. `tools/sync.py`, 가짜 기기(`tools/fake_owl.py`). BLE 본딩(`decisions.md` #33–#40) | 보드에서 녹음·VAD 임계값·Opus 인코딩 시간·BLE 처리량, 실제 폰과 페어링·거절·폰 바꾸기 확인 |
 | M4 | `android/` 빌드·테스트 통과, 에뮬레이터에서 가짜 기기로 동기화 확인 | 실제 목걸이·폰에서 CDM, 백그라운드 15분 동기화 |
 | M5 | 배터리 경고·System OFF·GRTC 깨우기 로직 | 실측 소비전류 |
 | M6 | STT는 인터페이스만(엔진 미정) | 온디바이스 STT 엔진 선택 |
 
-다음 구현: BLE 본딩(`decisions.md` #33).
+BLE 본딩은 프로토콜 2.4장대로 펌웨어·앱·`tools/`에 들어왔어요(하드웨어 확인 전).

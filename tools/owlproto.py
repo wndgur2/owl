@@ -33,6 +33,7 @@ OP_FETCH_SEGMENT = 0x03
 OP_ACK_SEGMENT = 0x04
 OP_ABORT = 0x05
 OP_SET_RECORDING = 0x06
+OP_UNPAIR = 0x07  # delete every bond on the device (§2.4)
 OP_SET_CONFIG = 0x10
 RESPONSE_BIT = 0x80
 
@@ -70,6 +71,22 @@ FLAG_CHARGING = 1 << 0  # on hold: the board has no charge-status pin (PRD 10 H)
 FLAG_RECORDING = 1 << 1  # recording switched on by the user
 FLAG_STORAGE_LOW = 1 << 2
 FLAG_STORAGE_FULL = 1 << 3
+FLAG_PAIRING_OPEN = 1 << 4  # a new pairing would be accepted right now (§2.4)
+
+# --- security (§2.4) ---------------------------------------------------------
+# Readable without encryption: STATUS value only. Everything else (STATUS/CONTROL/DATA
+# CCCDs, CONTROL writes) needs an encrypted link from a bonded phone.
+PAIRING_WINDOW_MS = 120_000  # after power-on; a bonded device accepts a new pairing only inside it
+UNENCRYPTED_TIMEOUT_MS = 60_000  # device drops a link that is still unencrypted after this
+ATT_ERR_INSUFFICIENT_AUTHENTICATION = 0x05  # no bond with this peer
+ATT_ERR_INSUFFICIENT_ENCRYPTION = 0x0F  # bonded, but the link is not encrypted yet
+
+
+def pairing_allowed(since_power_on_ms: int, bond_count: int, window_used: bool) -> bool:
+    """§2.4: no bond -> always; bonded -> only in the window and only once per window."""
+    if bond_count <= 0:
+        return True
+    return not window_used and since_power_on_ms < PAIRING_WINDOW_MS
 
 
 @dataclass
@@ -119,6 +136,10 @@ def ack_segment_request(seq: int, seg_id: int, crc32: int) -> bytes:
 
 def set_recording_request(seq: int, on: bool) -> bytes:
     return request(OP_SET_RECORDING, seq, bytes([1 if on else 0]))
+
+
+def unpair_request(seq: int) -> bytes:
+    return request(OP_UNPAIR, seq)
 
 
 @dataclass

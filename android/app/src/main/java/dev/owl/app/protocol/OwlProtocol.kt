@@ -36,6 +36,9 @@ object OwlProtocol {
     const val DATA_CHUNK_MAX = ATT_PAYLOAD - DATA_HEADER_SIZE // 236
 
     /** (244 − 4) / 9 = 26 entries per LIST_SEGMENTS response. */
+    /** §2.4: a pendant that has a bond accepts a new pairing only this long after power-on. */
+    const val PAIRING_WINDOW_MS = 120_000L
+
     const val LIST_MAX_PER_RESPONSE = (ATT_PAYLOAD - 3 - 1) / ListEntry.SIZE
 }
 
@@ -46,6 +49,9 @@ object Op {
     const val ACK_SEGMENT = 0x04
     const val ABORT = 0x05
     const val SET_RECORDING = 0x06
+
+    /** §2.4: the pendant deletes every bond after the response and drops the link. */
+    const val UNPAIR = 0x07
     const val SET_CONFIG = 0x10
     const val RESPONSE_BIT = 0x80
 }
@@ -128,6 +134,7 @@ data class Status(
     val recordingOn: Boolean get() = flags and FLAG_RECORDING != 0
     val storageLow: Boolean get() = flags and FLAG_STORAGE_LOW != 0
     val storageFull: Boolean get() = flags and FLAG_STORAGE_FULL != 0
+    val pairingOpen: Boolean get() = flags and FLAG_PAIRING_OPEN != 0
     val firmwareVersion: String get() = "$fwMajor.$fwMinor.$fwPatch"
 
     fun pack(): ByteArray = leAlloc(SIZE).apply {
@@ -144,6 +151,9 @@ data class Status(
         const val FLAG_RECORDING = 1 shl 1
         const val FLAG_STORAGE_LOW = 1 shl 2
         const val FLAG_STORAGE_FULL = 1 shl 3
+
+        /** §2.4: the pendant would accept a new pairing right now. */
+        const val FLAG_PAIRING_OPEN = 1 shl 4
 
         fun parse(data: ByteArray): Status {
             if (data.size < SIZE) throw ProtocolException("STATUS too short: ${data.size}")
@@ -180,6 +190,8 @@ object Requests {
     fun abort(seq: Int): ByteArray = request(Op.ABORT, seq)
 
     fun setRecording(seq: Int, on: Boolean): ByteArray = request(Op.SET_RECORDING, seq, byteArrayOf(if (on) 1 else 0))
+
+    fun unpair(seq: Int): ByteArray = request(Op.UNPAIR, seq)
 
     fun setConfig(seq: Int, key: Int, value: Long): ByteArray =
         request(Op.SET_CONFIG, seq, leAlloc(5).put(key.toByte()).putInt(value.toInt()).array())

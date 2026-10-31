@@ -1,6 +1,7 @@
 package dev.owl.app.device.fake
 
 import dev.owl.app.device.Characteristic
+import dev.owl.app.device.NotBondedException
 import dev.owl.app.device.OwlTransport
 import dev.owl.app.device.TransportEvent
 import dev.owl.app.device.TransportException
@@ -52,7 +53,10 @@ class RandomFrameSource(private val random: Random = Random(1)) : FrameSource {
  * offset, ACK with CRC check and delete, SET_RECORDING with events, STATUS.
  *
  * Fault injection for tests and the debug build: refuse connections, drop DATA chunks, drop the
- * link in the middle of a FETCH.
+ * link in the middle of a FETCH, refuse the phone as not bonded (protocol §2.4).
+ *
+ * Bonding is not emulated beyond that: the fake is always "bonded" unless [refuseAsNotBonded].
+ * UNPAIR answers OK, clears [bonded] (STATUS bit4 then reads "pairing open") and drops the link.
  *
  * State survives connect/disconnect like flash does; [reboot] starts a new boot (uptime from 0).
  */
@@ -95,6 +99,13 @@ class FakeOwlDevice(
     /** Next N connect() calls fail. */
     var failConnects: Int = 0
 
+    /** Every connect() fails as if the pendant had no bond with this phone (§2.4). */
+    var refuseAsNotBonded: Boolean = false
+
+    /** False after UNPAIR until the next connect (which "pairs" again). */
+    var bonded: Boolean = true
+        private set
+
     /** Drop every DATA chunk whose index (within one FETCH stream) is in this set, once each. */
     val dropChunkIndices = mutableSetOf<Int>()
 
@@ -122,7 +133,9 @@ class FakeOwlDevice(
                 failConnects--
                 throw TransportException("fake: device not reachable")
             }
+            if (refuseAsNotBonded) throw NotBondedException("fake: pendant refused pairing")
             if (connected) return
+            bonded = true
             // Leftovers of the previous connection (e.g. its Disconnected) must not reach the new client.
             while (events_.tryReceive().isSuccess) Unit
             connected = true
@@ -153,6 +166,7 @@ class FakeOwlDevice(
         if (recordingOn) flags = flags or Status.FLAG_RECORDING
         if (usedKb * 10 >= storageTotalKb * 9) flags = flags or Status.FLAG_STORAGE_LOW
         if (usedKb >= storageTotalKb) flags = flags or Status.FLAG_STORAGE_FULL
+        if (!bonded) flags = flags or Status.FLAG_PAIRING_OPEN
         return Status(
             OwlProtocol.PROTO_VER, firmware.first, firmware.second, firmware.third, batteryMv, flags,
             usedKb, storageTotalKb, stored.size, bootCount,
@@ -172,6 +186,10 @@ class FakeOwlDevice(
             received += req
             val resp = handle(req)
             events_.trySend(TransportEvent.Notification(Characteristic.CONTROL, resp.pack()))
+            if (req.op == Op.UNPAIR && resp.result == ResultCode.OK) {
+                bonded = false
+                dropLink() // like the firmware: bonds deleted, link goes down
+            }
         }
     }
 
@@ -237,6 +255,10 @@ class FakeOwlDevice(
                     else -> false
                 }
                 reply(if (valid) ResultCode.OK else ResultCode.BAD_LENGTH)
+            }
+            Op.UNPAIR -> {
+                stream?.cancel()
+                reply(ResultCode.OK)
             }
             else -> reply(ResultCode.UNKNOWN_OP)
         }

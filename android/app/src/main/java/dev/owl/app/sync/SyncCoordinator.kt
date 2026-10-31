@@ -6,6 +6,7 @@ import dev.owl.app.data.SettingsStore
 import dev.owl.app.data.db.StatusDao
 import dev.owl.app.device.Battery
 import dev.owl.app.device.DeviceErrorException
+import dev.owl.app.device.NotBondedException
 import dev.owl.app.device.OwlClient
 import dev.owl.app.device.OwlTransport
 import dev.owl.app.device.TransportException
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Owns "talking to the pendant": runs sync passes with retries, decides "연결 끊김"
@@ -160,6 +162,29 @@ class SyncCoordinator(
         }
     }
 
+    /**
+     * "등록 해제" (protocol §2.4): asks the pendant to forget every bond (UNPAIR), so the next
+     * registration — this phone or another — can pair without the power-on window. Best effort:
+     * if the pendant is off or away, registering again later still works inside the window.
+     */
+    suspend fun forgetOnDevice(timeoutMs: Long = FORGET_TIMEOUT_MS): Boolean {
+        val dev = settings.current() ?: return false
+        val ok = withTimeoutOrNull(timeoutMs) {
+            linkLock.withLock {
+                try {
+                    withClient(dev) { it.unpair() }
+                    true
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    Log.w(TAG, "UNPAIR failed: ${e.message}")
+                    false
+                }
+            }
+        } ?: false
+        live.value = Live()
+        return ok
+    }
+
     // --- SyncRunner ------------------------------------------------------------
 
     override suspend fun sync(trigger: SyncTrigger): Boolean {
@@ -187,6 +212,11 @@ class SyncCoordinator(
                     Log.i(TAG, "sync ($trigger) ok: $report")
                     runCatching { afterSync(report) }.onFailure { Log.w(TAG, "afterSync failed", it) }
                     return true
+                } catch (e: NotBondedException) {
+                    // §2.4: the pendant refuses this phone. Retrying would only fail again.
+                    Log.w(TAG, "sync ($trigger): not bonded: ${e.message}")
+                    live.value = live.value.copy(connection = Connection.NOT_PAIRED, progress = null)
+                    return false
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.w(TAG, "sync ($trigger) attempt ${attempt + 1} failed: ${e.message}")
@@ -219,5 +249,6 @@ class SyncCoordinator(
 
     private companion object {
         const val TAG = "OwlSync"
+        const val FORGET_TIMEOUT_MS = 10_000L
     }
 }

@@ -38,11 +38,17 @@ import kotlin.coroutines.resume
  * and remembers the association. In return the app gets (a) no location permission needed for
  * the scan, and (b) presence callbacks: [OwlCompanionService] is woken whenever the registered
  * pendant comes into or goes out of BLE range, even when our process is dead (A2).
+ *
+ * Right after the association the phone bonds with the pendant ([Bonder], protocol §2.4): the
+ * pendant only syncs over an encrypted link with its bonded phone, and only accepts a new
+ * pairing while nothing is bonded or in the first 2 minutes after power-on. If it refuses, the
+ * registration fails and the association is undone, so a half-registered pendant never stays.
  */
 class CdmRegistrar(
     context: Context,
     private val store: RegistrationStore,
     fakeAvailable: Boolean,
+    private val bonder: Bonder = BondManager(context),
 ) : DeviceRegistrar {
 
     private val appContext = context.applicationContext
@@ -129,6 +135,11 @@ class CdmRegistrar(
         val mac = address?.uppercase() ?: return failure(R.string.cdm_no_device)
         val deviceName = name?.takeIf { it.startsWith(OwlProtocol.NAME_PREFIX) } ?: fallbackName(mac)
 
+        bonder.bond(mac).onFailure { e ->
+            Log.w(TAG, "bonding with $mac failed: ${e.message}")
+            disassociate(RegisteredDevice(mac, deviceName, associationId, isFake = false))
+            return failure(if ((e as? BondException)?.noPermission == true) R.string.bond_no_permission else R.string.bond_failed)
+        }
         store.save(RegisteredDevice(mac, deviceName, associationId, isFake = false))
         startObserving(mac, associationId)
         return Result.success(deviceName)
@@ -145,22 +156,32 @@ class CdmRegistrar(
         val cdm = cdm
         if (device != null && !device.isFake && cdm != null) {
             stopObserving(cdm, device)
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    // Remove by id; on 31–32 registrations the id was not stored, so match by MAC.
-                    cdm.myAssociations
-                        .filter { it.id == device.associationId || it.deviceMacAddress?.toString().equals(device.address, ignoreCase = true) }
-                        .forEach { cdm.disassociate(it.id) }
-                } else {
-                    @Suppress("DEPRECATION")
-                    cdm.disassociate(device.address)
-                }
-            } catch (e: RuntimeException) {
-                // Already gone (e.g. the user removed it in system settings): nothing to undo.
-                Log.w(TAG, "disassociate failed", e)
+            // Before disassociating: on API 36 the CDM call needs the association. CDM's
+            // disassociate() does not remove the bond itself.
+            if (!bonder.removeBond(device.address, device.associationId)) {
+                Log.w(TAG, "could not remove the bond; the user can remove it in Bluetooth settings")
             }
+            disassociate(device)
         }
         store.clear()
+    }
+
+    private fun disassociate(device: RegisteredDevice) {
+        val cdm = cdm ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Remove by id; on 31–32 registrations the id was not stored, so match by MAC.
+                cdm.myAssociations
+                    .filter { it.id == device.associationId || it.deviceMacAddress?.toString().equals(device.address, ignoreCase = true) }
+                    .forEach { cdm.disassociate(it.id) }
+            } else {
+                @Suppress("DEPRECATION")
+                cdm.disassociate(device.address)
+            }
+        } catch (e: RuntimeException) {
+            // Already gone (e.g. the user removed it in system settings): nothing to undo.
+            Log.w(TAG, "disassociate failed", e)
+        }
     }
 
     /** Asks CDM to wake [OwlCompanionService] when the pendant appears / disappears. */

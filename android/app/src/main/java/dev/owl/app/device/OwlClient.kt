@@ -188,6 +188,11 @@ class OwlClient(
     suspend fun setRecording(on: Boolean) {
         requestOk(Op.SET_RECORDING) { Requests.setRecording(it, on) }
     }
+
+    /** UNPAIR (§2.4): the pendant forgets every bond, then drops the link. */
+    suspend fun unpair() {
+        requestOk(Op.UNPAIR) { Requests.unpair(it) }
+    }
 }
 
 data class TimeSyncResult(val bootCount: Long, val deviceUptimeMs: Long, val phoneUnixMs: Long)

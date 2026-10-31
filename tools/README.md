@@ -54,12 +54,19 @@ DATA 유실(가운데·마지막 청크·무작위 15%), FETCH 중 연결 끊김
 ACK 응답 유실, CONTROL 응답 유실(타임아웃), 26개 넘는 LIST 페이징, 작은 MTU, 시각 복원,
 SET_RECORDING 이벤트, 기기 결과 코드.
 
+`test_security.py`는 BLE 보안(프로토콜 2.4장)을 loopback으로 확인해요: 처음 연결하면 페어링·본딩,
+본딩된 PC는 다시 페어링하지 않음, 모르는 기기는 거절되고(재시도 없이 바로 실패) 아무것도 안 지워짐,
+STATUS는 페어링 없이 읽힘, 켠 뒤 2분 안의 새 페어링이 옛 본딩을 대체, 2분 뒤엔 거절, UNPAIR 후 다시 열림.
+loopback은 central 이름(`peer`)으로 본딩을 흉내 내요. 암호화 자체는 흉내 내지 않아요.
+
 ## sync.py
 
 ```bash
 python sync.py sync --out owl-data            # 가장 센 Owl-* 에 연결해서 전부 받고 ACK
 python sync.py sync --out owl-data --no-ack   # 받기만 하고 기기에서 안 지움 (안전한 시험용)
-python sync.py --name Owl-1A2B status         # 특정 기기 (--address 도 됨, macOS는 UUID)
+python sync.py --name Owl-1A2B status         # 특정 기기 (--address 도 됨, macOS는 UUID). 페어링 없이 읽혀요
+python sync.py pair                           # 이 PC를 기기와 본딩 (한 번)
+python sync.py unpair                         # 기기가 모든 본딩을 지우고, 이 PC도 기기를 잊음
 python sync.py list
 python sync.py set-recording off
 python sync.py set-config bitrate 12000       # 개발용 (decisions.md #12). 키: bitrate, vad, segment-len
@@ -75,6 +82,14 @@ python sync.py --fake sync --out /tmp/owl     # 보드 없이: 같은 프로세�
 - **ACK 순서**: 임시 파일에 쓰고 fsync → 이름 바꾸기 → 폴더 fsync → 그 다음 ACK. 순서가 바뀌면 PRD N4 위반.
 - **CRC 불일치**: 기기가 결과 4를 주면 파일을 `.bad*`로 옮겨 두고 처음부터 다시 받아요(2번까지).
 - **재시도**: 연결·응답 실패는 지수 백오프로 다시 연결(`--attempts`, 진전이 있으면 횟수 초기화). BUSY는 요청 단위로 재시도.
+- **페어링(프로토콜 2.4장)**: 기기는 본딩된 폰·PC하고만 동기화해요. 새 페어링은 본딩된 기기가 없을 때,
+  또는 기기를 켠 뒤 2분 안에만 돼요(그러면 이전 폰의 본딩을 대체). 거절되면 `not paired:` 안내와 함께 종료 코드 2로
+  끝나고 다시 시도하지 않아요.
+  - Linux(BlueZ)·Windows: `pair`가 `BleakClient.pair()`를 불러요. Just Works라 BlueZ 에이전트 없이 된다고 봤지만
+    실제 기기로는 확인 안 됨.
+  - macOS: 코드로 페어링하는 API가 없어서(bleak 소스 확인) 처음 구독할 때 CoreBluetooth가 알아서 페어링해요(시스템 창).
+    `unpair`의 PC 쪽 삭제도 안 돼서 시스템 설정 › 블루투스에서 "이 기기 지우기"를 해야 해요.
+  - PC를 페어링하면 폰의 본딩이 지워져요(본딩은 한 번에 하나, `decisions.md` #35). PC로 시험한 뒤엔 폰 앱에서 다시 등록하세요.
 
 출력 폴더:
 
@@ -108,6 +123,12 @@ ACK하면 삭제, ABORT, SET_RECORDING → 이벤트 2/3(arg 1), SET_CONFIG 범�
 loopback 고장 주입(`transport.Faults`)은 테스트 전용이에요. BLE 모드에는 없어요.
 
 ### macOS BLE에서 흉내 못 내는 것
+
+- **페어링 창·본딩 하나 규칙·페어링 거절 (프로토콜 2.4장)**: CoreBluetooth가 모든 페어링을 스스로 받아들이고
+  주변기기 쪽에 거절할 방법을 주지 않아요(bless·CoreBluetooth API 확인). 그래서 가짜 기기는 아무 폰과도 본딩돼요.
+  암호화 요구는 흉내 내요: CONTROL 쓰기는 `write_encryption_required`, 알림 특성 셋은 CoreBluetooth의
+  NotifyEncryptionRequired 속성이라 구독하려면 먼저 페어링해야 해요. STATUS는 기기처럼 페어링 없이 읽혀요(확인 안 됨: 권한 문제로
+  실제 BLE로 돌려보지 못함). STATUS bit4(페어링 열림)는 기기 모델 값이라 macOS가 맺은 본딩을 몰라요.
 
 - **MTU·2M PHY·DLE·연결 간격**: 주변기기(peripheral) 쪽에서 요청할 수 없어요. 폰(central)이 정해요.
   가짜 기기는 central의 `maximumUpdateValueLength`를 읽어서 청크 크기를 맞춰요 (MTU 247일 때만 236B).

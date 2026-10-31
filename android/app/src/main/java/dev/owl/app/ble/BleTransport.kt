@@ -16,6 +16,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dev.owl.app.device.Characteristic
+import dev.owl.app.device.NotBondedException
 import dev.owl.app.device.OwlTransport
 import dev.owl.app.device.TransportEvent
 import dev.owl.app.device.TransportException
@@ -48,6 +49,13 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * The connection is short-lived: the sync engine calls [connect], runs one pass, then [disconnect]
  * (protocol §5, decisions.md #15). Each [connect] creates a fresh `BluetoothGatt`.
+ *
+ * Security (protocol §2.4): the pendant answers CONTROL and the CCCDs only on an encrypted link.
+ * The phone bonds once, at registration ([BondManager]); on every connection the pendant sends a
+ * Security Request and Android encrypts with the stored key. If something is refused, Android's
+ * own retry (BluetoothGatt re-tries a status 5/15 operation after pairing/encrypting) ends with
+ * status 137 (GATT_AUTH_FAIL), which becomes [NotBondedException]: the sync coordinator stops
+ * retrying and shows "다시 등록".
  */
 class BleTransport(context: Context, private val address: String) : OwlTransport {
 
@@ -101,6 +109,10 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
         } catch (e: IllegalArgumentException) {
             throw TransportException("bad address $address", e)
         }
+        // No bond on our side (removed in system settings, or registered before bonding existed):
+        // connecting would make Android pop a pairing dialog during a background sync, which the
+        // pendant refuses outside its window anyway.
+        if (device.bondState != BluetoothDevice.BOND_BONDED) throw NotBondedException("phone has no bond with $address")
 
         negotiatedMtu = DEFAULT_MTU
         try {
@@ -243,13 +255,17 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
         if (!pending.compareAndSet(p, null)) return
         if (status == BluetoothGatt.GATT_SUCCESS) {
             p.result.complete(value)
+        } else if (isAuthFailure(status)) {
+            p.result.completeExceptionally(NotBondedException("$kind refused, GATT status $status (not bonded)"))
         } else {
             p.result.completeExceptionally(TransportException("$kind failed, GATT status $status"))
         }
     }
 
-    private fun failPending(reason: String) {
-        pending.getAndSet(null)?.result?.completeExceptionally(TransportException(reason))
+    private fun failPending(reason: String) = failPending(TransportException(reason))
+
+    private fun failPending(e: TransportException) {
+        pending.getAndSet(null)?.result?.completeExceptionally(e)
     }
 
     private fun closeGatt() {
@@ -316,7 +332,10 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
                     characteristics = emptyMap()
                     closeQuietly(g)
                 }
-                failPending("link lost (GATT status $status)")
+                failPending(
+                    if (isAuthDisconnect(status)) NotBondedException("pendant dropped the link: not bonded (status $status)")
+                    else TransportException("link lost (GATT status $status)"),
+                )
                 if (wasConnected) eventChannel.trySend(TransportEvent.Disconnected)
             }
         }
@@ -390,5 +409,19 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
         const val DEFAULT_MTU = 23
         const val CONNECT_TIMEOUT_MS = 15_000L
         const val OP_TIMEOUT_MS = 10_000L
+
+        /** ATT Insufficient Authentication / Encryption, and Android's GATT_AUTH_FAIL after its retry. */
+        private val AUTH_FAILURE_STATUSES = setOf(0x05, 0x0F, 0x89)
+
+        /**
+         * HCI disconnect reasons that mean "no shared key": 0x05 Authentication Failure (the pendant
+         * drops a link that is still unencrypted after 60 s, §2.4), 0x06 PIN or Key Missing (the
+         * pendant no longer has our bond).
+         */
+        private val AUTH_DISCONNECT_REASONS = setOf(0x05, 0x06)
+
+        fun isAuthFailure(gattStatus: Int): Boolean = gattStatus in AUTH_FAILURE_STATUSES
+
+        fun isAuthDisconnect(status: Int): Boolean = status in AUTH_DISCONNECT_REASONS
     }
 }

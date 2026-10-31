@@ -15,6 +15,7 @@ static struct {
 	uint8_t cfg_key;
 	uint32_t cfg_value;
 	int aborts;
+	int unpairs;
 	int fetch_result;
 	int ack_result;
 } calls;
@@ -67,6 +68,12 @@ static int f_set_config(uint8_t key, uint32_t value)
 	return OWL_RESULT_OK;
 }
 
+static int f_unpair(void)
+{
+	calls.unpairs++;
+	return OWL_RESULT_OK;
+}
+
 static const struct owl_ctl_ops ops = {
 	.time_sync = f_time_sync,
 	.list = f_list,
@@ -75,6 +82,7 @@ static const struct owl_ctl_ops ops = {
 	.abort = f_abort,
 	.set_recording = f_set_recording,
 	.set_config = f_set_config,
+	.unpair = f_unpair,
 };
 
 static uint8_t resp[OWL_ATT_PAYLOAD];
@@ -147,6 +155,15 @@ ZTEST(control, test_set_config_and_abort)
 	zassert_equal(handle(ab, sizeof(ab)), 3);
 	zassert_equal(resp[0], OWL_OP_ABORT | OWL_RESPONSE_BIT);
 	zassert_equal(calls.aborts, 1);
+}
+
+ZTEST(control, test_unpair)
+{
+	zassert_equal(handle(vec_req_unpair, sizeof(vec_req_unpair)), 3, "no payload either way");
+	zassert_equal(resp[0], OWL_OP_UNPAIR | OWL_RESPONSE_BIT);
+	zassert_equal(resp[1], 4);
+	zassert_equal(resp[2], OWL_RESULT_OK);
+	zassert_equal(calls.unpairs, 1);
 }
 
 ZTEST(control, test_errors)

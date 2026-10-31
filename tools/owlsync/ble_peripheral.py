@@ -10,6 +10,19 @@ Limits on macOS (CoreBluetooth peripheral role):
     peripheral, so run `sync.py` on another machine or use the phone app.
   * There is no disconnect callback; "all characteristics unsubscribed" is
     treated as disconnect.
+
+Security (protocol §2.4), what the fake can and cannot do:
+  * Encryption requirement: yes, mostly. CONTROL is write-encryption-required and,
+    on macOS, every notify characteristic gets CoreBluetooth's
+    NotifyEncryptionRequired property, so subscribing needs an encrypted link and
+    the central has to pair first (STATUS stays readable, as on the device).
+    Unverified on hardware (no Bluetooth permission while writing this).
+  * Pairing window / one-bond policy / refusing a pairing: no. CoreBluetooth
+    accepts every pairing itself (Just Works) and gives the peripheral no hook to
+    refuse one, so any phone can bond with the fake. STATUS bit4 (pairing open)
+    comes from the device model, which never sees those pairings.
+  * UNPAIR: the model answers OK and forgets its (empty) bond list; the Mac keeps
+    its bond (remove it in System Settings > Bluetooth).
 """
 
 from __future__ import annotations
@@ -22,6 +35,10 @@ import owlproto as p
 from .device import OwlDevice
 from .transport import PeripheralLink, TransportError
 
+# CBCharacteristicPropertyNotifyEncryptionRequired. bless has no name for it and
+# passes property bits to CoreBluetooth unchanged on macOS (its 0x100 is
+# "reliable_write", which is what the BlueZ backend would send instead).
+CB_NOTIFY_ENCRYPTION_REQUIRED = 0x100
 DEFAULT_NOTIFY_LEN = 182  # assumed fallback until the central's maximumUpdateValueLength is known
 _hooks: dict = {}
 
@@ -191,11 +208,16 @@ class BlessPeripheral(PeripheralLink):
         server = await _create_server(BlessServer, self.name, self._loop)
         server.read_request_func = self._read
         server.write_request_func = self._write
+        import sys
+
+        notify = Prop.notify
+        if sys.platform == "darwin":
+            notify = Prop(Prop.notify.value | CB_NOTIFY_ENCRYPTION_REQUIRED)
         await server.add_new_service(p.SERVICE_UUID)
-        await server.add_new_characteristic(p.SERVICE_UUID, p.STATUS_UUID, Prop.read | Prop.notify, None, Perm.readable)
-        await server.add_new_characteristic(p.SERVICE_UUID, p.CONTROL_UUID, Prop.write | Prop.notify, None,
-                                            Perm.writeable)
-        await server.add_new_characteristic(p.SERVICE_UUID, p.DATA_UUID, Prop.notify, None, Perm.readable)
+        await server.add_new_characteristic(p.SERVICE_UUID, p.STATUS_UUID, Prop.read | notify, None, Perm.readable)
+        await server.add_new_characteristic(p.SERVICE_UUID, p.CONTROL_UUID, Prop.write | notify, None,
+                                            Perm.write_encryption_required)
+        await server.add_new_characteristic(p.SERVICE_UUID, p.DATA_UUID, notify, None, Perm.readable)
         await server.start()
         self._server = server
         self.log(f"advertising as {self.name} (service {p.SERVICE_UUID})")

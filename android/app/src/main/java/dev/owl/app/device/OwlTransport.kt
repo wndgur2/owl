@@ -38,7 +38,15 @@ sealed interface TransportEvent {
     data object Disconnected : TransportEvent
 }
 
-class TransportException(message: String, cause: Throwable? = null) : Exception(message, cause)
+open class TransportException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * The pendant will not talk to this phone (protocol §2.4): it has no bond with us (ATT
+ * Insufficient Authentication, or Android's pairing retry was refused), or it lost our bond.
+ * Retrying does not help; the user re-registers (power the pendant off and on, then register
+ * within 2 minutes).
+ */
+class NotBondedException(message: String, cause: Throwable? = null) : TransportException(message, cause)
 
 /** Creates a transport for the registered device. Real BLE or fake, chosen in AppContainer. */
 fun interface TransportFactory {

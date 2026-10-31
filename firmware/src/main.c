@@ -100,6 +100,9 @@ void app_fill_status(struct owl_status *s)
 	if (audio_is_full()) {
 		s->flags |= OWL_FLAG_STORAGE_FULL;
 	}
+	if (ble_pairing_open()) {
+		s->flags |= OWL_FLAG_PAIRING_OPEN;
+	}
 	s->storage_used_kb = u.used_kb;
 	s->storage_total_kb = u.total_kb;
 	s->pending_segments = u.pending;
