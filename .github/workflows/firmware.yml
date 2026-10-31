@@ -7,13 +7,14 @@
 name: firmware
 
 on:
+  # On main, build only when firmware code (or the protocol it implements) changes.
+  # Changes to this workflow itself are checked on their pull request instead, so
+  # merging a CI-only change never turns main red because of firmware code.
   push:
     branches: [main]
     paths:
       - "firmware/**"
       - "protocol/**"
-      - ".github/workflows/firmware.yml"
-      - ".github/actions/ncs-setup/**"
   pull_request:
     branches: [main]
     paths:
