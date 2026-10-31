@@ -1,0 +1,45 @@
+name: 버그
+description: 펌웨어·앱·도구가 예상과 다르게 동작해요
+title: "[버그] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options:
+        - 펌웨어
+        - Android 앱
+        - PC 도구 (tools/)
+        - 프로토콜
+        - 하드웨어
+        - CI / 레포
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 무슨 일이 있었나요
+      description: 실제로 일어난 일과 기대한 동작
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 재현 방법
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그
+      description: 시리얼 로그(uart.conf 빌드), logcat, 명령 출력 등
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: 버전
+      description: 커밋 해시, 펌웨어 버전, 앱 버전, 보드 버전(V1.0/V1.2) 등
