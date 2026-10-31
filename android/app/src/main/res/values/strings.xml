@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Owl</string>
+    <string name="privacy_principle">모든 음성, 위치, 텍스트 정보는 디바이스 내부에만 존재해요.</string>
+
+    <!-- Sync foreground service notification -->
+    <string name="sync_channel_name">목걸이 동기화</string>
+    <string name="sync_channel_description">목걸이에서 녹음을 가져오는 동안 표시돼요</string>
+    <string name="sync_notification_title">목걸이와 연결됨</string>
+    <string name="sync_notification_syncing">녹음 가져오는 중</string>
+    <string name="sync_notification_idle">다음 동기화 대기 중</string>
+</resources>

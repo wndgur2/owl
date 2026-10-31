@@ -14,20 +14,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from bleak import BleakClient, BleakScanner
+from bleak import BleakClient
 
 import owlproto as p
-
-
-async def scan(timeout: float) -> list:
-    found = await BleakScanner.discover(timeout=timeout, return_adv=True)
-    hits = []
-    for dev, adv in found.values():
-        name = adv.local_name or dev.name or ""
-        if name.startswith("Owl") or p.SERVICE_UUID in (adv.service_uuids or []):
-            hits.append((adv.rssi, dev, name))
-    hits.sort(key=lambda h: h[0], reverse=True)
-    return hits
+from owlsync.ble import scan  # shared with sync.py
 
 
 async def read_status(dev) -> None:
