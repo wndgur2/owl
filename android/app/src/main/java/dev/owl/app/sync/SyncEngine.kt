@@ -65,8 +65,8 @@ class SyncEngine(
     private val db: SyncDb,
     private val clock: () -> Long = System::currentTimeMillis,
     private val tzOffsetMin: () -> Int = { java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60_000 },
-    /** No DATA for this long while a FETCH is open → ask again from the first missing byte. */
-    private val chunkStallMs: Long = 3_000,
+    /** No DATA for this long while a FETCH is open → ABORT and FETCH again from the first missing byte. */
+    private val chunkStallMs: Long = 2_000,
     /** Re-FETCHes without any progress before giving up on this pass. */
     private val maxStalls: Int = 4,
     private val maxCrcRetries: Int = 2,
@@ -145,7 +145,9 @@ class SyncEngine(
      * Returns the CRC32 to ACK with, or null if the segment is malformed (left un-ACKed on the pendant).
      *
      * Chunks are accepted strictly in order ("go-back-N"): a chunk past the first missing byte
-     * means one was dropped, so we FETCH again from that byte and ignore the rest of the old stream.
+     * means one was dropped, so we ABORT and FETCH again from that byte, ignoring whatever of the
+     * old stream is still in flight. DATA has no end marker: the segment is done when [0, size)
+     * from LIST is covered.
      */
     private suspend fun fetch(client: OwlClient, address: String, entry: ListEntry, onFraction: (Float) -> Unit): Long? {
         val size = entry.size
@@ -161,6 +163,8 @@ class SyncEngine(
             val chunk = withTimeoutOrNull(chunkStallMs) { client.data.receive() }
             if (chunk == null) {
                 if (++stalls > maxStalls) throw SyncFailedException("transfer of ${entry.id} stalled at $expected")
+                log("segment ${entry.id}: stalled at byte $expected, ABORT + re-FETCH")
+                client.abort()
                 drain(client)
                 client.fetch(entry.id, expected)
                 refetchedAt = expected
@@ -179,7 +183,8 @@ class SyncEngine(
                 }
                 chunk.offset > expected && refetchedAt != expected -> {
                     // Gap: a chunk was lost. Ask again from the first missing byte, once per gap.
-                    log("segment ${entry.id}: gap at byte $expected, re-FETCH")
+                    log("segment ${entry.id}: gap at byte $expected, ABORT + re-FETCH")
+                    client.abort()
                     client.fetch(entry.id, expected)
                     refetchedAt = expected
                 }

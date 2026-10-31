@@ -6,6 +6,7 @@ import dev.owl.app.device.TransportEvent
 import dev.owl.app.device.TransportException
 import dev.owl.app.protocol.Cause
 import dev.owl.app.protocol.Codec
+import dev.owl.app.protocol.ConfigKey
 import dev.owl.app.protocol.DataChunk
 import dev.owl.app.protocol.DeviceEvent
 import dev.owl.app.protocol.EventType
@@ -100,6 +101,9 @@ class FakeOwlDevice(
     /** Drop the link after this many DATA chunks of the next FETCH (one-shot). */
     var disconnectAfterChunks: Int? = null
 
+    /** Entries per LIST page; a real pendant may send fewer than 26 to fit a smaller MTU. */
+    var listPageMax: Int = OwlProtocol.LIST_MAX_PER_RESPONSE
+
     /** Chance per chunk to drop it (debug-build "flaky radio"). */
     var dropProbability: Double = 0.0
     private val random = Random(7)
@@ -122,6 +126,8 @@ class FakeOwlDevice(
             // Leftovers of the previous connection (e.g. its Disconnected) must not reach the new client.
             while (events_.tryReceive().isSuccess) Unit
             connected = true
+            // The open event log is sealed into a listable segment when a central connects.
+            flushEvents()
         }
     }
 
@@ -156,6 +162,12 @@ class FakeOwlDevice(
     override suspend fun writeControl(bytes: ByteArray) {
         lock.withLock {
             if (!connected) throw TransportException("fake: not connected")
+            if (bytes.size < 2) {
+                // No seq to echo: answer seq 0, BAD_LENGTH.
+                val op = if (bytes.isEmpty()) 0 else bytes[0].toInt() and 0x7F
+                events_.trySend(TransportEvent.Notification(Characteristic.CONTROL, Response(op, 0, ResultCode.BAD_LENGTH).pack()))
+                return
+            }
             val req = Request.parse(bytes)
             received += req
             val resp = handle(req)
@@ -173,8 +185,7 @@ class FakeOwlDevice(
             Op.LIST_SEGMENTS -> {
                 if (req.payload.size != 5) return reply(ResultCode.BAD_LENGTH)
                 val after = p.int.toLong() and 0xFFFFFFFFL
-                val max = (p.get().toInt() and 0xFF).coerceAtMost(OwlProtocol.LIST_MAX_PER_RESPONSE)
-                flushEvents()
+                val max = (p.get().toInt() and 0xFF).coerceAtMost(listPageMax)
                 val page = stored.tailMap(after, false).entries.take(max)
                     .map { (id, blob) -> ListEntry(id, blob[5].toInt(), blob.size.toLong()) }
                 reply(ResultCode.OK, ListEntry.packAll(page))
@@ -185,7 +196,8 @@ class FakeOwlDevice(
                 val id = p.int.toLong() and 0xFFFFFFFFL
                 val offset = p.int.toLong() and 0xFFFFFFFFL
                 val blob = stored[id] ?: return reply(ResultCode.NO_SEGMENT)
-                // A new FETCH replaces a running one (see PR notes: spec does not say; BUSY is also handled).
+                if (offset > blob.size) return reply(ResultCode.BAD_LENGTH)
+                // A new FETCH replaces a running one.
                 stream?.cancel()
                 stream = scope.launch { streamChunks(id, blob, offset.toInt()) }
                 reply(ResultCode.OK)
@@ -213,7 +225,19 @@ class FakeOwlDevice(
                 reply(ResultCode.OK)
             }
 
-            Op.SET_CONFIG -> if (req.payload.size != 5) reply(ResultCode.BAD_LENGTH) else reply(ResultCode.OK)
+            Op.SET_CONFIG -> {
+                if (req.payload.size != 5) return reply(ResultCode.BAD_LENGTH)
+                val key = p.get().toInt() and 0xFF
+                val value = p.int.toLong() and 0xFFFFFFFFL
+                // Illustrative ranges for the fake only; the firmware defines the real ones.
+                val valid = when (key) {
+                    ConfigKey.OPUS_BITRATE -> value in 6_000..32_000
+                    ConfigKey.VAD_SENSITIVITY -> value in 0..3
+                    ConfigKey.SEGMENT_MAX_SECONDS -> value in 10..3_600
+                    else -> false
+                }
+                reply(if (valid) ResultCode.OK else ResultCode.BAD_LENGTH)
+            }
             else -> reply(ResultCode.UNKNOWN_OP)
         }
     }
@@ -254,7 +278,7 @@ class FakeOwlDevice(
     }
 
     fun setRecording(on: Boolean, cause: Int = Cause.BUTTON) {
-        if (recordingOn == on) return
+        if (recordingOn == on) return // same state → OK, no event
         recordingOn = on
         pendingEvents += DeviceEvent(uptimeMs(), if (on) EventType.RECORDING_ON else EventType.RECORDING_OFF, cause)
     }

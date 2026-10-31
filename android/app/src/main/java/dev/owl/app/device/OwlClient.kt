@@ -145,22 +145,26 @@ class OwlClient(
         return TimeSyncResult(reply.bootCount, reply.uptimeMs, sent + (received - sent) / 2)
     }
 
-    /** All pending segments, paging 26 at a time with the last id (protocol §2.2). */
+    /**
+     * All pending segments (protocol §2.2). There is no "more" flag and a page may hold fewer
+     * than 26 entries (the device fits it to the MTU), so keep asking with the last id until an
+     * empty page comes back.
+     */
     suspend fun listAll(): List<ListEntry> {
         val all = ArrayList<ListEntry>()
         var after = 0L
         while (true) {
             val r = requestOk(Op.LIST_SEGMENTS) { Requests.listSegments(it, after) }
             val page = ListEntry.parseAll(r.payload)
+            if (page.isEmpty()) return all
             all += page
-            if (page.size < OwlProtocol.LIST_MAX_PER_RESPONSE) return all
             after = page.last().id
         }
     }
 
     /**
-     * Starts streaming [id] from [offset]; chunks arrive on [data]. If the pendant is still busy
-     * with an earlier FETCH, abort it and ask again.
+     * Starts streaming [id] from [offset]; chunks arrive on [data]. A new FETCH replaces a running
+     * stream; BUSY is still handled (abort, then ask again) in case firmware ever answers that way.
      */
     suspend fun fetch(id: Long, offset: Long) {
         val r = request(Op.FETCH_SEGMENT) { Requests.fetchSegment(it, id, offset) }

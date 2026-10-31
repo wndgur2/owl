@@ -1,6 +1,8 @@
 package dev.owl.app.sync
 
+import dev.owl.app.device.DeviceErrorException
 import dev.owl.app.device.OwlClient
+import dev.owl.app.protocol.ResultCode
 import dev.owl.app.device.TimeSyncResult
 import dev.owl.app.device.fake.FakeOwlDevice
 import dev.owl.app.protocol.DeviceEvent
@@ -102,10 +104,23 @@ class SyncEngineTest {
         assertEquals(EventType.BOOKMARK, db.events.single().event)
         assertEquals(2_100L, db.rows.getValue(ids[0]).durationMs)
         assertEquals(0, report.status!!.pendingSegments)
-        // LIST paging: second page starts after the 26th id.
+        // LIST paging: 26, then 5, then an empty page ends it; each page starts after the last id.
         val lists = dev.received.filter { it.op == Op.LIST_SEGMENTS }
-        assertEquals(2, lists.size)
+        assertEquals(3, lists.size)
         assertEquals(ids[25], le(lists[1].payload).int.toLong())
+    }
+
+    @Test
+    fun shortListPagesKeepPagingUntilEmpty() = runTest {
+        val dev = device()
+        dev.listPageMax = 7 // e.g. a smaller MTU
+        repeat(10) { dev.recordAudio(durationMs = 1_000) }
+        val db = MemorySyncDb()
+
+        val report = pass(dev, engine(SegmentFiles(tmp.newFolder()), db))
+
+        assertEquals(10, report.acked)
+        assertEquals(3, dev.received.count { it.op == Op.LIST_SEGMENTS }) // 7, 3, 0
     }
 
     @Test
@@ -124,6 +139,10 @@ class SyncEngineTest {
         val fetchOffsets = dev.received.filter { it.op == Op.FETCH_SEGMENT }.map { le(it.payload).let { b -> b.int; b.int.toLong() } }
         assertEquals(0L, fetchOffsets.first())
         assertTrue("re-FETCH from the first missing offset", 3L * 236 in fetchOffsets)
+        // ABORT goes out right before each re-FETCH.
+        val ops = dev.received.map { it.op }
+        val refetch = ops.indexOfLast { it == Op.FETCH_SEGMENT }
+        assertEquals(Op.ABORT, ops[refetch - 1])
     }
 
     @Test
@@ -243,6 +262,31 @@ class SyncEngineTest {
         client.disconnect()
         val req = dev.received.first { it.op == Op.SET_RECORDING }
         assertEquals(0, req.payload[0].toInt())
+    }
+
+    @Test
+    fun deviceEdgeCasesFromTheAgreedSpec() = runTest {
+        val dev = device()
+        val id = dev.recordAudio(durationMs = 1_000)
+        val client = OwlClient(dev, backgroundScope, requestTimeoutMs = 1_000, clock = { now })
+        client.connect()
+        // A 1-byte request has no seq: the pendant answers seq 0, result 2. (A fresh client's
+        // first seq is 0, so the reply matches.)
+        val r = client.request(Op.ABORT) { byteArrayOf(Op.ABORT.toByte()) }
+        assertEquals(0, r.seq)
+        assertEquals(ResultCode.BAD_LENGTH, r.result)
+        // SET_RECORDING to the current state: OK, no event.
+        client.setRecording(true)
+        assertEquals(1, client.listAll().size)
+        // FETCH beyond the segment size: result 2.
+        val size = client.listAll().single().size
+        try {
+            client.fetch(id, size + 1)
+            fail()
+        } catch (e: DeviceErrorException) {
+            assertEquals(ResultCode.BAD_LENGTH, e.result)
+        }
+        client.disconnect()
     }
 
     @Test
