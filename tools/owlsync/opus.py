@@ -17,8 +17,9 @@ OPUS_APPLICATION_VOIP = 2048
 OPUS_SET_BITRATE_REQUEST = 4002
 OPUS_GET_LOOKAHEAD_REQUEST = 4027
 
-# Pre-skip for libopus at any input rate is 312 samples at 48 kHz (6.5 ms).
-# Used for device-produced streams where we cannot ask the encoder.
+# Pre-skip for libopus (VOIP mode) is 312 samples at 48 kHz (6.5 ms): measured with
+# OPUS_GET_LOOKAHEAD for 8/12/16/24/48 kHz input. Used for device-produced streams,
+# where we cannot ask the encoder; the firmware's encoder settings may differ.
 DEFAULT_PRE_SKIP = 312
 
 _FRAME_48K = {

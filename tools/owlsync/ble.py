@@ -1,7 +1,7 @@
 """bleak-based Transport for a real Owl (or a fake one advertised by fake_owl.py).
 
 MTU and PHY: bleak cannot request them on macOS (CoreBluetooth negotiates on
-its own, usually MTU 185-527) and only reads the MTU on Linux. The client works
+its own) and only reads the MTU on Linux. The client works
 with any MTU because DATA offsets, not chunk sizes, drive reassembly.
 """
 

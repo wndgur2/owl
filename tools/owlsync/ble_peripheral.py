@@ -4,10 +4,10 @@ Limits on macOS (CoreBluetooth peripheral role):
   * MTU, 2M PHY, DLE and connection interval are chosen by the central and the
     OS; the peripheral cannot request them. The fake reads the central's
     maximumUpdateValueLength and sizes DATA chunks to fit (236 B only if MTU >= 247).
-  * The advertised name is the local name in the advertisement; the GAP device
-    name a connected central reads is the Mac's name.
-  * A Mac cannot connect to its own peripheral, so `sync.py` must run on a
-    different machine (or use the phone app) to talk to this fake.
+  * Unverified (no Bluetooth permission while writing this): the GAP device name
+    a connected central reads is probably the Mac's name, not the advertised
+    local name; and a Mac is generally reported to be unable to connect to its own
+    peripheral, so run `sync.py` on another machine or use the phone app.
   * There is no disconnect callback; "all characteristics unsubscribed" is
     treated as disconnect.
 """
@@ -22,7 +22,7 @@ import owlproto as p
 from .device import OwlDevice
 from .transport import PeripheralLink, TransportError
 
-DEFAULT_NOTIFY_LEN = 182  # typical iOS/macOS central before we learn the real value
+DEFAULT_NOTIFY_LEN = 182  # assumed fallback until the central's maximumUpdateValueLength is known
 _hooks: dict = {}
 
 
@@ -131,8 +131,8 @@ class BlessPeripheral(PeripheralLink):
         char = self._server.get_characteristic(char_uuid)
         char.value = bytearray(value)
         deadline = time.monotonic() + 5.0
-        # CoreBluetooth returns NO when its transmit queue is full; bless drops
-        # that on the floor, so wait and retry instead of losing the packet.
+        # updateValue returns NO when CoreBluetooth's transmit queue is full
+        # (Apple docs). bless only passes that bool back, so retry until it's sent.
         while not self._server.update_value(p.SERVICE_UUID, char_uuid):
             self.notify_retries += 1
             if not self.connected:
