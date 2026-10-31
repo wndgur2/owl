@@ -6,6 +6,8 @@
 - minSdk 31 권장 (CompanionDeviceService, 새 BLE 권한 모델)
 - 언어: Kotlin
 
+화면 디자인(1차 확정)은 [`docs/design/android/`](../docs/design/android/README.md)에 있어요.
+
 ## 설계 (초안)
 
 ```
@@ -23,16 +25,9 @@ CompanionDeviceManager ──(목걸이 범위 진입)──▶ CompanionDeviceS
 LocationRecorder: FusedLocationProvider + PendingIntent (앱 프로세스 없어도 기록)
 ```
 
-## 미결정: STT 엔진
+## STT 엔진: 온디바이스로 결정
 
-Android `SpeechRecognizer`는 **마이크 실시간 입력 전용**이라 저장된 파일을 넣을 수 없어요. 후보:
-
-| 방법 | 장점 | 단점 |
-|---|---|---|
-| 온디바이스 Whisper (whisper.cpp / sherpa-onnx) | 오프라인, 무료, 프라이버시 | 배터리·속도, 모델 용량 |
-| 클라우드 STT API | 정확도, 구현 쉬움 | 비용, 음성 외부 전송 |
-
-결정되면 `docs/decisions.md`에 기록.
+`docs/decisions.md` #10 — 클라우드 STT는 쓰지 않아요. Android `SpeechRecognizer`는 **마이크 실시간 입력 전용**이라 저장된 파일을 넣을 수 없어서, whisper.cpp / sherpa-onnx 같은 온디바이스 엔진 중에서 골라요. 배터리·속도·모델 용량을 M6에서 비교해요.
 
 ## 첫 마일스톤 (M4)
 

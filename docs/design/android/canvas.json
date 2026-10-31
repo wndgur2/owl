@@ -1,0 +1,278 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Device.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기기 상태",
+      "w": 390,
+      "x": 470,
+      "y": 1300
+    },
+    "DeviceMenu.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기기 상태 · 기기 목록",
+      "w": 390,
+      "x": 940,
+      "y": 1300
+    },
+    "Entry.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 재생",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "EntryDeleted.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 음성 삭제됨",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "EntryMenu.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 메뉴 열림",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "타임라인",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Onboarding.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "목걸이 등록",
+      "w": 390,
+      "x": 0,
+      "y": 1300
+    },
+    "Retention.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "설정 · 음성 보관",
+      "w": 390,
+      "x": 1880,
+      "y": 1300
+    },
+    "Search.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "검색",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "Settings.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "설정",
+      "w": 390,
+      "x": 1410,
+      "y": 1300
+    },
+    "EntryPending.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 텍스트 추출 중",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "MainDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "타임라인 · 다크",
+      "w": 390,
+      "x": 0,
+      "y": 2600
+    },
+    "EntryDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 재생 · 다크",
+      "w": 390,
+      "x": 470,
+      "y": 2600
+    },
+    "EntryPendingDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 텍스트 추출 중 · 다크",
+      "w": 390,
+      "x": 940,
+      "y": 2600
+    },
+    "EntryMenuDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 메뉴 열림 · 다크",
+      "w": 390,
+      "x": 1410,
+      "y": 2600
+    },
+    "EntryDeletedDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기록 상세 · 음성 삭제됨 · 다크",
+      "w": 390,
+      "x": 1880,
+      "y": 2600
+    },
+    "SearchDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "검색 · 다크",
+      "w": 390,
+      "x": 2350,
+      "y": 2600
+    },
+    "OnboardingDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "목걸이 등록 · 다크",
+      "w": 390,
+      "x": 0,
+      "y": 3900
+    },
+    "DeviceDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기기 상태 · 다크",
+      "w": 390,
+      "x": 470,
+      "y": 3900
+    },
+    "DeviceMenuDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "기기 상태 · 기기 목록 · 다크",
+      "w": 390,
+      "x": 940,
+      "y": 3900
+    },
+    "SettingsDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "설정 · 다크",
+      "w": 390,
+      "x": 1410,
+      "y": 3900
+    },
+    "RetentionDark.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "radius": 28,
+      "title": "설정 · 음성 보관 · 다크",
+      "w": 390,
+      "x": 1880,
+      "y": 3900
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-31T07:45:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/code/artifact/ffeed8b5-6011-45f2-a16d-f897d0c35abd",
+      "copiedAt": "2026-10-31T07:45:00Z",
+      "namespace": "m3-compose",
+      "title": "Material 3 (Compose)",
+      "version": "1793432070-6d09"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "row1": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "하루 돌아보기",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "row2": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "기기 연결과 설정",
+      "w": 240,
+      "x": 0,
+      "y": 1000
+    },
+    "row3": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "하루 돌아보기 · 다크",
+      "x": 0,
+      "y": 2300
+    },
+    "row4": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "기기 연결과 설정 · 다크",
+      "x": 0,
+      "y": 3600
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Entry.dc.html",
+    "EntryPending.dc.html",
+    "EntryMenu.dc.html",
+    "EntryDeleted.dc.html",
+    "Search.dc.html",
+    "Onboarding.dc.html",
+    "Device.dc.html",
+    "DeviceMenu.dc.html",
+    "Settings.dc.html",
+    "Retention.dc.html",
+    "MainDark.dc.html",
+    "EntryDark.dc.html",
+    "EntryPendingDark.dc.html",
+    "EntryMenuDark.dc.html",
+    "EntryDeletedDark.dc.html",
+    "SearchDark.dc.html",
+    "OnboardingDark.dc.html",
+    "DeviceDark.dc.html",
+    "DeviceMenuDark.dc.html",
+    "SettingsDark.dc.html",
+    "RetentionDark.dc.html"
+  ],
+  "pages": [],
+  "title": "Owl Android 앱"
+}

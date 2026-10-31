@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기록 상세 (다크)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+@keyframes owlspin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; display: flex; flex-direction: column; background: #141218; color: #E6E0E9; font-family: system-ui, sans-serif; overflow: hidden; box-sizing: border-box">
+
+  <header style="height: 64px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 4px; box-sizing: border-box">
+    <a href="MainDark.dc.html" aria-label="타임라인으로 돌아가기" style="width: 48px; height: 48px; border-radius: 999px; color: #E6E0E9; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+    </a>
+    <h1 style="margin: 0; flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 400">{{title}}</h1>
+    <button type="button" aria-label="더 보기" aria-haspopup="menu" aria-expanded="{{expanded}}" onClick="{{toggleMenu}}" style="width: 48px; height: 48px; padding: 0; border: 0; border-radius: 999px; background: {{kebabBg}}; color: #CAC4D0; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg>
+    </button>
+  </header>
+
+  <div style="flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 16px 12px">
+    <span style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 8px; border: 1px solid #49454F; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #CAC4D0">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D0BCFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+      {{place}}
+    </span>
+    <sc-if value="{{hasText}}" hint-placeholder-val="{{ true }}">
+      <span style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 8px; border: 1px solid #49454F; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #CAC4D0">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#EFB8C8"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
+        북마크 1
+      </span>
+    </sc-if>
+  </div>
+
+  <main style="flex-grow: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 4px; padding: 0 16px 12px">
+    <sc-if value="{{hasText}}" hint-placeholder-val="{{ true }}">
+      <sc-for list="{{lines}}" as="ln" hint-placeholder-count="6">
+        <sc-if value="{{ln.isMark}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; color: #EFB8C8">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
+            <span style="font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px">{{ln.time}} · 북마크 표시함</span>
+            <span style="flex-grow: 1; border-top: 1px solid #49454F"></span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ln.isText}}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ln.pick}}" aria-current="{{ln.current}}" style="width: 100%; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 0; border-radius: 12px; background: {{ln.bg}}; color: #E6E0E9; font: inherit; text-align: left; cursor: pointer">
+            <span style="font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; color: {{ln.timeColor}}">{{ln.label}}</span>
+            <span style="font-size: 16px; line-height: 24px; letter-spacing: 0.5px">{{ln.text}}</span>
+          </button>
+        </sc-if>
+      </sc-for>
+    </sc-if>
+    <sc-if value="{{noText}}" hint-placeholder-val="{{ false }}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: #CAC4D0">
+        <svg role="img" aria-label="진행 중" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" style="animation: owlspin 1s linear infinite"><circle cx="12" cy="12" r="9" stroke="#4A4458"></circle><path d="M12 3a9 9 0 0 1 9 9" stroke="#D0BCFF"></path></svg>
+        <span style="font-size: 16px; line-height: 24px; letter-spacing: 0.5px">텍스트 추출 중</span>
+        <span style="font-size: 14px; line-height: 20px; letter-spacing: 0.25px">음성은 지금 들을 수 있어요</span>
+      </div>
+    </sc-if>
+  </main>
+
+  <section aria-label="음성 재생" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 16px 20px 24px; background: #211F26; border-radius: 28px 28px 0 0">
+    <div style="position: relative; height: 44px; display: flex; align-items: center; gap: 6px">
+      <span style="width: {{donePct}}; height: 16px; flex-shrink: 0; background: {{trackColor}}; border-radius: 8px 2px 2px 8px"></span>
+      <span style="width: 4px; height: 44px; flex-shrink: 0; background: {{trackColor}}; border-radius: 2px"></span>
+      <span style="flex-grow: 1; height: 16px; background: #4A4458; border-radius: 2px 8px 8px 2px"></span>
+      <sc-if value="{{hasText}}" hint-placeholder-val="{{ true }}">
+        <span title="북마크" style="position: absolute; left: {{markLeft}}; top: 18px; width: 8px; height: 8px; border-radius: 999px; background: #EFB8C8; box-shadow: 0 0 0 2px #211F26"></span>
+      </sc-if>
+      <input type="range" aria-label="재생 위치" min="0" max="{{dur}}" value="{{pos}}" onChange="{{onSeek}}" style="position: absolute; inset: 0; width: 100%; height: 44px; margin: 0; opacity: 0; cursor: pointer">
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">
+      <span>{{posLabel}}</span>
+      <sc-if value="{{audioGone}}" hint-placeholder-val="{{ false }}">
+        <span style="font-weight: 500">음성 파일 삭제됨</span>
+      </sc-if>
+      <span>{{durLabel}}</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <sc-if value="{{hasAudio}}" hint-placeholder-val="{{ true }}">
+        <button type="button" style="height: 40px; min-width: 56px; padding: 0 12px; border: 1px solid #49454F; border-radius: 999px; background: transparent; color: #CAC4D0; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">1.0×</button>
+      </sc-if>
+      <sc-if value="{{audioGone}}" hint-placeholder-val="{{ false }}">
+        <span style="width: 56px"></span>
+      </sc-if>
+      <div style="display: flex; align-items: center; gap: 16px">
+        <button type="button" aria-label="{{prevLabel}}" onClick="{{prev}}" style="width: 48px; height: 48px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #CAC4D0; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.7"></path><path d="M4 4v4h4"></path></svg>
+        </button>
+        <button type="button" aria-label="{{playLabel}}" disabled="{{audioGone}}" onClick="{{togglePlay}}" style="width: 64px; height: 64px; padding: 0; border: 0; border-radius: 16px; background: {{playBg}}; color: {{playFg}}; display: flex; align-items: center; justify-content: center; box-shadow: {{playShadow}}">
+          <sc-if value="{{showPause}}" hint-placeholder-val="{{ true }}">
+            <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M8.5 5v14M15.5 5v14"></path></svg>
+          </sc-if>
+          <sc-if value="{{showPlay}}" hint-placeholder-val="{{ false }}">
+            <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </sc-if>
+          <sc-if value="{{audioGone}}" hint-placeholder-val="{{ false }}">
+            <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"></path><path d="M16 9l5 6M21 9l-5 6"></path></svg>
+          </sc-if>
+        </button>
+        <button type="button" aria-label="{{nextLabel}}" onClick="{{next}}" style="width: 48px; height: 48px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #CAC4D0; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><path d="M20 4v4h-4"></path></svg>
+        </button>
+      </div>
+      <span style="width: 56px"></span>
+    </div>
+  </section>
+
+  <sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+    <button type="button" aria-label="메뉴 닫기" onClick="{{closeMenu}}" style="position: absolute; inset: 0; padding: 0; border: 0; background: transparent; cursor: default"></button>
+    <div role="menu" aria-label="기록 메뉴" style="position: absolute; top: 56px; right: 12px; width: 264px; padding: 8px 0; background: #211F26; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15); display: flex; flex-direction: column">
+      <sc-if value="{{hasAudio}}" hint-placeholder-val="{{ true }}">
+        <button type="button" role="menuitemcheckbox" aria-checked="false" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border: 0; background: transparent; color: #E6E0E9; font: inherit; text-align: left">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CAC4D0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"></rect><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"></path></svg>
+          <span style="flex-grow: 1; display: flex; flex-direction: column">
+            <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">음성 보존</span>
+            <span style="font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">11월 30일 삭제 예정</span>
+          </span>
+        </button>
+      </sc-if>
+      <sc-if value="{{audioGone}}" hint-placeholder-val="{{ false }}">
+        <div role="menuitem" aria-disabled="true" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; color: rgba(230, 224, 233, 0.38)">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"></rect><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"></path></svg>
+          <span style="display: flex; flex-direction: column">
+            <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">음성 보존</span>
+            <span style="font-size: 12px; line-height: 16px; letter-spacing: 0.4px">이미 삭제된 음성이에요</span>
+          </span>
+        </div>
+      </sc-if>
+      <button type="button" role="menuitem" style="display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 12px; border: 0; background: transparent; color: #E6E0E9; font: inherit; text-align: left">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CAC4D0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+        <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">텍스트 복사</span>
+      </button>
+      <div style="height: 1px; margin: 8px 0; background: #49454F"></div>
+      <button type="button" role="menuitem" style="display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 12px; border: 0; background: transparent; color: #F2B8B5; font: inherit; text-align: left">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"></path></svg>
+        <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">기록 삭제</span>
+      </button>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"menuOpen":{"editor":"boolean","default":false},"audioDeleted":{"editor":"boolean","default":false},"noText":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var st = this.state || {};
+    var gone = !!(this.props.audioDeleted ?? false);
+    var noText = !!(this.props.noText ?? false);
+    var open = typeof st.menuOpen === 'boolean' ? st.menuOpen : !!(this.props.menuOpen ?? false);
+    var playingNow = !gone && (typeof st.playing === 'boolean' ? st.playing : true);
+    var start = noText ? (12 * 3600 + 58 * 60 + 4) : (10 * 3600 + 1 * 60 + 48);
+    var dur = noText ? 360 : 252;
+    var src = noText ? [] : [
+      { t: 0, text: '그러니까 이번 과제가 스케줄러 구현이잖아. 라운드 로빈이랑 MLFQ 둘 다 해야 되는 거지?' },
+      { t: 32, text: '응, 둘 다. 근데 MLFQ는 boost 주기도 바꿔 가면서 실험해서 보고서에 넣으래.' },
+      { t: 63, text: '아 맞다, 과제 마감 금요일 자정 아니고 목요일 자정이래. 조교님이 공지 다시 올린다고 했어.' },
+      { t: 67, mark: true },
+      { t: 102, text: '헐, 그럼 오늘부터 시작해야겠다. 저녁에 도서관 갈래? 나 7시 이후엔 괜찮아.' },
+      { t: 144, text: '좋아. 그 전에 테스트 케이스부터 같이 짜자.' },
+      { t: 194, text: '타임 퀀텀은 일단 10ms로 두고, 나중에 바꿔 보면서 비교하자.' }
+    ];
+    var pos = typeof st.pos === 'number' ? st.pos : (noText ? 0 : 63);
+    function two(n) { return (n < 10 ? '0' : '') + n; }
+    function clock(s) { var t = start + s; return two(Math.floor(t / 3600)) + ':' + two(Math.floor(t / 60) % 60) + ':' + two(t % 60); }
+    function mmss(s) { s = Math.round(s); return Math.floor(s / 60) + ':' + two(s % 60); }
+    var texts = src.filter(function (l) { return !l.mark; });
+    var cur = -1;
+    texts.forEach(function (l, i) { if (l.t <= pos) cur = i; });
+    var curT = cur >= 0 ? texts[cur].t : -1;
+    var lines = src.map(function (l) {
+      var isCur = !l.mark && l.t === curT;
+      return {
+        isText: !l.mark,
+        isMark: !!l.mark,
+        time: clock(l.t),
+        text: l.text || '',
+        label: clock(l.t) + (isCur && playingNow ? ' · 재생 중' : ''),
+        bg: isCur ? '#2B2930' : 'transparent',
+        timeColor: isCur ? '#D0BCFF' : '#CAC4D0',
+        current: isCur ? 'true' : 'false',
+        pick: function () { self.setState({ pos: l.t }); }
+      };
+    });
+    var prevT, nextT;
+    if (noText) {
+      prevT = Math.max(0, pos - 10);
+      nextT = Math.min(dur, pos + 10);
+    } else {
+      prevT = cur > 0 ? texts[cur - 1].t : 0;
+      nextT = cur < texts.length - 1 ? texts[cur + 1].t : pos;
+    }
+    return {
+      title: noText ? '10월 31일 · 12:58' : '10월 31일 · 10:01',
+      place: noText ? '학생회관 카페' : '공학관 4층',
+      hasText: !noText,
+      noText: noText,
+      lines: lines,
+      hasAudio: !gone,
+      audioGone: gone,
+      dur: dur,
+      pos: pos,
+      posLabel: mmss(pos),
+      durLabel: mmss(dur),
+      donePct: 'calc(' + (Math.round(pos / dur * 1000) / 10) + '% - 5px)',
+      markLeft: (Math.round(67 / dur * 1000) / 10) + '%',
+      trackColor: gone ? '#938F99' : '#D0BCFF',
+      prevLabel: noText ? '10초 뒤로' : '이전 문장',
+      nextLabel: noText ? '10초 앞으로' : '다음 문장',
+      prev: function () { self.setState({ pos: prevT }); },
+      next: function () { self.setState({ pos: nextT }); },
+      onSeek: function (e) { self.setState({ pos: Number(e.target.value) }); },
+      showPause: playingNow,
+      showPlay: !playingNow && !gone,
+      playLabel: gone ? '재생할 수 없음 (음성 파일 삭제됨)' : (playingNow ? '일시정지' : '재생'),
+      playBg: gone ? 'rgba(230, 224, 233, 0.12)' : '#D0BCFF',
+      playFg: gone ? 'rgba(230, 224, 233, 0.38)' : '#381E72',
+      playShadow: gone ? 'none' : '0 1px 3px rgba(0,0,0,0.2)',
+      togglePlay: function () { if (!gone) self.setState({ playing: !playingNow }); },
+      menuOpen: open,
+      expanded: open ? 'true' : 'false',
+      kebabBg: open ? 'rgba(202, 196, 208, 0.1)' : 'transparent',
+      toggleMenu: function () { self.setState({ menuOpen: !open }); },
+      closeMenu: function () { self.setState({ menuOpen: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

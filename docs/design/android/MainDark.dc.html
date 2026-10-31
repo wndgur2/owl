@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Owl 타임라인 (다크)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#D0BCFF}a:hover{color:#EADDFF}
+@keyframes owlspin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #141218; color: #E6E0E9; font-family: system-ui, sans-serif; overflow: hidden; box-sizing: border-box">
+
+  <header style="height: 64px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 16px; box-sizing: border-box">
+    <h1 aria-live="polite" style="margin: 0; flex-grow: 1; font-size: 22px; line-height: 28px; font-weight: 400">{{headerDate}}</h1>
+    <button type="button" aria-label="날짜로 이동" style="width: 48px; height: 48px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #CAC4D0; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>
+    </button>
+  </header>
+
+  <div style="flex-shrink: 0; display: flex; gap: 8px; padding: 4px 16px 12px">
+    <button type="button" aria-pressed="true" style="height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px; border: 0; border-radius: 8px; background: #4A4458; color: #E8DEF8; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>
+      전체
+    </button>
+    <button type="button" aria-pressed="false" style="height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px; border: 1px solid #49454F; border-radius: 8px; background: transparent; color: #CAC4D0; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
+      북마크
+    </button>
+    <button type="button" aria-pressed="false" style="height: 32px; display: flex; align-items: center; padding: 0 16px; border: 1px solid #49454F; border-radius: 8px; background: transparent; color: #CAC4D0; font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">장소별</button>
+  </div>
+
+  <main ref="{{listRef}}" onScroll="{{onScroll}}" aria-label="기록 목록 (위로 스크롤하면 이전 날짜)" style="position: relative; flex-grow: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; padding: 0 16px">
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px">
+
+      <div data-day="10월 30일 금요일" style="display: flex; align-items: center; gap: 12px; padding: 4px 0">
+        <span style="flex-grow: 1; height: 1px; background: #49454F"></span>
+        <h2 style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; color: #CAC4D0">10월 30일 금요일</h2>
+        <span style="flex-grow: 1; height: 1px; background: #49454F"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 8px 4px 0">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D0BCFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+        <h3 style="margin: 0; flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">중앙도서관</h3>
+        <span style="font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">19:02 – 20:40</span>
+      </div>
+
+      <a href="EntryDark.dc.html" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; text-decoration: none; color: #E6E0E9">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #D0BCFF">19:15</span>
+          <span style="flex-grow: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">12분</span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="font-size: 14px; line-height: 20px; letter-spacing: 0.25px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">캡스톤 발표는 데모를 먼저 보여 주고, 구조 설명은 뒤로 빼는 게 나을 것 같아.</span>
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 8px 4px 0">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D0BCFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+        <h3 style="margin: 0; flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">집</h3>
+        <span style="font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">22:10 – 23:05</span>
+      </div>
+
+      <a href="EntryDark.dc.html" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; text-decoration: none; color: #E6E0E9">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #D0BCFF">22:41</span>
+          <span style="flex-grow: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">9분</span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="font-size: 14px; line-height: 20px; letter-spacing: 0.25px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">내일 9시 수업이니까 펌웨어는 주말에 마저 보고, 오늘은 플래시 배선만 다시 확인하자.</span>
+      </a>
+
+      <div data-day="10월 31일 토요일" style="display: flex; align-items: center; gap: 12px; padding: 12px 0 4px">
+        <span style="flex-grow: 1; height: 1px; background: #49454F"></span>
+        <h2 style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; color: #CAC4D0">오늘</h2>
+        <span style="flex-grow: 1; height: 1px; background: #49454F"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 8px 4px 0">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D0BCFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+        <h3 style="margin: 0; flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">공학관 4층</h3>
+        <span style="font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">09:12 – 10:40</span>
+      </div>
+
+      <a href="EntryDark.dc.html" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; text-decoration: none; color: #E6E0E9">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #D0BCFF">09:14</span>
+          <span style="flex-grow: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">18분</span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="font-size: 14px; line-height: 20px; letter-spacing: 0.25px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">그래서 페이지 폴트가 나면 커널이 디스크에서 그 페이지를 읽어 오고, 이때 TLB도 같이 갱신해야 돼요. 다음 주 퀴즈 범위는 8장까지예요.</span>
+      </a>
+
+      <a href="EntryDark.dc.html" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; text-decoration: none; color: #E6E0E9">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #D0BCFF">10:01</span>
+          <span style="flex-grow: 1; display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">
+            4분
+            <span style="display: flex; align-items: center; gap: 2px; font-weight: 500; color: #EFB8C8">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
+              북마크
+            </span>
+          </span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="font-size: 14px; line-height: 20px; letter-spacing: 0.25px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">아 맞다, 과제 마감 금요일 자정 아니고 목요일 자정이래. 조교님이 공지 다시 올린다고 했어.</span>
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 8px 4px 0">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D0BCFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+        <h3 style="margin: 0; flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">학생회관 카페</h3>
+        <span style="font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">12:28 – 지금</span>
+      </div>
+
+      <a href="EntryDark.dc.html" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; text-decoration: none; color: #E6E0E9">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #D0BCFF">12:31</span>
+          <span style="flex-grow: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">22분</span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="font-size: 14px; line-height: 20px; letter-spacing: 0.25px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">연결 간격을 15ms로 잡으면 전송은 빠른데, 평소엔 아예 끊어 두는 게 배터리엔 제일 낫대.</span>
+      </a>
+
+      <a href="EntryPendingDark.dc.html" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; text-decoration: none; color: #E6E0E9">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; color: #D0BCFF">12:58</span>
+          <span style="flex-grow: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; color: #CAC4D0">6분</span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; letter-spacing: 0.25px; color: #CAC4D0">
+          <svg role="img" aria-label="진행 중" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" style="animation: owlspin 1s linear infinite"><circle cx="12" cy="12" r="9" stroke="#4A4458"></circle><path d="M12 3a9 9 0 0 1 9 9" stroke="#D0BCFF"></path></svg>
+          텍스트 추출 중
+        </span>
+      </a>
+
+      <div aria-disabled="true" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 12px 16px; background: #1D1B20; border-radius: 12px; color: rgba(230, 224, 233, 0.38)">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px">13:06</span>
+          <span style="flex-grow: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.4px">약 3분</span>
+          <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: rgba(230, 224, 233, 0.12); display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor"></path></svg>
+          </span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; letter-spacing: 0.25px; color: #CAC4D0">
+          <svg role="img" aria-label="진행 중" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" style="animation: owlspin 1s linear infinite"><circle cx="12" cy="12" r="9" stroke="#4A4458"></circle><path d="M12 3a9 9 0 0 1 9 9" stroke="#D0BCFF"></path></svg>
+          녹음 파일 받는 중
+        </span>
+      </div>
+
+    </div>
+  </main>
+
+  <nav aria-label="주 메뉴" style="height: 80px; flex-shrink: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 12px 0 16px; box-sizing: border-box; background: #211F26">
+    <a href="MainDark.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #E6E0E9">
+      <span style="width: 64px; height: 32px; border-radius: 16px; background: #4A4458; color: #E8DEF8; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.5"></circle><circle cx="5" cy="12" r="1.5"></circle><circle cx="5" cy="18" r="1.5"></circle><path d="M10 6h10M10 12h10M10 18h7"></path></svg>
+      </span>
+      <span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.5px">타임라인</span>
+    </a>
+    <a href="SearchDark.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #CAC4D0">
+      <span style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      </span>
+      <span style="font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px">검색</span>
+    </a>
+    <a href="DeviceDark.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #CAC4D0">
+      <span style="width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2c0 2.8 2.2 5 5 5s5-2.2 5-5"></path><circle cx="12" cy="14" r="6"></circle><circle cx="12" cy="14" r="1.6" fill="currentColor"></circle></svg>
+      </span>
+      <span style="font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px">기기</span>
+    </a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var self = this;
+    setTimeout(function () {
+      if (self.el) { self.el.scrollTop = self.el.scrollHeight; self.syncHeader(); }
+    }, 0);
+  }
+  syncHeader() {
+    var el = this.el;
+    if (!el) return;
+    var days = el.querySelectorAll('[data-day]');
+    var cur = days.length ? days[0].getAttribute('data-day') : '';
+    for (var i = 0; i < days.length; i++) {
+      if (days[i].offsetTop <= el.scrollTop + 4) cur = days[i].getAttribute('data-day');
+    }
+    if (cur && cur !== (this.state && this.state.day)) this.setState({ day: cur });
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state || {};
+    return {
+      headerDate: st.day || '10월 31일 토요일',
+      listRef: function (el) { self.el = el; },
+      onScroll: function () { self.syncHeader(); }
+    };
+  }
+}
+</script>
+</body>
+</html>
