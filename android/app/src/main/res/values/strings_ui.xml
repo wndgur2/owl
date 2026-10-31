@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compose UI strings (ui/**). Copy follows docs/design/android and PRD 0.4. -->
+<resources>
+    <!-- Common -->
+    <string name="back">뒤로</string>
+    <string name="more">더 보기</string>
+    <string name="today">오늘</string>
+    <string name="yesterday">어제</string>
+    <string name="now">지금</string>
+    <string name="time_unknown">시각 알 수 없음</string>
+    <string name="time_range">%1$s – %2$s</string>
+    <string name="place_none">장소 없음</string>
+    <string name="meta_time_place">%1$s · %2$s</string>
+    <string name="bookmark">북마크</string>
+    <string name="bookmark_count">북마크 %1$d</string>
+    <string name="count_items">%1$d개</string>
+    <string name="percent">%1$d%%</string>
+    <string name="about_prefix">약 %1$s</string>
+    <string name="duration_minutes">%1$d분</string>
+    <string name="duration_seconds">%1$d초</string>
+    <string name="size_kb">%1$d KB</string>
+    <string name="size_mb">%1$s MB</string>
+    <string name="size_gb">%1$s GB</string>
+    <string name="action_cancel">취소</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_later">나중에</string>
+    <string name="action_move">이동</string>
+    <string name="action_allow">허용</string>
+    <string name="action_open_settings">설정 열기</string>
+
+    <!-- java.time patterns (Korean literals) -->
+    <string name="fmt_day_long" translatable="false">M월 d일 EEEE</string>
+    <string name="fmt_day_long_year" translatable="false">yyyy년 M월 d일 EEEE</string>
+    <string name="fmt_month_day" translatable="false">M월 d일</string>
+    <string name="fmt_month_day_year" translatable="false">yyyy년 M월 d일</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_timeline">타임라인</string>
+    <string name="tab_search">검색</string>
+    <string name="tab_device">기기</string>
+
+    <!-- Timeline (A7, A8a, A9) -->
+    <string name="timeline_pick_date">날짜로 이동</string>
+    <string name="timeline_jump_nearest">그날은 기록이 없어서 가까운 날로 이동했어요</string>
+    <string name="filter_all">전체</string>
+    <string name="filter_bookmark">북마크</string>
+    <string name="filter_by_place">장소별</string>
+    <string name="state_receiving">녹음 파일 받는 중</string>
+    <string name="state_transcribing">텍스트 추출 중</string>
+    <string name="state_no_speech">알아들은 말이 없어요</string>
+    <string name="timeline_empty">아직 기록이 없어요</string>
+    <string name="timeline_empty_body">목걸이가 녹음한 대화가 여기에 시간순으로 쌓여요.</string>
+    <string name="timeline_empty_bookmarks">북마크한 기록이 없어요</string>
+    <string name="timeline_empty_bookmarks_body">목걸이 버튼을 짧게 누르면 그 순간이 북마크로 남아요.</string>
+
+    <!-- Entry (A8, A14) -->
+    <string name="entry_title">%1$s · %2$s</string>
+    <string name="entry_missing">기록을 찾을 수 없어요</string>
+    <string name="entry_listen_now">음성은 지금 들을 수 있어요</string>
+    <string name="bookmark_marker">%1$s · 북마크 표시함</string>
+    <string name="sentence_playing">%1$s · 재생 중</string>
+    <string name="audio_deleted">음성 파일 삭제됨</string>
+    <string name="player_position">재생 위치</string>
+    <string name="player_speed">%1$.1f×</string>
+    <string name="player_play">재생</string>
+    <string name="player_pause">일시정지</string>
+    <string name="player_cannot_play">재생할 수 없음</string>
+    <string name="player_prev_sentence">이전 문장</string>
+    <string name="player_next_sentence">다음 문장</string>
+    <string name="player_back_10">10초 뒤로</string>
+    <string name="player_forward_10">10초 앞으로</string>
+    <string name="preserve_audio">음성 보존</string>
+    <string name="preserve_delete_at">%1$s 삭제 예정</string>
+    <string name="preserve_on">기간이 지나도 지우지 않아요</string>
+    <string name="preserve_never">보관 기간 설정상 지우지 않아요</string>
+    <string name="preserve_already_deleted">이미 삭제된 음성이에요</string>
+    <string name="copy_text">텍스트 복사</string>
+    <string name="entry_copied">텍스트를 복사했어요</string>
+    <string name="entry_clip_label">Owl 기록</string>
+    <string name="delete_entry">기록 삭제</string>
+    <string name="entry_delete_title">이 기록을 삭제할까요?</string>
+    <string name="entry_delete_body">텍스트와 음성이 모두 지워지고 되돌릴 수 없어요.</string>
+
+    <!-- Search (A11) -->
+    <string name="search_placeholder">지난 대화 검색</string>
+    <string name="search_clear">검색어 지우기</string>
+    <string name="period_all">전체 기간</string>
+    <string name="period_today">오늘</string>
+    <string name="period_7">최근 7일</string>
+    <string name="period_30">최근 30일</string>
+    <string name="search_place">장소</string>
+    <string name="search_all_places">모든 장소</string>
+    <string name="search_no_places">기록된 장소가 없어요</string>
+    <string name="search_bookmarked_only">북마크만</string>
+    <string name="search_preserved_only">보존됨</string>
+    <string name="search_count">%1$d개 기록에서 찾았어요</string>
+    <string name="search_today_header">오늘 · %1$s</string>
+    <string name="search_idle_title">지난 대화를 찾아보세요</string>
+    <string name="search_idle_body">말했던 단어로 찾을 수 있어요. 기간·장소·북마크로 거를 수도 있어요.</string>
+    <string name="search_empty_title">찾는 기록이 없어요</string>
+    <string name="search_empty_body">다른 말로 찾거나 필터를 바꿔 보세요.</string>
+
+    <!-- Device (A10, A2a) -->
+    <string name="power_on">켜짐</string>
+    <string name="power_disconnected">연결 끊김</string>
+    <string name="power_connecting">연결 중</string>
+    <string name="power_unknown">확인 중</string>
+    <string name="device_no_answer_since">%1$s 이후 목걸이 응답이 없어요. 녹음은 목걸이에 계속 쌓여요.</string>
+    <string name="device_no_answer">목걸이 응답이 없어요. 녹음은 목걸이에 계속 쌓여요.</string>
+    <string name="device_connect">연결</string>
+    <string name="device_recording">녹음</string>
+    <string name="recording_on">녹음 켜짐</string>
+    <string name="recording_off">녹음 꺼짐</string>
+    <string name="recording_unknown">연결되면 보여요</string>
+    <string name="device_recording_failed">녹음 설정을 바꾸지 못했어요. 목걸이와 연결된 뒤 다시 해 보세요.</string>
+    <string name="device_battery">배터리</string>
+    <string name="device_battery_left">약 %1$d시간 남음</string>
+    <string name="device_storage">저장 공간</string>
+    <string name="device_storage_total">/ %1$s MB</string>
+    <string name="device_storage_low">거의 다 찼어요</string>
+    <string name="device_storage_full">가득 차서 녹음이 멈췄어요</string>
+    <string name="device_sync">동기화</string>
+    <string name="device_sync_now">지금 동기화</string>
+    <string name="device_syncing">동기화 중</string>
+    <string name="device_sync_connecting">목걸이에 연결하는 중</string>
+    <string name="device_sync_progress">녹음 받는 중 · %1$d / %2$d개</string>
+    <string name="device_last_sync">마지막 동기화</string>
+    <string name="device_never_synced">아직 없음</string>
+    <string name="device_pending">아직 안 받은 녹음</string>
+    <string name="device_pending_body">목걸이에만 있어요. 다음 동기화 때 가져와요</string>
+    <string name="device_firmware">펌웨어</string>
+    <string name="device_not_registered">등록된 목걸이가 없어요</string>
+    <string name="device_not_registered_body">목걸이를 등록하면 상태와 동기화가 여기에 보여요.</string>
+
+    <!-- Settings (A5, A13, A14, A16, N8) -->
+    <string name="settings_title">설정</string>
+    <string name="settings_section_storage">보관과 위치</string>
+    <string name="settings_section_data">데이터</string>
+    <string name="settings_section_help">도움말</string>
+    <string name="settings_section_developer">개발자</string>
+    <string name="retention_title">음성 보관</string>
+    <string name="retention_summary_7">7일 뒤 삭제</string>
+    <string name="retention_summary_30">30일 뒤 삭제</string>
+    <string name="retention_summary_90">90일 뒤 삭제</string>
+    <string name="location_title">장소 기록</string>
+    <string name="location_off">꺼짐</string>
+    <string name="location_on_always">폰 위치 사용 · 항상 허용됨</string>
+    <string name="location_on_needs_always">폰 위치 사용 · ‘항상 허용’이 필요해요</string>
+    <string name="location_always_title">위치를 ‘항상 허용’으로 바꿔 주세요</string>
+    <string name="location_always_body">앱을 열지 않은 동안에도 장소를 기록하려면 위치 권한이 ‘항상 허용’이어야 해요. 설정 › 권한 › 위치에서 바꿀 수 있어요.</string>
+    <string name="export_title">기록 내보내기</string>
+    <string name="export_body">텍스트·시각·장소를 파일로 저장해요</string>
+    <string name="export_file_name" translatable="false">owl-export-%1$s.json</string>
+    <string name="export_done">기록 %1$d개를 내보냈어요</string>
+    <string name="export_failed">내보내지 못했어요. 다시 해 보세요.</string>
+    <string name="privacy_title">개인정보 처리 방침</string>
+    <string name="guide_title">사용 설명</string>
+    <string name="guide_summary">버튼, LED, 배터리 관리</string>
+    <string name="dev_fake_in_use">가짜 기기 사용 중</string>
+    <string name="dev_real_in_use">실제 목걸이 사용 중</string>
+    <string name="dev_debug_only">디버그 빌드에서만 보여요</string>
+    <string name="unregister_title">목걸이 등록 해제</string>
+    <string name="unregister_confirm_title">%1$s 등록을 해제할까요?</string>
+    <string name="unregister_confirm_body">이 폰에 있는 기록은 그대로 남아요. 목걸이에 남은 녹음은 다시 등록해야 가져올 수 있어요.</string>
+    <string name="unregister_confirm">해제</string>
+
+    <!-- Retention (A14) -->
+    <string name="retention_intro">텍스트는 그대로 두고, 음성만 기간이 지나면 지워요.</string>
+    <string name="retention_7">7일</string>
+    <string name="retention_30">30일</string>
+    <string name="retention_90">90일</string>
+    <string name="retention_never">지우지 않음</string>
+    <string name="retention_after_stt">텍스트 추출 후 바로 삭제</string>
+    <string name="retention_usage_title">음성이 쓰는 공간</string>
+    <string name="retention_usage_body">이 폰 저장소 · 기록 %1$d개</string>
+    <string name="retention_hint">기록 상세 메뉴에서 음성 파일을 보존할 수 있어요.</string>
+
+    <!-- Privacy (N8) -->
+    <string name="privacy_no_upload_title">밖으로 보내지 않아요</string>
+    <string name="privacy_no_upload_body">음성, 위치, 텍스트는 목걸이와 이 폰에만 있어요. 서버나 클라우드로 보내지 않아요.</string>
+    <string name="privacy_on_device_title">텍스트 변환도 폰 안에서</string>
+    <string name="privacy_on_device_body">음성을 텍스트로 바꾸는 일도 이 폰에서 해요.</string>
+    <string name="privacy_location_title">위치는 좌표로만</string>
+    <string name="privacy_location_body">장소는 폰 GPS 좌표로 저장해요. 주소를 찾으려고 외부 서비스에 묻지 않아요.</string>
+    <string name="privacy_backup_title">자동 백업 꺼짐</string>
+    <string name="privacy_backup_body">Android 자동 백업과 기기 간 이전에 Owl 기록이 들어가지 않아요.</string>
+    <string name="privacy_export_title">직접 내보낸 파일만 예외</string>
+    <string name="privacy_export_body">설정 › 기록 내보내기로 직접 저장한 파일만 폰 밖으로 나갈 수 있어요.</string>
+
+    <!-- Guide (A16; decisions.md #21) -->
+    <string name="guide_section_button">버튼</string>
+    <string name="guide_press_short">짧게</string>
+    <string name="guide_press_short_does">북마크</string>
+    <string name="guide_press_short_body">그 순간을 북마크로 남겨요. 타임라인과 기록 상세에 표시돼요.</string>
+    <string name="guide_press_2s">2초</string>
+    <string name="guide_press_2s_does">녹음 끄기 / 켜기</string>
+    <string name="guide_press_2s_body">꺼 둔 상태는 기기가 꺼졌다 켜져도 그대로예요. 앱의 기기 화면에서도 바꿀 수 있어요.</string>
+    <string name="guide_press_5s">5초</string>
+    <string name="guide_press_5s_does">기기 끄기 / 켜기</string>
+    <string name="guide_press_5s_body">블루투스까지 완전히 꺼져요. 버튼으로 끈 기기는 저절로 켜지지 않아요.</string>
+    <string name="guide_section_led">LED</string>
+    <string name="guide_led_intro">초록 LED 하나로 상태를 알려요. 평소에는 꺼져 있어요.</string>
+    <string name="led_recording">녹음 켜져 있는 동안</string>
+    <string name="led_recording_pattern">10초마다 1번 짧게</string>
+    <string name="led_bookmark">북마크</string>
+    <string name="led_bookmark_pattern">1번 아주 짧게</string>
+    <string name="led_holding">버튼을 누르는 중 2초 / 5초</string>
+    <string name="led_holding_pattern">1번 깜빡 / 3번 빠르게</string>
+    <string name="led_recording_toggle">녹음 켜짐 / 꺼짐</string>
+    <string name="led_recording_toggle_pattern">1번 길게 / 2번 짧게</string>
+    <string name="led_power_toggle">기기 켜짐 / 꺼짐</string>
+    <string name="led_power_toggle_pattern">3번 길게 / 1번 길게 후 꺼짐</string>
+    <string name="led_battery_low">배터리 부족</string>
+    <string name="led_battery_low_pattern">30초마다 3번 짧게</string>
+    <string name="led_storage_full">저장 공간 가득</string>
+    <string name="led_storage_full_pattern">30초마다 2번 길게</string>
+    <string name="guide_section_battery">배터리</string>
+    <string name="guide_store_charged">오래 안 쓰면 충전해서 보관하세요</string>
+    <string name="guide_store_charged_body">꺼진 채로 몇 주 두면 배터리가 너무 닳아 다시 쓰기 어려워질 수 있어요.</string>
+    <string name="guide_auto_on_body">배터리가 다 닳아 꺼졌을 때는 충전하면 저절로 다시 켜져요.</string>
+
+    <!-- Onboarding (A1, A2, A5) -->
+    <string name="onboarding_title">목걸이를 연결해요</string>
+    <string name="onboarding_body">한 번만 등록하면 돼요. 그다음부터는 목걸이가 가까이 오면 앱을 열지 않아도 녹음을 알아서 가져와요.</string>
+    <string name="onboarding_no_device">아직 등록 안 됨</string>
+    <string name="onboarding_no_device_body">목걸이를 폰 가까이 두고 찾아 주세요</string>
+    <string name="onboarding_register">목걸이 찾기</string>
+    <string name="onboarding_fake_device">가짜 기기로 시작 (개발용)</string>
+    <string name="onboarding_registered">등록 완료</string>
+    <string name="onboarding_registered_fw">등록 완료 · 펌웨어 %1$s</string>
+    <string name="onboarding_register_failed">목걸이를 등록하지 못했어요. 가까이 두고 다시 해 보세요.</string>
+    <string name="onboarding_permissions_left">자동 동기화에 필요한 설정 · %1$d개 남음</string>
+    <string name="onboarding_permissions_done">자동 동기화에 필요한 설정 · 모두 마쳤어요</string>
+    <string name="perm_nearby">근처 기기</string>
+    <string name="perm_nearby_body">블루투스로 목걸이와 연결</string>
+    <string name="perm_notifications">알림</string>
+    <string name="perm_notifications_body">동기화하는 동안 알림 표시</string>
+    <string name="perm_location">위치 · 항상 허용</string>
+    <string name="perm_location_body">앱이 꺼져 있어도 장소 기록</string>
+    <string name="perm_location_pick_always">위치 권한에서 ‘항상 허용’을 골라 주세요</string>
+    <string name="perm_battery">배터리 최적화 제외</string>
+    <string name="perm_battery_body">백그라운드에서 끊기지 않게</string>
+    <string name="perm_granted">허용됨</string>
+    <string name="onboarding_samsung_hint">삼성 폰이면 최근 앱 화면에서 Owl을 ‘열린 상태로 유지’로 고정해 두세요. 앱을 쓸어 넘겨도 동기화가 이어져요.</string>
+    <string name="onboarding_start">시작하기</string>
+</resources>
