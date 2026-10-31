@@ -129,6 +129,11 @@ class StubDeviceRegistrar : DeviceRegistrar {
         return Result.success(null)
     }
     override suspend fun onAssociationResult(data: Intent?): Result<String> = Result.success("Owl-3F2A")
+    override val fakeDeviceAvailable: Boolean = true
+    override suspend fun registerFakeDevice(): Result<String> {
+        name.value = "Owl-FAKE"
+        return Result.success("Owl-FAKE")
+    }
     override suspend fun unregister() { name.value = null }
 }
 

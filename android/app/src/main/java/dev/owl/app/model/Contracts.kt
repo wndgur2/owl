@@ -71,6 +71,13 @@ interface DeviceRegistrar {
 
     suspend fun onAssociationResult(data: Intent?): Result<String>
 
+    /** Debug builds only: the in-memory FakeOwlDevice can be registered instead of a real pendant. */
+    val fakeDeviceAvailable: Boolean
+
+    /** Registers the fake pendant ("Owl-FAKE") so the whole pipeline runs on an emulator. */
+    suspend fun registerFakeDevice(): Result<String>
+
+    /** Removes the CDM association and the stored device. Recordings already on the phone stay. */
     suspend fun unregister()
 }
 
