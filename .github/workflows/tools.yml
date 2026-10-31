@@ -1,0 +1,49 @@
+# PC tools: protocol reference implementation (tools/owlproto.py) and its tests.
+# Runs whenever the tools or the protocol spec they implement change.
+name: tools
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/**"
+      - "protocol/**"
+      - ".github/workflows/tools.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/**"
+      - "protocol/**"
+      - ".github/workflows/tools.yml"
+  workflow_dispatch:
+
+# A newer push to the same branch/PR cancels the run that is still going.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r tools/requirements.txt
+
+      # Same commands as README "개발" section, run from the repo root.
+      - name: Protocol self-check (no pytest)
+        run: python3 tools/tests/test_owlproto.py
+
+      - name: pytest
+        run: python -m pytest tools/tests -v
