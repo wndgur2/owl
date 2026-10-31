@@ -50,12 +50,11 @@ class SyncCoordinator(
     private val transportFor: suspend (RegisteredDevice) -> OwlTransport,
     /** Runs after every successful pass: STT queue, place resolution, retention. */
     private val afterSync: suspend (SyncReport) -> Unit = {},
+    /** How the UI's "지금 동기화" is executed; AppContainer routes it through SyncService. Null = in [scope]. */
+    private val launchManualSync: ((SyncTrigger) -> Unit)? = null,
     private val retryDelaysMs: List<Long> = listOf(2_000, 5_000),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SyncRunner, DeviceController {
-
-    /** How the UI's "지금 동기화" is executed; AppContainer routes it through SyncService. */
-    var launchManualSync: (SyncTrigger) -> Unit = { trigger -> scope.launch { sync(trigger) } }
 
     private data class Live(
         val connection: Connection = Connection.UNKNOWN,
@@ -126,9 +125,13 @@ class SyncCoordinator(
 
     private data class Quad<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 
-    override fun syncNow() = launchManualSync(SyncTrigger.MANUAL)
+    override fun syncNow() = launchSync(SyncTrigger.MANUAL)
 
-    override fun reconnect() = launchManualSync(SyncTrigger.RECONNECT)
+    override fun reconnect() = launchSync(SyncTrigger.RECONNECT)
+
+    private fun launchSync(trigger: SyncTrigger) {
+        launchManualSync?.invoke(trigger) ?: scope.launch { sync(trigger) }
+    }
 
     override suspend fun setRecording(on: Boolean): Result<Unit> {
         live.value = live.value.copy(changingRecording = true)

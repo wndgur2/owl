@@ -116,7 +116,7 @@ class OpusPlayer(private val io: CoroutineDispatcher = Dispatchers.IO) : AudioPl
     }
 
     /** Playback speed via AudioTrack PlaybackParams (pitch is kept). Not in [AudioPlayer] yet. */
-    fun setSpeed(speed: Float) = command {
+    override fun setSpeed(speed: Float) = command {
         val clamped = speed.coerceIn(0.5f, 2f)
         _state.update { it.copy(speed = clamped) }
         val seg = segment

@@ -1,6 +1,13 @@
 package dev.owl.app
 
 import android.content.Context
+import android.content.Intent
+import dev.owl.app.audio.OpusPlayer
+import dev.owl.app.ble.BleTransport
+import dev.owl.app.ble.CdmRegistrar
+import dev.owl.app.location.LocationRecorder
+import dev.owl.app.sync.SyncService
+import dev.owl.app.sync.SyncWorker
 import dev.owl.app.data.LocationStore
 import dev.owl.app.data.PlaceResolver
 import dev.owl.app.data.RegisteredDevice
@@ -10,7 +17,6 @@ import dev.owl.app.data.SettingsStore
 import dev.owl.app.data.TimelineRepositoryImpl
 import dev.owl.app.data.db.OwlDatabase
 import dev.owl.app.device.OwlTransport
-import dev.owl.app.device.TransportException
 import dev.owl.app.device.fake.FakeDemo
 import dev.owl.app.device.fake.FakeOwlDevice
 import dev.owl.app.export.JsonExporter
@@ -21,8 +27,6 @@ import dev.owl.app.model.DeviceRegistrar
 import dev.owl.app.model.Exporter
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
-import dev.owl.app.model.StubAudioPlayer
-import dev.owl.app.model.StubDeviceRegistrar
 import dev.owl.app.model.TimelineRepository
 import dev.owl.app.retention.RetentionManager
 import dev.owl.app.retention.RetentionWorker
@@ -84,6 +88,7 @@ class AppContainer(private val context: Context) {
             statusDao = database.status(),
             syncDb = syncDb,
             engine = SyncEngine(segmentFiles, syncDb),
+            launchManualSync = { SyncService.syncNow(context) },
             transportFor = ::transportFor,
             afterSync = { report ->
                 placeResolver.resolve()
@@ -95,14 +100,37 @@ class AppContainer(private val context: Context) {
     val deviceController: DeviceController get() = coordinator
     val syncRunner: SyncRunner get() = coordinator
 
-    val deviceRegistrar: DeviceRegistrar by lazy { StubDeviceRegistrar() }
+    /**
+     * CDM registration (A1), plus what has to happen around it: start syncing right away and
+     * keep the 15-minute WorkManager safety net only while a pendant is registered.
+     */
+    val deviceRegistrar: DeviceRegistrar by lazy {
+        val cdm = CdmRegistrar(context, registrationStore, fakeAvailable = BuildConfig.DEBUG)
+        object : DeviceRegistrar by cdm {
+            override suspend fun onAssociationResult(data: Intent?) = cdm.onAssociationResult(data).onSuccess { onRegistered() }
+            override suspend fun registerFakeDevice() = cdm.registerFakeDevice().onSuccess { onRegistered() }
+            override suspend fun unregister() {
+                cdm.unregister()
+                SyncWorker.cancelPeriodic(context)
+                coordinator.setDevicePresent(false)
+            }
+        }
+    }
+
+    private suspend fun onRegistered() {
+        SyncWorker.schedulePeriodic(context)
+        if (settingsStore.current()?.isFake == true) coordinator.setDevicePresent(true)
+        SyncService.start(context, SyncTrigger.DEVICE_APPEARED)
+    }
+
+    val locationRecorder by lazy { LocationRecorder(context) }
     val exporter: Exporter by lazy { JsonExporter(database, context.contentResolver) }
 
     /** A new player per Entry screen; the caller releases it. */
-    fun newAudioPlayer(): AudioPlayer = StubAudioPlayer()
+    fun newAudioPlayer(): AudioPlayer = OpusPlayer()
 
     private suspend fun transportFor(dev: RegisteredDevice): OwlTransport =
-        if (dev.isFake) fakeDevice() else throw TransportException("BLE transport not wired yet")
+        if (dev.isFake) fakeDevice() else BleTransport(context, dev.address)
 
     // --- fake pendant (debug builds) -----------------------------------------
 
@@ -131,7 +159,21 @@ class AppContainer(private val context: Context) {
         appScope.launch {
             val dev = settingsStore.current() ?: return@launch
             if (dev.isFake) coordinator.setDevicePresent(true)
-            coordinator.sync(SyncTrigger.APP_START)
+            SyncService.start(context, SyncTrigger.APP_START)
         }
+    }
+
+    /** A5: follow the 장소 기록 setting (LocationRecorder remembers it for BootReceiver). */
+    private fun followLocationSetting() {
+        appScope.launch {
+            settingsStore.locationEnabled.collect { on ->
+                if (on && locationRecorder.hasForegroundPermission()) locationRecorder.start()
+                else if (!on) locationRecorder.stop()
+            }
+        }
+    }
+
+    init {
+        followLocationSetting()
     }
 }

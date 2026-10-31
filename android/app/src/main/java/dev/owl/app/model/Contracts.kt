@@ -90,6 +90,9 @@ interface AudioPlayer {
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)
+
+    /** 0.5–2.0×; shown as the speed label in the player. */
+    fun setSpeed(speed: Float) = Unit
     fun release()
 }
 
