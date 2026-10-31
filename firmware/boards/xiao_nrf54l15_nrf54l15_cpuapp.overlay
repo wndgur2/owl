@@ -5,6 +5,10 @@
  *   W25Q128 SPI flash : D8 SCK, D9 MISO, D10 MOSI (xiao_spi = spi00), D3 CS
  *   Master button     : D1 -> GND, internal pull-up
  *   Battery voltage   : AIN7 via vbat_pwr load switch, divider 1/2 (board dts)
+ *
+ * Flash layout (W25Q128, 16 MiB):
+ *   0x000000 - 0xFFEFFF  LittleFS "/lfs" (segments, events, state)
+ *   0xFFF000 - 0xFFFFFF  4 KiB scratch for the M0 bring-up erase/write test
  */
 
 / {
@@ -13,9 +17,33 @@
 		master-button-gpios = <&xiao_d 1 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 	};
 
+	fstab {
+		compatible = "zephyr,fstab";
+
+		owl_lfs: owl_lfs {
+			compatible = "zephyr,fstab,littlefs";
+			mount-point = "/lfs";
+			partition = <&lfs_partition>;
+			/* Mounted by storage.c, after the power-on decision. */
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <512>;
+			/* 512 bytes = 4096 bits = one bit per block: one scan covers the flash. */
+			lookahead-size = <512>;
+			block-cycles = <512>;
+		};
+	};
+
 	aliases {
 		ext-flash = &w25q128;
+		/* The board only names it dmic20. */
+		dmic0 = &pdm20;
 	};
+};
+
+&pdm20 {
+	/* Filled blocks the driver may hold for us before it stops the PDM: 240 ms. */
+	queue-size = <12>;
 };
 
 &xiao_spi {
@@ -33,5 +61,23 @@
 		has-dpd;
 		t-enter-dpd = <3000>;
 		t-exit-dpd = <3000>;
+		/* Driver puts the chip in deep power-down (~1 uA) whenever it is idle. */
+		zephyr,pm-device-runtime-auto;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			lfs_partition: partition@0 {
+				label = "owl-storage";
+				reg = <0x00000000 0x00fff000>;
+			};
+
+			bringup_partition: partition@fff000 {
+				label = "bringup-scratch";
+				reg = <0x00fff000 0x00001000>;
+			};
+		};
 	};
 };

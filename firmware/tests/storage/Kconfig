@@ -1,0 +1,18 @@
+# The subset of firmware/Kconfig that storage.c needs, small enough for tests.
+module = OWL
+module-str = Owl
+source "subsys/logging/Kconfig.template.log_config"
+
+config OWL_SEG_INDEX_MAX
+	int "Max closed segments"
+	default 64
+
+config OWL_STORAGE_RESERVE_KB
+	int "Reserve (KiB)"
+	default 64
+
+config OWL_SEG_SYNC_KB
+	int "Sync interval (KiB)"
+	default 8
+
+source "Kconfig.zephyr"

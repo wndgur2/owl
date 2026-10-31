@@ -1,0 +1,2 @@
+/* Same wiring as the main app: one source of truth (hardware/wiring.md). */
+#include "../../boards/xiao_nrf54l15_nrf54l15_cpuapp.overlay"
