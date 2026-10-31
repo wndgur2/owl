@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |---|---|
 | 상태 | 1차 확정 (2026-10-31) |
-| 기준 문서 | [PRD 0.2](../../prd.md) — 화면이 PRD와 어긋나면 PRD를 먼저 맞춰요 |
+| 기준 문서 | [PRD 0.3](../../prd.md) — 화면이 PRD와 어긋나면 PRD를 먼저 맞춰요 |
 | 원본 캔버스 | https://claude.ai/artifact/JZfq4wLZMHHXfr3VQUtXsB (비공개, 소유자만 열람) |
 | 디자인 시스템 | Material 3 (Compose) 기본값 — 색은 role(`Primary`, `SurfaceContainer`…)로만 써요 |
 | 기기 크기 | 390 × 844 (폰 세로) |
@@ -20,10 +20,11 @@
 | `EntryMenu.dc.html` | 기록 상세 · 메뉴 열림 (음성 보존 / 텍스트 복사 / 기록 삭제) | A14 |
 | `EntryDeleted.dc.html` | 기록 상세 · 음성 파일 삭제됨 (플레이어 유지, 재생 버튼만 비활성) | A8, A14 |
 | `Search.dc.html` | 검색 — 기간·장소·북마크·보존됨 필터 | A11 |
+| `Splash.dc.html` | 스플래시 — 앱 아이콘 + 하단 개인정보 원칙 문구 | N8 |
 | `Onboarding.dc.html` | 목걸이 등록 + 자동 동기화 권한 체크리스트 | A1, A2, A5 |
-| `Device.dc.html` | 기기 — 상태(녹음 중/일시정지/응답 없음), 배터리, 저장 공간, 동기화, 펌웨어, 개인정보 문구 | A10, N8 |
+| `Device.dc.html` | 기기 — 상태(녹음 중/일시정지/응답 없음), 배터리, 저장 공간, 동기화, 펌웨어 | A10 |
 | `DeviceMenu.dc.html` | 기기 · 기기 목록 펼침 (+ 새로운 기기) | A15 |
-| `Settings.dc.html` | 설정 — 음성 보관, 장소 기록, 기록 내보내기, 등록 해제 | A5, A13, A14 |
+| `Settings.dc.html` | 설정 — 음성 보관, 장소 기록, 기록 내보내기, 개인정보 처리 방침, 등록 해제 | A5, A13, A14, N8 |
 | `Retention.dc.html` | 설정 · 음성 보관 기간 | A14 |
 | `*Dark.dc.html` | 위 화면들의 다크 모드 | — |
 
@@ -51,4 +52,5 @@ python3 docs/design/android/make_dark.py docs/design/android
 - 음성 보관 기간은 설정에서 선택(기본 30일), 기록별 "음성 보존" — `decisions.md` #11
 - 녹음 파라미터(비트레이트·VAD·세그먼트 길이)는 앱에 노출하지 않음 — `decisions.md` #12
 - 시각 동기화·배터리 전압 같은 내부 정보는 사용자에게 보여주지 않음
+- 개인정보 원칙 문구("모든 음성, 위치, 텍스트 정보는 디바이스 내부에만 존재해요.")는 기기 화면이 아니라 스플래시와 설정 › 개인정보 처리 방침에 표시 — PRD N8
 - 미결정: 기기 "응답 없음" 판정 기준 — PRD 10장 G

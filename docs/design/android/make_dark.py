@@ -1,7 +1,7 @@
 # Generates <Name>Dark.dc.html from each light artboard (M3 baseline light -> dark roles).
 import re, sys, os
 P = sys.argv[1]
-NAMES = ['Main','Entry','EntryPending','EntryMenu','EntryDeleted','Search','Onboarding','Device','DeviceMenu','Settings','Retention']
+NAMES = ['Main','Entry','EntryPending','EntryMenu','EntryDeleted','Search','Splash','Onboarding','Device','DeviceMenu','Settings','Retention']
 ROOT_L = 'background: #FFFFFF; color: #1D1B20; font-family'
 ROOT_D = 'background: #141218; color: #E6E0E9; font-family'
 MAP = {
