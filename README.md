@@ -1,5 +1,7 @@
 # Owl
 
+**Offline wearable lifelogging.**
+
 하루를 기록하는 목걸이형 웨어러블. 목걸이가 대화를 녹음해 쌓아두면, 폰이 주기적으로 가져가서 텍스트로 바꾸고 위치·시각과 함께 타임라인으로 정리해요.
 
 - 하드웨어: Seeed XIAO nRF54L15 Sense + 16MB SPI 플래시 + 250mAh LiPo + 버튼 1개

@@ -1,5 +1,5 @@
 /*
- * Pendant wiring on XIAO nRF54L15 Sense (see hardware/wiring.md).
+ * Owl wiring on XIAO nRF54L15 Sense (see hardware/wiring.md).
  * Zephyr picks this file up automatically for board xiao_nrf54l15/nrf54l15/cpuapp.
  *
  *   W25Q128 SPI flash : D8 SCK, D9 MISO, D10 MOSI (xiao_spi = spi00), D3 CS

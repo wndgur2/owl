@@ -1,4 +1,4 @@
-"""Reference implementation of the Pendant BLE protocol v1.
+"""Reference implementation of the Owl BLE protocol v1.
 
 protocol/ble-protocol.md is the spec; this module mirrors it byte for byte.
 Firmware (C) and Android (Kotlin) code should match the layouts here.

@@ -1,5 +1,5 @@
 /*
- * Pendant firmware - M0 bring-up.
+ * Owl firmware - M0 bring-up.
  *
  * Checks every part we soldered, once, at boot, and then idles:
  *   1. battery voltage (AIN7, behind the vbat_pwr load switch)
@@ -24,7 +24,7 @@
 #include <zephyr/pm/device.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(pendant, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(owl, LOG_LEVEL_INF);
 
 #define USER_NODE DT_PATH(zephyr_user)
 
@@ -251,7 +251,7 @@ static int button_init(void)
 int main(void)
 {
 	gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
-	LOG_INF("pendant M0 bring-up");
+	LOG_INF("owl M0 bring-up");
 
 	check_battery();
 	check_flash();

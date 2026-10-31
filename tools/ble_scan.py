@@ -1,8 +1,8 @@
-"""Scan for Pendant devices and, optionally, connect and read STATUS.
+"""Scan for Owl devices and, optionally, connect and read STATUS.
 
 Usage:
     pip install -r tools/requirements.txt
-    python tools/ble_scan.py              # list nearby Pendant-* devices
+    python tools/ble_scan.py              # list nearby Owl-* devices
     python tools/ble_scan.py --status     # connect to the strongest one and print STATUS
 
 This is the PC-side test bench for milestone M3: it lets you check the firmware's

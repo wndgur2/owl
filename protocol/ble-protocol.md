@@ -1,4 +1,4 @@
-# Pendant BLE 프로토콜 v1 (초안)
+# Owl BLE 프로토콜 v1 (초안)
 
 펌웨어(`firmware/`)와 앱(`android/`), PC 도구(`tools/`)가 공유하는 **계약서**예요.
 이 문서를 바꾸면 세 곳을 같은 커밋에서 같이 고쳐야 해요.
@@ -21,7 +21,7 @@ Base UUID: `a269xxxx-8c8b-40f7-a91b-3ffa7ab560b9`
 
 | 이름 | UUID (xxxx) | 속성 | 방향 | 용도 |
 |---|---|---|---|---|
-| Pendant Service | `0001` | - | - | 서비스 |
+| Owl Service | `0001` | - | - | 서비스 |
 | STATUS | `0002` | Read, Notify | 기기 → 폰 | 배터리, 저장 공간, 미전송 개수 |
 | CONTROL | `0003` | Write, Notify | 양방향 | 명령(폰→기기)과 응답(기기→폰) |
 | DATA | `0004` | Notify | 기기 → 폰 | 세그먼트 바이트 스트림 |
