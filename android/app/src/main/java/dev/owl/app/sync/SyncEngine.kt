@@ -70,6 +70,7 @@ class SyncEngine(
     /** Re-FETCHes without any progress before giving up on this pass. */
     private val maxStalls: Int = 4,
     private val maxCrcRetries: Int = 2,
+    private val log: (String) -> Unit = {},
 ) {
     fun interface ProgressListener {
         fun onProgress(done: Int, total: Int, fraction: Float)
@@ -153,6 +154,7 @@ class SyncEngine(
         var stalls = 0
         var lastReported = -1L
         drain(client)
+        if (expected > 0) log("segment ${entry.id}: resuming at byte $expected of $size")
         client.fetch(entry.id, expected)
         var refetchedAt = expected
         while (expected < size) {
@@ -177,6 +179,7 @@ class SyncEngine(
                 }
                 chunk.offset > expected && refetchedAt != expected -> {
                     // Gap: a chunk was lost. Ask again from the first missing byte, once per gap.
+                    log("segment ${entry.id}: gap at byte $expected, re-FETCH")
                     client.fetch(entry.id, expected)
                     refetchedAt = expected
                 }
@@ -223,6 +226,7 @@ class SyncEngine(
         }
         val file = files.commit(address, entry.id)
         db.saved(address, entry.id, file, crc, header, duration, events)
+        log("segment ${entry.id}: saved ${entry.size} bytes, crc %08x, sending ACK".format(crc))
         return crc
     }
 

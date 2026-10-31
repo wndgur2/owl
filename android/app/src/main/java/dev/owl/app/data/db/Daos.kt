@@ -109,6 +109,19 @@ interface SegmentDao {
     @Query("SELECT * FROM segments WHERE type = 1 ORDER BY sortTimeMs")
     suspend fun allAudio(): List<SegmentEntity>
 
+    @Query("SELECT * FROM segments WHERE deviceAddress = :address AND startUnixMs IS NULL")
+    suspend fun withUnknownTime(address: String): List<SegmentEntity>
+
+    /** Real time of the closest earlier segment (ids are monotonic, so id order = time order). */
+    @Query("SELECT startUnixMs FROM segments WHERE deviceAddress = :address AND segmentId < :id AND startUnixMs IS NOT NULL ORDER BY segmentId DESC LIMIT 1")
+    suspend fun knownTimeBefore(address: String, id: Long): Long?
+
+    @Query("SELECT startUnixMs FROM segments WHERE deviceAddress = :address AND segmentId > :id AND startUnixMs IS NOT NULL ORDER BY segmentId ASC LIMIT 1")
+    suspend fun knownTimeAfter(address: String, id: Long): Long?
+
+    @Query("UPDATE segments SET sortTimeMs = :sortTimeMs WHERE rowId = :rowId")
+    suspend fun setSortTime(rowId: Long, sortTimeMs: Long)
+
     @Query("SELECT MAX(segmentId) FROM segments WHERE deviceAddress = :address")
     suspend fun maxSegmentId(address: String): Long?
 }

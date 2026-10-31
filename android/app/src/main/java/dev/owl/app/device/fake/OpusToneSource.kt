@@ -12,18 +12,28 @@ import kotlin.math.sin
  * Debug builds: real, decodable 16 kHz mono Opus packets for the fake pendant, made with
  * Android's built-in Opus encoder. The sound is a synthetic "voice-like" buzz (a gliding pitch
  * with harmonics, chopped into syllables), so the player has something to play.
- * Falls back to [RandomFrameSource] if the device has no Opus encoder.
+ * Assumes the encoder's default 20 ms frames. Falls back to [RandomFrameSource] if the device has no Opus encoder.
  */
 class OpusToneSource(private val bitrate: Int = 16_000) : FrameSource {
     private val fallback = RandomFrameSource()
 
-    override fun frames(durationMs: Long, frameMs: Int): List<ByteArray> =
+    /**
+     * Software encoders on emulators run near real time, so encode a few seconds once and loop
+     * those packets (20 ms each) for any length.
+     */
+    private val clip: List<ByteArray>? by lazy {
         try {
-            encode(synth(durationMs))
+            encode(synth(CLIP_MS))
         } catch (e: Exception) {
             Log.w("OwlFake", "Opus encoder unavailable, using random frames", e)
-            fallback.frames(durationMs, frameMs)
+            null
         }
+    }
+
+    override fun frames(durationMs: Long, frameMs: Int): List<ByteArray> {
+        val packets = clip?.takeIf { it.isNotEmpty() } ?: return fallback.frames(durationMs, frameMs)
+        return List((durationMs / frameMs).toInt()) { packets[it % packets.size] }
+    }
 
     private fun synth(durationMs: Long): ShortArray {
         val n = (SAMPLE_RATE * durationMs / 1000).toInt()
@@ -59,7 +69,9 @@ class OpusToneSource(private val bitrate: Int = 16_000) : FrameSource {
             var inPos = 0
             var inputDone = false
             val info = MediaCodec.BufferInfo()
+            val deadline = System.currentTimeMillis() + 30_000
             while (true) {
+                check(System.currentTimeMillis() < deadline) { "Opus encoder did not finish (${packets.size} packets, in $inPos/${bytes.size})" }
                 if (!inputDone) {
                     val idx = codec.dequeueInputBuffer(10_000)
                     if (idx >= 0) {
@@ -88,10 +100,12 @@ class OpusToneSource(private val bitrate: Int = 16_000) : FrameSource {
             runCatching { codec.stop() }
             codec.release()
         }
+        Log.i("OwlFake", "encoded ${pcm.size / 16} ms into ${packets.size} Opus packets with $name")
         return packets
     }
 
     private companion object {
         const val SAMPLE_RATE = 16_000
+        const val CLIP_MS = 6_400L
     }
 }

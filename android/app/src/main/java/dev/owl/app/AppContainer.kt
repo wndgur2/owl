@@ -87,10 +87,11 @@ class AppContainer(private val context: Context) {
             settings = settingsStore,
             statusDao = database.status(),
             syncDb = syncDb,
-            engine = SyncEngine(segmentFiles, syncDb),
+            engine = SyncEngine(segmentFiles, syncDb, log = { android.util.Log.i("OwlSync", it) }),
             launchManualSync = { SyncService.syncNow(context) },
             transportFor = ::transportFor,
             afterSync = { report ->
+                settingsStore.current()?.let { syncDb.placeUnknownTimes(it.address) }
                 placeResolver.resolve()
                 if (report.fetched > 0) TranscribeWorker.enqueue(context)
                 retentionManager.apply(currentRetention())

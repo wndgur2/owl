@@ -96,6 +96,22 @@ class RoomSyncDb(private val db: OwlDatabase) : SyncDb {
         }
     }
 
+    /**
+     * Recordings from a boot that never got a TIME_SYNC have no real time ("알 수 없음"). Segment
+     * ids only grow, so place them on the timeline right after the closest earlier recording
+     * with a known time (or just before the next one) instead of at the time we received them.
+     */
+    suspend fun placeUnknownTimes(address: String) {
+        for (s in segments.withUnknownTime(address)) {
+            val before = segments.knownTimeBefore(address, s.segmentId)
+            val sortTime = when {
+                before != null -> before + 1
+                else -> segments.knownTimeAfter(address, s.segmentId)?.minus(1) ?: s.receivedAtMs
+            }
+            if (sortTime != s.sortTimeMs) segments.setSortTime(s.rowId, sortTime)
+        }
+    }
+
     override suspend fun acked(address: String, id: Long) {
         val row = segments.find(address, id) ?: return
         segments.update(row.copy(acked = true))
