@@ -3,7 +3,7 @@
 # the Zephyr SDK compilers and the Python packages).
 #
 # The SDK checkout for a fixed tag never changes, so it is cached by version only:
-# the first run downloads it (a few minutes), later runs restore it from the cache.
+# the first run downloads it (~2 min), later runs restore it from the cache.
 name: Set up nRF Connect SDK
 description: Restore or create the NCS west workspace in ./ncs
 
@@ -17,7 +17,7 @@ runs:
   steps:
     - name: Restore SDK cache
       id: cache
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v6
       with:
         path: ncs
         key: ncs-${{ inputs.version }}
@@ -30,6 +30,15 @@ runs:
         cd ncs
         # --narrow + depth=1: fetch only the pinned commits, no history (much smaller)
         west update --narrow -o=--depth=1
+
+    # Save right away instead of at the end of the job (what plain actions/cache does),
+    # so the download is reused even when the firmware build itself fails.
+    - name: Save SDK cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ncs
+        key: ncs-${{ inputs.version }}
 
     # The container runs as root but the checkout belongs to another uid;
     # without this, git (and therefore west) refuses to read the repositories.
