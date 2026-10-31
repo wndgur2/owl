@@ -23,14 +23,23 @@ enum class SegmentState {
 }
 
 data class Place(
-    /** User-facing name, or null when we only have coordinates (no reverse geocoding: PRD N8). */
+    /**
+     * Name the user gave this place, or null → show "알 수 없는 장소". There is no reverse
+     * geocoding (PRD N8); names come only from the user ([PlacesRepository]).
+     */
     val name: String?,
     val latitude: Double,
     val longitude: Double,
+    /** The named place this location falls in, null if unnamed. */
+    val namedPlaceId: Long? = null,
 )
 
-/** One audio segment on the timeline (PRD A7). */
+/**
+ * One timeline entry (PRD A7): one segment, or several adjacent segments merged because the gap
+ * between them was short (see `data/EntryGrouping.kt`). Played as one continuous recording.
+ */
 data class TimelineItem(
+    /** Entry id (the row id of its first segment); stable while the entry exists. */
     val id: Long,
     /** Real start time restored from (boot_count, uptime). Null = "시각 알 수 없음" (protocol §4). */
     val startUnixMs: Long?,
@@ -44,13 +53,39 @@ data class TimelineItem(
     /** 0..1 while [SegmentState.RECEIVING], else null. */
     val receiveProgress: Float?,
     val bookmarkCount: Int,
+    /** True only when every segment of the entry is preserved. */
     val preserveAudio: Boolean,
+    /** True when any segment's audio is gone (the entry can no longer be played). */
     val audioDeleted: Boolean,
+    val segmentCount: Int = 1,
+)
+
+/**
+ * A bookmark pressed while nothing was being recorded (PRD A9). Shown on its own on the
+ * timeline, with low emphasis.
+ */
+data class StandaloneBookmark(
+    val id: Long,
+    /** Null = "시각 알 수 없음" (no TIME_SYNC for that boot). */
+    val timeMs: Long?,
+    /** Where to sort it on the timeline (= [timeMs] when known). */
+    val sortTimeMs: Long,
+    val place: Place?,
+)
+
+/** A place the user named (A5/A7). */
+data class NamedPlace(
+    val id: Long,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    /** Timeline entries currently labelled with this name. */
+    val entryCount: Int,
 )
 
 data class Sentence(
     val index: Int,
-    /** Offset from the start of the recording. */
+    /** Offset from the start of the entry (continuous across merged segments). */
     val startMs: Long,
     val endMs: Long,
     val text: String,
@@ -59,10 +94,13 @@ data class Sentence(
 data class EntryDetail(
     val item: TimelineItem,
     val sentences: List<Sentence>,
-    /** Bookmark positions as offsets from the start of the recording. */
+    /** Bookmark positions as offsets from the start of the entry. */
     val bookmarkOffsetsMs: List<Long>,
-    /** Raw segment file (header + Opus frames), null when deleted or not fully received. */
-    val audioFile: File?,
+    /**
+     * Raw segment files (header + Opus frames) in playing order. Empty when any of them is
+     * deleted or not fully received — the entry is then not playable.
+     */
+    val audioFiles: List<File>,
     /** When retention will delete the audio, null if never (preserved / policy "지우지 않음"). */
     val audioDeleteAtMs: Long?,
 )

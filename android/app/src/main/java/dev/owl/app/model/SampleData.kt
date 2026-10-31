@@ -66,10 +66,21 @@ object SampleData {
             item = if (id == 4L) base.copy(durationMs = 252_000) else base,
             sentences = if (done) sentences else emptyList(),
             bookmarkOffsetsMs = if (base.bookmarkCount > 0) listOf(67_000) else emptyList(),
-            audioFile = null,
+            audioFiles = emptyList(),
             audioDeleteAtMs = base.startUnixMs?.plus(30L * 24 * 3600 * 1000),
         )
     }
+
+    val standaloneBookmarks: List<StandaloneBookmark> = listOf(
+        StandaloneBookmark(100, at(0, 11, 20), at(0, 11, 20), engineering.copy(namedPlaceId = 3)),
+    )
+
+    val places: List<NamedPlace> = listOf(
+        NamedPlace(1, "중앙도서관", 37.5665, 126.9780, 2),
+        NamedPlace(2, "집", 37.5700, 126.9820, 1),
+        NamedPlace(3, "공학관 4층", 37.5610, 126.9750, 2),
+        NamedPlace(4, "학생회관 카페", 37.5620, 126.9760, 3),
+    )
 
     val device = DeviceUiState(
         registered = true, name = "Owl-3F2A", connection = Connection.CONNECTED, recordingOn = true,
@@ -88,6 +99,12 @@ class StubTimelineRepository : TimelineRepository {
         SampleData.timeline.filter { it.preview?.contains(filter.query) == true }
             .map { SearchHit(it, Sentence(0, 0, 0, it.preview!!)) },
     )
+
+    override fun standaloneBookmarks(sinceMs: Long?): Flow<List<StandaloneBookmark>> =
+        flowOf(SampleData.standaloneBookmarks.filter { sinceMs == null || it.sortTimeMs >= sinceMs })
+
+    override fun searchBookmarks(filter: SearchFilter): Flow<List<StandaloneBookmark>> =
+        flowOf(if (filter.query.isBlank() && filter.bookmarkedOnly) SampleData.standaloneBookmarks else emptyList())
 
     override fun placeNames(): Flow<List<String>> =
         flowOf(SampleData.timeline.mapNotNull { it.place?.name }.distinct())
@@ -140,13 +157,25 @@ class StubDeviceRegistrar : DeviceRegistrar {
 class StubAudioPlayer : AudioPlayer {
     private val _state = MutableStateFlow(PlayerState())
     override val state: StateFlow<PlayerState> = _state.asStateFlow()
-    override fun load(file: File?, durationMs: Long) {
-        _state.value = PlayerState(loaded = true, canPlay = file != null, durationMs = durationMs)
+    override fun load(files: List<File>, durationMs: Long) {
+        _state.value = PlayerState(loaded = true, canPlay = files.isNotEmpty(), durationMs = durationMs)
     }
     override fun play() { _state.value = _state.value.copy(playing = _state.value.canPlay) }
     override fun pause() { _state.value = _state.value.copy(playing = false) }
     override fun seekTo(positionMs: Long) { _state.value = _state.value.copy(positionMs = positionMs) }
     override fun release() = Unit
+}
+
+class StubPlacesRepository : PlacesRepository {
+    private val list = MutableStateFlow(SampleData.places)
+    override fun places(): Flow<List<NamedPlace>> = list
+    override suspend fun nameEntryPlace(entryId: Long, name: String): Result<Unit> = Result.success(Unit)
+    override suspend fun renamePlace(id: Long, name: String) {
+        list.value = list.value.map { if (it.id == id) it.copy(name = name) else it }
+    }
+    override suspend fun deletePlace(id: Long) {
+        list.value = list.value.filterNot { it.id == id }
+    }
 }
 
 class StubExporter : Exporter {

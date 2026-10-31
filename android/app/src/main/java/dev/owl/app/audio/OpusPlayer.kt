@@ -73,17 +73,17 @@ class OpusPlayer(private val io: CoroutineDispatcher = Dispatchers.IO) : AudioPl
         commands.trySend(block)
     }
 
-    override fun load(file: File?, durationMs: Long) = command {
+    override fun load(files: List<File>, durationMs: Long) = command {
         stopPlayback()
         segment = null
         _state.value = PlayerState(loaded = true, canPlay = false, durationMs = durationMs, speed = _state.value.speed)
-        if (file == null) return@command // audio deleted: sentence navigation only (A8)
+        if (files.isEmpty()) return@command // audio deleted: sentence navigation only (A8)
 
         val parsed = withContext(io) {
             try {
-                OpusSegment.parse(file.readBytes())
+                OpusSegment.concat(files.map { OpusSegment.parse(it.readBytes()) })
             } catch (e: Exception) {
-                Log.w(TAG, "cannot read segment ${file.name}", e)
+                Log.w(TAG, "cannot read segments ${files.map { it.name }}", e)
                 null
             }
         } ?: return@command

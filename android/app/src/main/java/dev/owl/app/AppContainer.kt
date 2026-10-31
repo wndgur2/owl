@@ -28,6 +28,8 @@ import dev.owl.app.model.Exporter
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.model.TimelineRepository
+import dev.owl.app.model.PlacesRepository
+import dev.owl.app.model.StubPlacesRepository
 import dev.owl.app.retention.RetentionManager
 import dev.owl.app.retention.RetentionWorker
 import dev.owl.app.stt.DemoTranscriber
@@ -125,6 +127,7 @@ class AppContainer(private val context: Context) {
     }
 
     val locationRecorder by lazy { LocationRecorder(context) }
+    val placesRepository: PlacesRepository by lazy { StubPlacesRepository() }
     val exporter: Exporter by lazy { JsonExporter(database, context.contentResolver) }
 
     /** A new player per Entry screen; the caller releases it. */

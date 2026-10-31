@@ -333,7 +333,7 @@ private fun EntryBody(detail: EntryDetail, player: PlayerState, formats: OwlForm
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         CircularProgressIndicator(Modifier.size(32.dp), trackColor = MaterialTheme.colorScheme.secondaryContainer)
                         Text(stringResource(R.string.state_transcribing), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (detail.audioFile != null) {
+                        if (detail.audioFiles.isNotEmpty()) {
                             Text(stringResource(R.string.entry_listen_now), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

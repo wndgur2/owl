@@ -51,7 +51,7 @@ class TimelineRepositoryImpl(
                 item = row.toItem(),
                 sentences = sent.map { it.toModel() },
                 bookmarkOffsetsMs = marks.map { it.uptimeMs - s.startUptimeMs!! },
-                audioFile = s.filePath?.let(::File)?.takeIf { !s.audioDeleted && s.state != SegmentState.RECEIVING && it.exists() },
+                audioFiles = listOfNotNull(s.filePath?.let(::File)?.takeIf { !s.audioDeleted && s.state != SegmentState.RECEIVING && it.exists() }),
                 audioDeleteAtMs = RetentionRules.deleteAt(policy, s),
             )
         }
@@ -79,6 +79,10 @@ class TimelineRepositoryImpl(
             SearchPeriod.LAST_30_DAYS -> now - 30 * DAY_MS
         }
     }
+
+    override fun standaloneBookmarks(sinceMs: Long?): Flow<List<dev.owl.app.model.StandaloneBookmark>> = flowOf(emptyList())
+
+    override fun searchBookmarks(filter: SearchFilter): Flow<List<dev.owl.app.model.StandaloneBookmark>> = flowOf(emptyList())
 
     override fun placeNames(): Flow<List<String>> = segments.placeNames()
 

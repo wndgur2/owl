@@ -36,18 +36,18 @@ class EntryViewModel(
     private val player: AudioPlayer,
 ) : ViewModel() {
     private var loadedOnce = false
-    private var loadedFile: File? = null
+    private var loadedFiles: List<File>? = null
     private val deleting = MutableStateFlow(false)
 
     private val detail = repository.entry(id).onEach { d ->
         if (d == null) return@onEach
-        if (!loadedOnce || d.audioFile != loadedFile) {
-            // (Re)load when the file appears (receive finished) or disappears (retention); keep the position.
+        if (!loadedOnce || d.audioFiles != loadedFiles) {
+            // (Re)load when the files appear (receive finished) or disappears (retention); keep the position.
             val keep = if (loadedOnce) player.state.value.positionMs else initialSeekMs
-            player.load(d.audioFile, d.item.durationMs)
+            player.load(d.audioFiles, d.item.durationMs)
             if (keep != null && keep > 0) player.seekTo(keep)
             loadedOnce = true
-            loadedFile = d.audioFile
+            loadedFiles = d.audioFiles
         }
     }.map { LoadedDetail(it) }
 

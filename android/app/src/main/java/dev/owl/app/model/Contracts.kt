@@ -12,21 +12,31 @@ import java.io.File
  */
 
 interface TimelineRepository {
-    /** Newest [limit] recordings, ordered oldest → newest (newest is shown at the bottom, A7). */
+    /** Newest [limit] entries, ordered oldest → newest (newest is shown at the bottom, A7). */
     fun timeline(limit: Int, bookmarkedOnly: Boolean = false): Flow<List<TimelineItem>>
+
+    /**
+     * Bookmarks outside any recording (A9) with sort time ≥ [sinceMs] (null = all), oldest first.
+     * The timeline merges them in by sort time.
+     */
+    fun standaloneBookmarks(sinceMs: Long?): Flow<List<StandaloneBookmark>>
+
+    /** Standalone bookmarks matching the search filters (period, place); empty if the query is not blank. */
+    fun searchBookmarks(filter: SearchFilter): Flow<List<StandaloneBookmark>>
 
     fun entry(id: Long): Flow<EntryDetail?>
 
     fun search(filter: SearchFilter): Flow<List<SearchHit>>
 
-    /** Distinct place names for the search filter. */
+    /** Names of the user's named places, for the search filter. */
     fun placeNames(): Flow<List<String>>
 
     fun audioUsage(): Flow<AudioUsage>
 
+    /** Applies to every segment of the entry. */
     suspend fun setPreserveAudio(id: Long, preserve: Boolean)
 
-    /** Deletes the recording, its transcript and its audio file. */
+    /** Deletes the entry: all its segments, their transcripts and audio files. */
     suspend fun deleteEntry(id: Long)
 
     /** Plain text of the transcript, for "텍스트 복사". */
@@ -81,12 +91,32 @@ interface DeviceRegistrar {
     suspend fun unregister()
 }
 
-/** Plays one stored segment file (A8). One instance per Entry screen. */
+/** Places the user named (A5/A7). No network geocoding (PRD N8). */
+interface PlacesRepository {
+    fun places(): Flow<List<NamedPlace>>
+
+    /**
+     * "이 장소 이름 붙이기" from entry detail: names the entry's location. If it already falls in a
+     * named place, that place is renamed. The name applies to every location within
+     * `PLACE_RADIUS_M` (past and future entries). Fails if the entry has no location.
+     */
+    suspend fun nameEntryPlace(entryId: Long, name: String): Result<Unit>
+
+    suspend fun renamePlace(id: Long, name: String)
+
+    /** Entries in it go back to "알 수 없는 장소". */
+    suspend fun deletePlace(id: Long)
+}
+
+/** Plays one timeline entry (A8). One instance per Entry screen. */
 interface AudioPlayer {
     val state: StateFlow<PlayerState>
 
-    /** [file] null → player shown but disabled (audio deleted). */
-    fun load(file: File?, durationMs: Long)
+    /**
+     * [files] are the entry's segment files, played back to back as one recording.
+     * Empty → player shown but disabled (audio deleted), [durationMs] still drives the seek bar.
+     */
+    fun load(files: List<File>, durationMs: Long)
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)
