@@ -65,6 +65,8 @@ class FakeOwlDevice(
     initialBootCount: Long = 3,
     /** How long ago the current boot started (so history can be seeded in the past). */
     bootAgoMs: Long = 0,
+    /** Segment ids continue across reboots (and across app restarts in the debug build). */
+    initialNextId: Long = 1,
 ) : OwlTransport {
     private val lock = Mutex()
     private val events_ = Channel<TransportEvent>(Channel.UNLIMITED)
@@ -75,7 +77,7 @@ class FakeOwlDevice(
     var bootCount: Long = initialBootCount
         private set
     private var bootStartMs: Long = clock() - bootAgoMs
-    private var nextId: Long = 1
+    private var nextId: Long = initialNextId
     private val stored = TreeMap<Long, ByteArray>()
     private val pendingEvents = ArrayList<DeviceEvent>()
     var recordingOn: Boolean = true
@@ -257,11 +259,14 @@ class FakeOwlDevice(
         pendingEvents += DeviceEvent(uptimeMs(), if (on) EventType.RECORDING_ON else EventType.RECORDING_OFF, cause)
     }
 
-    /** Power cycle: new boot_count, uptime restarts at 0. Pending events of the old boot are flushed first. */
-    fun reboot() {
+    /**
+     * Power cycle [agoMs] before now: new boot_count, uptime restarts at 0. Pending events of the
+     * old boot are flushed first.
+     */
+    fun reboot(agoMs: Long = 0) {
         flushEvents()
         bootCount++
-        bootStartMs = clock()
+        bootStartMs = clock() - agoMs
         pendingEvents += DeviceEvent(0, EventType.POWER_ON, Cause.OTHER)
     }
 

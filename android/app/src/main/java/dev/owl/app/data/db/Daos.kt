@@ -108,6 +108,9 @@ interface SegmentDao {
 
     @Query("SELECT * FROM segments WHERE type = 1 ORDER BY sortTimeMs")
     suspend fun allAudio(): List<SegmentEntity>
+
+    @Query("SELECT MAX(segmentId) FROM segments WHERE deviceAddress = :address")
+    suspend fun maxSegmentId(address: String): Long?
 }
 
 data class AudioUsageRow(val entryCount: Int, val bytes: Long)
