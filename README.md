@@ -14,12 +14,12 @@ firmware/   Zephyr 앱 (현재: M0 하드웨어 bring-up)
 android/    Android 앱 (현재: 설계 문서만)
 tools/      PC용 Python — 프로토콜 레퍼런스 구현, BLE 테스트
 hardware/   배선, BOM, 케이스
-docs/       아키텍처, 설계 결정, 로드맵
+docs/       PRD(기준 문서), 아키텍처, 설계 결정, 로드맵
 ```
 
 ## 지금 상태
 
-뼈대 단계예요. 진행 상황은 [docs/roadmap.md](docs/roadmap.md), 왜 이렇게 만들었는지는 [docs/decisions.md](docs/decisions.md).
+**무엇을 왜 만드는지는 [docs/prd.md](docs/prd.md)가 기준이에요.** 뼈대 단계예요. 진행 상황은 [docs/roadmap.md](docs/roadmap.md), 왜 이렇게 만들었는지는 [docs/decisions.md](docs/decisions.md).
 
 ```bash
 # 하드웨어 없이 바로 돌려볼 수 있는 것
