@@ -8,6 +8,8 @@
 
 화면 디자인(1차 확정)은 [`docs/design/android/`](../docs/design/android/README.md)에 있어요.
 
+앱 아이콘(adaptive icon)은 [`docs/assets/icon/android/res/`](../docs/assets/icon/README.md#android)를 `app/src/main/res/`에 복사해서 써요. 템플릿이 만든 기본 아이콘 파일은 지우고 덮어쓰세요.
+
 ## 설계 (초안)
 
 ```
