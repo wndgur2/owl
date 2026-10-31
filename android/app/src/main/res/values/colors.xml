@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- M3 baseline light SurfaceContainerLowest (design root background) -->
+    <color name="window_background">#FFFFFF</color>
+</resources>
