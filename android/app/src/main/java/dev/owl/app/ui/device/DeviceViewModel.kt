@@ -18,11 +18,6 @@ class DeviceViewModel(private val controller: DeviceController) : ViewModel() {
     /** Emits when SET_RECORDING failed, for the error snackbar. */
     val recordingFailed: Flow<Unit> = failures.receiveAsFlow()
 
-    init {
-        // A2a / decisions.md #16: try to reach the pendant every time the app opens its main screen.
-        controller.reconnect()
-    }
-
     fun syncNow() = controller.syncNow()
 
     fun reconnect() = controller.reconnect()

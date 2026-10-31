@@ -91,6 +91,13 @@ class EntryViewModel(
         s.firstOrNull { it.startMs > pos }?.let { seekTo(it.startMs) }
     }
 
+    /** 1.0× → 1.5× → 2.0× → 1.0× */
+    fun cycleSpeed() {
+        val speeds = listOf(1f, 1.5f, 2f)
+        val i = speeds.indexOfFirst { kotlin.math.abs(it - player.state.value.speed) < 0.01f }
+        player.setSpeed(speeds[(i + 1) % speeds.size])
+    }
+
     fun setPreserve(preserve: Boolean) {
         viewModelScope.launch { repository.setPreserveAudio(id, preserve) }
     }

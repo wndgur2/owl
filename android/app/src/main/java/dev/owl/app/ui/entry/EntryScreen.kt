@@ -109,6 +109,7 @@ fun EntryScreen(viewModel: EntryViewModel, onBack: () -> Unit) {
         onSeek = viewModel::seekTo,
         onPrevious = viewModel::previous,
         onNext = viewModel::next,
+        onCycleSpeed = viewModel::cycleSpeed,
         onSetPreserve = viewModel::setPreserve,
         onCopyText = {
             scope.launch {
@@ -150,6 +151,7 @@ fun EntryContent(
     onSeek: (Long) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onCycleSpeed: () -> Unit,
     onSetPreserve: (Boolean) -> Unit,
     onCopyText: () -> Unit,
     onDelete: () -> Unit,
@@ -179,7 +181,7 @@ fun EntryContent(
             if (detail != null) {
                 PlayerBar(
                     detail = detail, player = state.player, formats = formats,
-                    onTogglePlay = onTogglePlay, onSeek = onSeek, onPrevious = onPrevious, onNext = onNext,
+                    onTogglePlay = onTogglePlay, onSeek = onSeek, onPrevious = onPrevious, onNext = onNext, onCycleSpeed = onCycleSpeed,
                 )
             }
         },
@@ -414,6 +416,7 @@ private fun PlayerBar(
     onSeek: (Long) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onCycleSpeed: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val gone = detail.item.audioDeleted
@@ -457,8 +460,8 @@ private fun PlayerBar(
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.width(64.dp)) {
                     if (!gone) {
-                        // Speed is shown but not adjustable yet (AudioPlayer has no setSpeed).
                         Surface(
+                            onClick = onCycleSpeed,
                             shape = CircleShape,
                             border = BorderStroke(1.dp, colors.outlineVariant),
                             color = Color.Transparent,
@@ -533,7 +536,7 @@ private fun EntryPreview() {
                 player = PlayerState(loaded = true, canPlay = true, playing = true, positionMs = 70_000, durationMs = 252_000),
             ),
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
+            onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onCycleSpeed = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
         )
     }
 }
@@ -550,7 +553,7 @@ private fun EntryDeletedPreview() {
                 player = PlayerState(loaded = true, canPlay = false, positionMs = 63_000, durationMs = 252_000),
             ),
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
+            onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onCycleSpeed = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
         )
     }
 }
@@ -566,7 +569,7 @@ private fun EntryPendingPreview() {
                 player = PlayerState(loaded = true, canPlay = true, durationMs = 360_000),
             ),
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
+            onBack = {}, onTogglePlay = {}, onSeek = {}, onPrevious = {}, onNext = {}, onCycleSpeed = {}, onSetPreserve = {}, onCopyText = {}, onDelete = {},
         )
     }
 }
