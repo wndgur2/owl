@@ -27,3 +27,21 @@ docs/       PRD(기준 문서), 아키텍처, 설계 결정, 로드맵
 # 하드웨어 없이 바로 돌려볼 수 있는 것
 python3 tools/tests/test_owlproto.py
 ```
+
+## 개발
+
+[![tools](https://github.com/wndgur2/owl/actions/workflows/tools.yml/badge.svg)](https://github.com/wndgur2/owl/actions/workflows/tools.yml)
+[![firmware](https://github.com/wndgur2/owl/actions/workflows/firmware.yml/badge.svg)](https://github.com/wndgur2/owl/actions/workflows/firmware.yml)
+[![android](https://github.com/wndgur2/owl/actions/workflows/android.yml/badge.svg)](https://github.com/wndgur2/owl/actions/workflows/android.yml)
+
+PR과 `main` 푸시마다 GitHub Actions가 바뀐 폴더의 검사만 돌려요(`.github/workflows/`). 같은 검사를 로컬에서 돌리려면 레포 루트에서:
+
+| 검사 | 언제 돌아가나 | 로컬 명령 |
+|---|---|---|
+| tools | `tools/`, `protocol/` 변경 | `pip install -r tools/requirements.txt` 후 `python -m pytest tools/tests` |
+| firmware | `firmware/`, `protocol/` 변경 | `west build -p -b xiao_nrf54l15/nrf54l15/cpuapp firmware` (기본), 같은 명령 뒤에 `-- -DEXTRA_CONF_FILE=uart.conf` (UART). `firmware/tests/`가 있으면 `west twister -T firmware/tests -p native_sim` |
+| android | `android/` 변경 | `cd android && ./gradlew assembleDebug testDebugUnitTest lint` |
+
+- 펌웨어 CI는 nRF Connect SDK **v3.4.1**을 Nordic 공식 컨테이너(`ghcr.io/nrfconnect/sdk-nrf-toolchain`)에서 빌드해요. 빌드된 `merged.hex`는 Actions 실행 화면의 Artifacts에서 받을 수 있어요
+- SDK 버전을 올릴 때는 `firmware.yml`의 `NCS_VERSION`과 `image:` 태그 두 곳을 함께 바꿔요
+- 코드 스타일: `.editorconfig`(들여쓰기), `.clang-format`(C, Zephyr 스타일)

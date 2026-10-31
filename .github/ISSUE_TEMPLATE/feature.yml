@@ -1,0 +1,39 @@
+name: 기능
+description: 새 기능이나 개선. PRD에 있는 요구사항이면 ID를 적어요
+title: "[기능] "
+labels: ["enhancement"]
+body:
+  - type: input
+    id: prd
+    attributes:
+      label: PRD ID
+      description: "docs/prd.md의 요구사항 ID (예: D3, A7, T2). PRD에 없으면 \"없음\" — 그러면 PRD부터 고칠지 함께 정해요"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: 마일스톤
+      description: docs/roadmap.md 기준
+      options:
+        - M0 bring-up
+        - M1 녹음
+        - M2 Opus+VAD
+        - M3 BLE
+        - M4 앱
+        - M5 전력
+        - M6 STT·위치
+        - M7 케이스
+        - 정해지지 않음
+  - type: textarea
+    id: what
+    attributes:
+      label: 무엇을, 왜
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      description: 어떻게 확인하면 끝났다고 할 수 있나요
+      placeholder: "- [ ] ..."

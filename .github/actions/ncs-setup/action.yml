@@ -1,0 +1,47 @@
+# Local composite action: gives the job an nRF Connect SDK west workspace in ./ncs.
+# Must run inside the ghcr.io/nrfconnect/sdk-nrf-toolchain container (it provides west,
+# the Zephyr SDK compilers and the Python packages).
+#
+# The SDK checkout for a fixed tag never changes, so it is cached by version only:
+# the first run downloads it (~2 min), later runs restore it from the cache.
+name: Set up nRF Connect SDK
+description: Restore or create the NCS west workspace in ./ncs
+
+inputs:
+  version:
+    description: sdk-nrf tag, e.g. v3.4.1 (must match the container image tag)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Restore SDK cache
+      id: cache
+      uses: actions/cache/restore@v6
+      with:
+        path: ncs
+        key: ncs-${{ inputs.version }}
+
+    - name: Download SDK (west init + update)
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        west init -m https://github.com/nrfconnect/sdk-nrf --mr "${{ inputs.version }}" ncs
+        cd ncs
+        # --narrow + depth=1: fetch only the pinned commits, no history (much smaller)
+        west update --narrow -o=--depth=1
+
+    # Save right away instead of at the end of the job (what plain actions/cache does),
+    # so the download is reused even when the firmware build itself fails.
+    - name: Save SDK cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ncs
+        key: ncs-${{ inputs.version }}
+
+    # The container runs as root but the checkout belongs to another uid;
+    # without this, git (and therefore west) refuses to read the repositories.
+    - name: Trust repository directories
+      shell: bash
+      run: git config --global --add safe.directory '*'
