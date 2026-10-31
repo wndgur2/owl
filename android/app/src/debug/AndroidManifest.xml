@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Debug only: drive the fake pendant from adb (see android/README.md).
+             DUMP is held by the adb shell, not by normal apps. -->
+        <receiver
+            android:name=".debug.FakeDeviceCommandReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="dev.owl.app.debug.FAKE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
