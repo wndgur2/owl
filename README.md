@@ -12,16 +12,16 @@
 
 ```
 protocol/   BLE 프로토콜 명세 — 펌웨어와 앱의 계약서. 여기부터 읽기
-firmware/   Zephyr 앱 (현재: M0 하드웨어 bring-up)
-android/    Android 앱 (현재: 설계 문서만)
-tools/      PC용 Python — 프로토콜 레퍼런스 구현, BLE 테스트
+firmware/   Zephyr 앱 (녹음·VAD·Opus·BLE, 보드 검증 전) + `bringup/` M0 점검 앱
+android/    Android 앱 (동기화·타임라인 UI, 가짜 기기로 검증)
+tools/      PC용 Python — 프로토콜 레퍼런스, `sync.py`(PC 동기화), 가짜 기기
 hardware/   배선, BOM, 케이스
 docs/       PRD(기준 문서), 아키텍처, 설계 결정, 로드맵
 ```
 
 ## 지금 상태
 
-**무엇을 왜 만드는지는 [docs/prd.md](docs/prd.md)가 기준이에요.** 뼈대 단계예요. 진행 상황은 [docs/roadmap.md](docs/roadmap.md), 왜 이렇게 만들었는지는 [docs/decisions.md](docs/decisions.md).
+**무엇을 왜 만드는지는 [docs/prd.md](docs/prd.md)가 기준이에요.** 하드웨어 없이 할 수 있는 M0–M4 구현이 들어왔고, 보드 검증을 기다리는 단계예요. 진행 상황은 [docs/roadmap.md](docs/roadmap.md), 왜 이렇게 만들었는지는 [docs/decisions.md](docs/decisions.md).
 
 ```bash
 # 하드웨어 없이 바로 돌려볼 수 있는 것
