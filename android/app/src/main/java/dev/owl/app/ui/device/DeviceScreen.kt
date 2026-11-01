@@ -306,13 +306,21 @@ private fun BatteryCard(state: DeviceUiState, modifier: Modifier) {
     val pct = state.batteryPercent
     StatCard(Icons.Outlined.BatteryFull, stringResource(R.string.device_battery), modifier) {
         Text(if (pct != null) stringResource(R.string.percent, pct) else dash, style = MaterialTheme.typography.headlineLarge)
-        Meter((pct ?: 0) / 100f, if (pct != null && pct <= 15) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+        val warn = state.batteryLow || (pct != null && pct <= 15)
+        Meter((pct ?: 0) / 100f, if (warn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
         val hours = state.batteryHoursLeft
         Text(
             if (hours != null) stringResource(R.string.device_battery_left, hours) else dash,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (state.batteryLow) {
+            Text(
+                stringResource(R.string.device_battery_low),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 }
 

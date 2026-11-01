@@ -103,6 +103,8 @@ class StubTimelineRepository : TimelineRepository {
     override fun standaloneBookmarks(sinceMs: Long?): Flow<List<StandaloneBookmark>> =
         flowOf(SampleData.standaloneBookmarks.filter { sinceMs == null || it.sortTimeMs >= sinceMs })
 
+    override fun deviceNotices(sinceMs: Long?): Flow<List<DeviceNotice>> = flowOf(emptyList())
+
     override fun searchBookmarks(filter: SearchFilter): Flow<List<StandaloneBookmark>> =
         flowOf(if (filter.query.isBlank() && filter.bookmarkedOnly) SampleData.standaloneBookmarks else emptyList())
 

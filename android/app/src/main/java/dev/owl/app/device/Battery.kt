@@ -19,6 +19,11 @@ object Battery {
 
     const val CAPACITY_MAH = 250.0
 
+    /** Below this the pendant warns (LED, event 5) and the app shows "배터리 부족" (PRD D10, F1 in docs/qa). */
+    const val LOW_MV = 3600
+
+    fun isLow(mv: Int): Boolean = mv < LOW_MV
+
     /** Average draw used until there is enough history (docs/architecture.md: 2–5 mA estimated). */
     const val NOMINAL_CURRENT_MA = 3.5
 

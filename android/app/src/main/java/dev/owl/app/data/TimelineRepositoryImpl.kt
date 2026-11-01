@@ -8,6 +8,7 @@ import dev.owl.app.data.db.SegmentRow
 import dev.owl.app.data.db.SentenceEntity
 import dev.owl.app.data.db.StandaloneRow
 import dev.owl.app.model.AudioUsage
+import dev.owl.app.model.DeviceNotice
 import dev.owl.app.model.EntryDetail
 import dev.owl.app.model.Place
 import dev.owl.app.model.RetentionPolicy
@@ -105,6 +106,9 @@ class TimelineRepositoryImpl(
 
     override fun standaloneBookmarks(sinceMs: Long?): Flow<List<StandaloneBookmark>> =
         events.standaloneBookmarks(sinceMs ?: Long.MIN_VALUE).mapLatest { rows -> withPlaces(rows) }
+
+    override fun deviceNotices(sinceMs: Long?): Flow<List<DeviceNotice>> =
+        events.deviceEvents(sinceMs ?: Long.MIN_VALUE).map { rows -> rows.map { DeviceNotice(it.id, it.event, it.arg, it.timeMs, it.sortTimeMs) } }
 
     override fun searchBookmarks(filter: SearchFilter): Flow<List<StandaloneBookmark>> {
         // Standalone bookmarks have no text, and nothing to preserve.

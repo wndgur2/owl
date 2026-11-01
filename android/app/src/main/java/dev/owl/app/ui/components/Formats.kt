@@ -85,7 +85,11 @@ class OwlFormats(private val context: Context) {
      * The user-given name, else "알 수 없는 장소" — for unnamed places and for entries without a
      * GPS fix alike. No reverse geocoding (PRD N8); coordinates only appear as detail ([coordinates]).
      */
-    fun place(place: Place?): String = place?.name ?: context.getString(R.string.place_unknown)
+    /** User-given name, "알 수 없는 장소" for an unnamed fix, "위치 없음" without any GPS fix (A5). */
+    fun place(place: Place?): String = when {
+        place == null -> context.getString(R.string.place_none)
+        else -> place.name ?: context.getString(R.string.place_unknown)
+    }
 
     /** "37.5665, 126.9780" (~10 m precision). */
     fun coordinates(latitude: Double, longitude: Double): String =

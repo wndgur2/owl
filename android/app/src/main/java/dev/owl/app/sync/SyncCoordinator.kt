@@ -113,6 +113,7 @@ class SyncCoordinator(
                 storageLow = status?.let { it.flags and Status.FLAG_STORAGE_LOW != 0 } ?: false,
                 storageFull = status?.let { it.flags and Status.FLAG_STORAGE_FULL != 0 } ?: false,
                 batteryPercent = status?.let { Battery.percent(it.batteryMv) },
+                batteryLow = status?.let { Battery.isLow(it.batteryMv) } ?: false,
                 batteryHoursLeft = status?.let { Battery.hoursLeft(it.batteryMv, history) },
                 storageUsedMb = status?.let { it.storageUsedKb / 1024.0 },
                 storageTotalMb = status?.let { it.storageTotalKb / 1024.0 },
