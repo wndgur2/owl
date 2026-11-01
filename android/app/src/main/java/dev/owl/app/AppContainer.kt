@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Manual dependency injection: one instance per process, created in [OwlApp].
@@ -164,6 +165,16 @@ class AppContainer(private val context: Context) {
 
     /** Debug: adb commands for the fake pendant (FakeDeviceCommandReceiver). */
     suspend fun fakeCommand(cmd: String, arg: Long?): String = fakeDemo.command(fakeDevice(), cmd, arg)
+
+    private val openedThisProcess = AtomicBoolean(false)
+
+    /**
+     * MainActivity was created. The first time in this process is an app start; later ones are
+     * the same visit (rotation, theme change recreating the screen).
+     */
+    fun onScreenCreated() {
+        if (openedThisProcess.compareAndSet(false, true)) onAppOpened()
+    }
 
     /** Called when the user opens the app (A2a: reconnect on every app start). */
     fun onAppOpened() {

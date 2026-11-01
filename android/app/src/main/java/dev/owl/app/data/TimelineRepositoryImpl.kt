@@ -66,6 +66,7 @@ class TimelineRepositoryImpl(
                 item = entry.toItem(marks.size),
                 sentences = entry.sentences(sent),
                 bookmarkOffsetsMs = marks.map { entry.offsetOf(it) },
+                bookmarkTimesMs = marks.map { it.unixMs },
                 audioFiles = entry.audioFiles(),
                 audioDeleteAtMs = entry.parts.mapNotNull { RetentionRules.deleteAt(policy, it) }.minOrNull(),
                 partStarts = entry.partStarts(),
@@ -198,6 +199,7 @@ internal class Entry(val key: Long, val rows: List<SegmentRow>) {
             preserveAudio = parts.all { it.preserveAudio },
             audioDeleted = parts.any { it.audioDeleted },
             segmentCount = parts.size,
+            endUnixMs = parts.last().startUnixMs?.plus(durations.last()),
         )
     }
 
@@ -221,6 +223,7 @@ internal class Entry(val key: Long, val rows: List<SegmentRow>) {
 
     fun offsetOfSentence(s: SentenceEntity): Long = startOf(s.segmentRowId) + s.startMs
 
+    /** [Sentence.index] here is the index inside its segment; [sentences] renumbers for the whole entry. */
     fun sentence(s: SentenceEntity): Sentence {
         val base = startOf(s.segmentRowId)
         return Sentence(s.idx, base + s.startMs, base + s.endMs, s.text)

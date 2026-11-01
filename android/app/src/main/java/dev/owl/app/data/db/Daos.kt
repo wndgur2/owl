@@ -84,7 +84,8 @@ interface SegmentDao {
     @Query("SELECT * FROM segments WHERE type = 1 AND filePath IS NOT NULL AND audioDeleted = 0")
     suspend fun withAudio(): List<SegmentEntity>
 
-    @Query("SELECT COUNT(*) AS entryCount, COALESCE(SUM(sizeBytes), 0) AS bytes FROM segments WHERE type = 1 AND filePath IS NOT NULL AND audioDeleted = 0")
+    /** Entries (merged segments, decisions.md #30) that still have audio, and the bytes it takes. */
+    @Query("SELECT COUNT(DISTINCT COALESCE(entryKey, rowId)) AS entryCount, COALESCE(SUM(sizeBytes), 0) AS bytes FROM segments WHERE type = 1 AND filePath IS NOT NULL AND audioDeleted = 0")
     fun audioUsage(): Flow<AudioUsageRow>
 
     @Query("SELECT COUNT(*) FROM segments WHERE deviceAddress = :address AND acked = 0")

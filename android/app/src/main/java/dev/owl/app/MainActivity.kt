@@ -18,7 +18,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (savedInstanceState == null) appContainer.onAppOpened()
+        // Not `savedInstanceState == null`: after Android killed the process in the background the
+        // activity comes back with saved state, and that is still the user opening the app (A2a).
+        appContainer.onScreenCreated()
         setContent {
             // Until the setting loads, the configuration already follows it (AppContainer.followThemeSetting).
             val mode: ThemeMode? by appContainer.settingsRepository.themeMode.collectAsStateWithLifecycle(initialValue = null)

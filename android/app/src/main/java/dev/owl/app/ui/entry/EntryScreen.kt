@@ -140,12 +140,15 @@ private sealed interface EntryLine {
     data class Mark(val offsetMs: Long, val n: Int) : EntryLine
 }
 
+/** [bookmarks] come in uptime order, which is also offset order, so `n` indexes [EntryDetail.bookmarkTimesMs]. */
 private fun buildLines(sentences: List<Sentence>, bookmarks: List<Long>): List<EntryLine> {
     val marks = bookmarks.sorted().toMutableList()
     val out = ArrayList<EntryLine>(sentences.size + marks.size)
     var n = 0
     for (s in sentences) {
-        while (marks.isNotEmpty() && marks.first() < s.startMs) out += EntryLine.Mark(marks.removeAt(0), n++)
+        // `<=`: a bookmark pressed in the pause before a segment sits exactly at its start on the
+        // entry timeline, and was pressed before anything in it was said.
+        while (marks.isNotEmpty() && marks.first() <= s.startMs) out += EntryLine.Mark(marks.removeAt(0), n++)
         out += EntryLine.Text(s)
     }
     marks.forEach { out += EntryLine.Mark(it, n++) }
@@ -376,10 +379,11 @@ private fun EntryBody(
     val current = detail.sentences.indexOfLast { it.startMs <= player.positionMs }
     val listState = rememberLazyListState()
 
-    // Keep the playing sentence on screen.
+    // Keep the current sentence on screen: while playing, and when opened at a search hit or
+    // after a seek while paused (the highlight alone is no use if it is scrolled away).
     val currentLine = lines.indexOfFirst { it is EntryLine.Text && it.sentence.index == detail.sentences.getOrNull(current)?.index }
     LaunchedEffect(currentLine) {
-        if (currentLine < 0 || !player.playing) return@LaunchedEffect
+        if (currentLine < 0) return@LaunchedEffect
         val visible = listState.layoutInfo.visibleItemsInfo
         val fully = visible.any { it.index == currentLine && it.offset >= 0 && it.offset + it.size <= listState.layoutInfo.viewportEndOffset }
         if (!fully) listState.animateScrollToItem(currentLine)
@@ -423,7 +427,8 @@ private fun EntryBody(
                 items(lines, key = { if (it is EntryLine.Text) "s${it.sentence.index}" else "m${(it as EntryLine.Mark).n}" }) { line ->
                     when (line) {
                         is EntryLine.Mark -> BookmarkMarker(
-                            detail.clockAt(line.offsetMs)?.let { formats.hms(it) } ?: formats.clock(line.offsetMs),
+                            (detail.bookmarkTimesMs.getOrNull(line.n) ?: detail.clockAt(line.offsetMs))?.let { formats.hms(it) }
+                                ?: formats.clock(line.offsetMs),
                         )
                         is EntryLine.Text -> {
                             val isCurrent = detail.sentences.getOrNull(current)?.index == line.sentence.index

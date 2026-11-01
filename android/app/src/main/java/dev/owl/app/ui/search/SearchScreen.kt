@@ -281,7 +281,9 @@ private sealed interface ResultLine {
     val date: LocalDate?
 
     data class Hit(val hit: SearchHit) : ResultLine {
-        override val key: String get() = "r-${hit.item.id}-${hit.sentence?.index}"
+        // Not sentence.index: a search hit's index counts within its segment, so two hits in one
+        // merged entry can share it. The offset on the entry timeline is unique per sentence.
+        override val key: String get() = "r-${hit.item.id}-${hit.sentence?.startMs}"
         override val date: LocalDate? get() = hit.item.startUnixMs?.toLocalDate()
     }
 
