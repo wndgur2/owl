@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -72,8 +73,9 @@ import dev.owl.app.ui.components.today
 import dev.owl.app.ui.theme.OwlTheme
 
 @Composable
-fun DeviceScreen(viewModel: DeviceViewModel, onOpenSettings: () -> Unit, onRegister: () -> Unit) {
+fun DeviceScreen(viewModel: DeviceViewModel, onOpenSettings: () -> Unit, onRegister: () -> Unit, onReRegister: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val reRegistering by viewModel.reRegisteringState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val failed = stringResource(R.string.device_recording_failed)
     LaunchedEffect(viewModel) {
@@ -87,6 +89,8 @@ fun DeviceScreen(viewModel: DeviceViewModel, onOpenSettings: () -> Unit, onRegis
         onReconnect = viewModel::reconnect,
         onSetRecording = viewModel::setRecording,
         onRegister = onRegister,
+        reRegistering = reRegistering,
+        onReRegister = { viewModel.reRegister(onReRegister) },
     )
 }
 
@@ -101,6 +105,8 @@ fun DeviceContent(
     onReconnect: () -> Unit,
     onSetRecording: (Boolean) -> Unit,
     onRegister: () -> Unit,
+    reRegistering: Boolean = false,
+    onReRegister: () -> Unit = {},
 ) {
     val formats = rememberOwlFormats()
     Scaffold(contentWindowInsets = WindowInsets(0), snackbarHost = { SnackbarHost(snackbar) }) { padding ->
@@ -125,7 +131,7 @@ fun DeviceContent(
                 if (!state.registered) {
                     NotRegisteredCard(onRegister)
                 } else {
-                    PendantCard(state, formats, onReconnect, onSetRecording)
+                    PendantCard(state, formats, onReconnect, onSetRecording, reRegistering, onReRegister)
                     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         BatteryCard(state, Modifier.weight(1f).fillMaxHeight())
                         StorageCard(state, formats, Modifier.weight(1f).fillMaxHeight())
@@ -181,6 +187,8 @@ private fun PendantCard(
     formats: OwlFormats,
     onReconnect: () -> Unit,
     onSetRecording: (Boolean) -> Unit,
+    reRegistering: Boolean,
+    onReRegister: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val (powerLabel, dot, labelColor) = when (state.connection) {
@@ -235,6 +243,17 @@ private fun PendantCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
             )
+            Row(
+                Modifier.padding(start = 64.dp, top = 8.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(onClick = onReRegister, enabled = !reRegistering) { Text(stringResource(R.string.device_re_register)) }
+                if (reRegistering) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text(stringResource(R.string.unregistering), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+            }
         }
 
         // Recording state, separate from power (A10), with the SET_RECORDING switch.

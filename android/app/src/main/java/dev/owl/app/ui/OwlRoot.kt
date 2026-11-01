@@ -33,6 +33,10 @@ import dev.owl.app.ui.theme.OwlTheme
 private object Routes {
     const val SPLASH = "splash"
     const val ONBOARDING = "onboarding"
+
+    /** `auto=true`: start the CDM chooser at once ("다시 등록" on the device screen). */
+    const val ONBOARDING_PATTERN = "onboarding?auto={auto}"
+    const val ONBOARDING_AUTO = "onboarding?auto=true"
     const val MAIN = "main"
     const val ENTRY = "entry/{id}?at={at}"
     const val SETTINGS = "settings"
@@ -62,12 +66,21 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
                         nav.resetTo(if (dest == StartDestination.MAIN) Routes.MAIN else Routes.ONBOARDING)
                     }
                 }
-                composable(Routes.ONBOARDING) {
+                composable(
+                    Routes.ONBOARDING_PATTERN,
+                    arguments = listOf(
+                        navArgument("auto") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                    ),
+                ) { entry ->
                     OnboardingScreen(
                         owlViewModel {
                             OnboardingViewModel(container.deviceRegistrar, container.settingsRepository, container.deviceController)
                         },
                         onDone = { nav.resetTo(Routes.MAIN) },
+                        autoRegister = entry.arguments?.getBoolean("auto") == true,
                     )
                 }
                 composable(Routes.MAIN) {
@@ -76,6 +89,7 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
                         onOpenEntry = { id, at -> nav.navigate(Routes.entry(id, at)) },
                         onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                         onRegister = { nav.navigate(Routes.ONBOARDING) },
+                        onReRegister = { nav.resetTo(Routes.ONBOARDING_AUTO) },
                     )
                 }
                 composable(

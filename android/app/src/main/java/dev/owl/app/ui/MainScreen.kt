@@ -44,6 +44,7 @@ fun MainScreen(
     onOpenEntry: (id: Long, atMs: Long?) -> Unit,
     onOpenSettings: () -> Unit,
     onRegister: () -> Unit,
+    onReRegister: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.TIMELINE) }
     var openPlaceMenu by rememberSaveable { mutableStateOf(false) }
@@ -51,7 +52,7 @@ fun MainScreen(
 
     val timelineVm = owlViewModel { TimelineViewModel(container.timelineRepository) }
     val searchVm = owlViewModel { SearchViewModel(container.timelineRepository) }
-    val deviceVm = owlViewModel { DeviceViewModel(container.deviceController) }
+    val deviceVm = owlViewModel { DeviceViewModel(container.deviceController, container.deviceRegistrar) }
 
     Scaffold(
         bottomBar = {
@@ -94,7 +95,7 @@ fun MainScreen(
                         onPlaceMenuOpened = { openPlaceMenu = false },
                         onOpenEntry = onOpenEntry,
                     )
-                    MainTab.DEVICE -> DeviceScreen(deviceVm, onOpenSettings = onOpenSettings, onRegister = onRegister)
+                    MainTab.DEVICE -> DeviceScreen(deviceVm, onOpenSettings = onOpenSettings, onRegister = onRegister, onReRegister = onReRegister)
                 }
             }
         }

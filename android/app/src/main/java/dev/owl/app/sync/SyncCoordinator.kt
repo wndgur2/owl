@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -74,6 +75,9 @@ class SyncCoordinator(
     private val startLock = Mutex()
     private val linkLock = Mutex()
     private var running: Deferred<Boolean>? = null
+
+    /** True during [unregister]: no sync may start, see there. */
+    @Volatile private var unregistering = false
 
     @Volatile
     private var activeClient: OwlClient? = null
@@ -186,9 +190,32 @@ class SyncCoordinator(
         return ok
     }
 
+    /**
+     * 등록 해제 (decisions #47): UNPAIR, then [removeRegistration] (phone bond + CDM). The UNPAIR
+     * connection makes CDM report "pendant appeared", and the background sync that starts would
+     * still be connecting (the bond is not gone yet when it checks) while the user registers
+     * again: Android's createBond() on that half-open link never sent a Pairing Request and gave
+     * up after 30 s ("목걸이와 페어링하지 못했어요", emulator API 37). So no sync starts until the
+     * registration is gone, and one that slipped in is cancelled.
+     */
+    suspend fun unregister(removeRegistration: suspend () -> Unit) {
+        unregistering = true
+        try {
+            forgetOnDevice()
+            removeRegistration()
+            startLock.withLock { running }?.cancelAndJoin()
+        } finally {
+            unregistering = false
+        }
+    }
+
     // --- SyncRunner ------------------------------------------------------------
 
     override suspend fun sync(trigger: SyncTrigger): Boolean {
+        if (unregistering) {
+            Log.i(TAG, "sync ($trigger) skipped: unregistering")
+            return false
+        }
         val job = startLock.withLock {
             running?.takeIf { it.isActive } ?: scope.async { linkLock.withLock { runWithRetries(trigger) } }.also { running = it }
         }

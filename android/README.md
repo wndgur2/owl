@@ -215,8 +215,8 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 ## 본딩 (프로토콜 2.4장, `decisions.md` #33–#40, #44)
 
 - 등록: CDM 선택 → `BondManager.bond()`가 `createBond()` 후 `ACTION_BOND_STATE_CHANGED`를 기다림(60초) → 성공해야 등록 저장.
-  목걸이가 거절하면(다른 폰이 본딩돼 있고 켠 지 2분이 지남) CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에 다시" 안내.
-- 동기화: 폰에 본딩이 없으면 연결하지 않고(백그라운드에서 페어링 창이 뜨지 않게) "다시 등록 필요". GATT status 5·15·137,
+  목걸이가 거절하면(다른 폰이 본딩돼 있고 켠 지 2분이 지남) CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에 다시" 안내(등록 카드에 다음 시도까지 남음, `decisions.md` #47).
+- 동기화: 폰에 본딩이 없으면 연결하지 않고(백그라운드에서 페어링 창이 뜨지 않게) "다시 등록 필요". 기기 화면의 "다시 등록"이 해제 + 등록 선택 창을 한 번에 해요. GATT status 5·15·137,
   또는 목걸이가 HCI 0x05·0x06으로 끊으면 `NotBondedException` → 재시도하지 않음.
 - 목걸이가 우리 본딩을 잃음(다른 폰 등록, 키 삭제. 2.4장 흐름 5, `decisions.md` #44): 폰이 저장된 키로 암호화하다 실패해요.
   Android 버전마다 앱이 받는 신호가 달라요(AOSP `btm_sec.cc`·`gatt_auth.cc` 확인).
