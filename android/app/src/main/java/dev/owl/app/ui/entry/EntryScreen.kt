@@ -146,7 +146,9 @@ private fun buildLines(sentences: List<Sentence>, bookmarks: List<Long>): List<E
     val out = ArrayList<EntryLine>(sentences.size + marks.size)
     var n = 0
     for (s in sentences) {
-        while (marks.isNotEmpty() && marks.first() < s.startMs) out += EntryLine.Mark(marks.removeAt(0), n++)
+        // `<=`: a bookmark pressed in the pause before a segment sits exactly at its start on the
+        // entry timeline, and was pressed before anything in it was said.
+        while (marks.isNotEmpty() && marks.first() <= s.startMs) out += EntryLine.Mark(marks.removeAt(0), n++)
         out += EntryLine.Text(s)
     }
     marks.forEach { out += EntryLine.Mark(it, n++) }
