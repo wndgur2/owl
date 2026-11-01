@@ -10,10 +10,10 @@ PC(macOS)에서 돌리는 Python 도구예요. 펌웨어와 앱을 **서로 없�
 |---|---|
 | `owlproto.py` | 프로토콜 레퍼런스 구현. 바이트 레이아웃의 정답지 (계약서라서 여기서는 고치지 않음) |
 | `sync.py` | PC 동기화 CLI: `sync`, `status`, `list`, `set-recording`, `set-config`, `render` |
-| `fake_owl.py` | 가짜 Owl. macOS에서 진짜 BLE로 광고 (`bless`) |
+| `fake_owl.py` | 가짜 Owl. macOS에서 진짜 BLE로 광고(`bless`), 또는 Android 에뮬레이터의 가상 블루투스에 붙어 광고(`--transport bumble`) |
 | `ble_scan.py` | 근처 Owl 찾기, STATUS 읽기 |
 | `owlsync/` | 위 도구들이 쓰는 패키지 (아래 표) |
-| `tests/` | `test_owlproto.py`(스펙 숫자), `test_sync.py`(동기화 E2E + 고장 주입), `test_audio.py`(Ogg/Opus) |
+| `tests/` | `test_owlproto.py`(스펙 숫자), `test_sync.py`(동기화 E2E + 고장 주입), `test_audio.py`(Ogg/Opus), `test_security.py`(본딩 규칙, loopback), `test_bumble.py`(본딩 규칙, 진짜 SMP·ATT) |
 
 `owlsync/` 안:
 
@@ -27,14 +27,16 @@ PC(macOS)에서 돌리는 Python 도구예요. 펌웨어와 앱을 **서로 없�
 | `ogg.py`, `opus.py` | 순수 Python Ogg Opus 먹서/파서, WAV 쓰기 / libopus ctypes 바인딩(선택) |
 | `timesync.py`, `render.py` | TIME_SYNC 기록과 시각 복원 / `.owls` → `.ogg`·`.wav`·`.json`·`.csv` |
 | `ble.py`, `ble_peripheral.py` | `bleak` 중앙(central) 전송 / `bless` 주변기기(peripheral) |
+| `ble_bumble.py` | Bumble 주변기기: 에뮬레이터(netsim)·USB 동글·테스트용 가상 링크. 프로토콜 2.4장 보안을 펌웨어처럼 지킴 |
 
 ## 설치
 
 ```bash
 cd tools
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt                 # bleak, pytest (Linux CI도 이것만)
+pip install -r requirements.txt                 # bleak, pytest, bumble (Linux CI도 이것만)
 pip install -r requirements-peripheral.txt      # fake_owl.py BLE 모드용 bless (macOS, 선택)
+pip install -r requirements-bumble.txt          # fake_owl.py --transport bumble (에뮬레이터, 선택)
 brew install opus ffmpeg                        # 선택: 가짜 기기가 진짜 Opus를 만들고, ffprobe로 확인
 ```
 
@@ -58,6 +60,14 @@ SET_RECORDING 이벤트, 기기 결과 코드.
 본딩된 PC는 다시 페어링하지 않음, 모르는 기기는 거절되고(재시도 없이 바로 실패) 아무것도 안 지워짐,
 STATUS는 페어링 없이 읽힘, 켠 뒤 2분 안의 새 페어링이 옛 본딩을 대체, 2분 뒤엔 거절, UNPAIR 후 다시 열림.
 loopback은 central 이름(`peer`)으로 본딩을 흉내 내요. 암호화 자체는 흉내 내지 않아요.
+
+`test_bumble.py`는 같은 규칙을 **진짜 BLE 호스트 스택 두 개**로 확인해요. Bumble의 가상 컨트롤러끼리 프로세스 안에서
+연결돼서(라디오·에뮬레이터 없음) 실제 SMP 페어링·암호화·ATT 오류가 오가요. 테스트용 central은 Android처럼 ATT 0x05·0x0F를
+받으면 페어링(키 없음)이나 암호화(키 있음)를 하고, Security Request를 받으면 저장된 키로 암호화해요. 확인하는 것: 첫 동기화에서
+본딩 + 전체 다운로드(MTU 247), 모르는 상대는 STATUS만 읽고 CCCD·CONTROL은 0x05, 본딩된 폰은 Security Request를 받고 암호화
+전엔 0x0F, 창 밖의 새 폰은 SMP 0x08로 거절되고 옛 본딩·키는 그대로, 껐다 켜면 새 폰이 옛 본딩을 대체(그 부팅에선 옛 폰이 못
+되돌림), LE legacy(0x03)·본딩 안 하는 요청(0x08) 거절, UNPAIR 응답 뒤 키 삭제·연결 끊김, 60초(테스트는 0.3초) 암호화
+안 된 연결 끊기(HCI 0x05), FETCH 도중 끊김 → 이어받기.
 
 ## sync.py
 
@@ -121,6 +131,48 @@ ACK하면 삭제, ABORT, SET_RECORDING → 이벤트 2/3(arg 1), SET_CONFIG 범�
 이전 부팅(sync 없음) 세그먼트로 "unknown" 시각 시험.
 
 loopback 고장 주입(`transport.Faults`)은 테스트 전용이에요. BLE 모드에는 없어요.
+
+### Android 에뮬레이터에서 앱의 진짜 BLE 경로 시험하기 (`--transport bumble`)
+
+Android 에뮬레이터의 블루투스는 가상 컨트롤러예요(netsim, 에뮬레이터 33+ 기본). [Bumble](https://google.github.io/bumble/)
+(Google의 Python 블루투스 호스트 스택)이 같은 가상 라디오에 두 번째 컨트롤러로 붙어서, 가짜 Owl이 에뮬레이터 폰 바로 옆의 BLE 기기가
+돼요. 앱은 코드 수정 없이 진짜 경로(CDM 스캔·선택 창, `connectGatt`, MTU, `createBond()`, 암호화, 알림)로 이 가짜와 통신해요.
+Mac의 블루투스 권한도 필요 없어요(라디오가 netsim 안에만 있어서).
+
+```bash
+pip install -r requirements.txt -r requirements-bumble.txt
+# 에뮬레이터를 먼저 켜요 (예: emulator -avd Medium_Phone). netsim은 $TMPDIR/netsim.ini에 gRPC 포트를 적고, Bumble이 그걸 읽어요.
+python fake_owl.py --transport bumble --state /tmp/owl.json            # Owl-FA4E (C0:0F:F0:00:FA:4E)
+python fake_owl.py --transport bumble --state /tmp/owl.json --pairing-window 10   # 창 밖 거절을 빨리 보려면
+```
+
+- `--state X.json`이면 본딩 키가 `X.keys.json`(Bumble `JsonKeyStore`)에 남아요. 다시 띄우는 것 = 껐다 켜기(부팅 번호 +1, 페어링 창 열림).
+  주소는 이름 끝 4자리에서 만들어서(`Owl-FA4E` → `C0:0F:F0:00:FA:4E`) 다시 띄워도 폰의 본딩이 그대로 맞아요.
+- 실행 중 표준 입력 명령: `reboot`(연결 끊고 껐다 켜기), `record`, `bookmark`, `status`(STATUS·본딩·녹음 상태 출력),
+  `drop N`(다음 FETCH에서 DATA N개 뒤 연결 끊기, 이어받기 시험).
+- 앱의 debug 빌드에서 `adb shell am broadcast -a dev.owl.app.debug.FAKE -p dev.owl.app --es cmd sync`로 바로 동기화할 수 있어요
+  (등록된 기기가 진짜든 가짜든 같은 명령).
+
+가짜 기기가 펌웨어(`firmware/src/ble.c`)처럼 하는 것 (프로토콜 2.4장):
+
+| 규칙 | 구현 |
+|---|---|
+| LE Secure Connections + Just Works + 본딩 필수 | Pairing Request의 AuthReq를 보고 거절. 본딩 안 함 → SMP 0x08, legacy → 0x03 (Zephyr `smp_pairing_req()`의 `BONDING_REQUIRED`·`SC_PAIR_ONLY`와 같은 순서·코드) |
+| 페어링 창 120초, 창에서 새 본딩 하나 | `OwlDevice.pairing_open()`이 닫혀 있으면 SMP 0x08 (Zephyr `pairing_accept()` → `PAIR_NOT_ALLOWED` → `smp_err_get()` = 0x08) |
+| 새 본딩은 성공한 뒤에만 옛 본딩을 지움 | SMP 완료 이벤트에서 `OwlDevice.on_bonded()` → 키 저장소에서 다른 상대 삭제 |
+| CCCD 쓰기·CONTROL 쓰기는 암호화 필요, STATUS 읽기는 열림 | 직접 검사해서 본딩 없으면 ATT 0x05, 본딩은 있는데 암호화 전이면 0x0F (Bumble 기본 권한은 항상 0x0F라 안 씀) |
+| 본딩된 폰에만 Security Request | 연결되면 키 저장소에 그 폰이 있을 때만 보냄. 폰의 RPA(바뀌는 주소)는 Bumble이 IRK로 풀어서 identity 주소로 비교 |
+| 60초 안에 암호화 안 되면 HCI 0x05로 끊기 | `--unencrypted-timeout`(기본 60) |
+| UNPAIR | 응답이 나간 뒤(`drain`) 모든 키 삭제 → 연결 끊기 |
+| 연결은 하나 | 두 번째 연결은 바로 끊음 |
+
+에뮬레이터(netsim)에서 흉내가 다른 것:
+
+- **기기가 키를 잃었을 때**: 진짜 컨트롤러는 LTK 요청을 거절하면 폰 쪽 암호화가 `0x06`(PIN or Key Missing)으로 실패해요.
+  netsim의 컨트롤러(rootcanal)는 거절을 0 LTK로 보내고 폰 쪽은 `0x05`(Authentication Failure)로 끝나요
+  (AOSP `tools/rootcanal/model/controller/link_layer_controller.cc` 확인). 그래서 Android의 키 분실 처리(`ACTION_KEY_MISSING`)는
+  에뮬레이터에서 볼 수 없어요.
+- MTU·PHY·처리량은 netsim 값이에요(MTU 247, 2M PHY는 받아들여짐). 실제 라디오의 유실·간섭은 없어요.
 
 ### macOS BLE에서 흉내 못 내는 것
 

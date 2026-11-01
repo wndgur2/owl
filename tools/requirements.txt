@@ -1,2 +1,5 @@
 bleak==3.0.2
 pytest==9.2.0
+# In-process BLE host stack: tests/test_bumble.py (real SMP/ATT, no radio) and
+# fake_owl.py --transport bumble. The emulator transport needs requirements-bumble.txt.
+bumble==0.0.236

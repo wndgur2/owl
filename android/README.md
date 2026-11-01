@@ -142,6 +142,50 @@ DB는 v2예요. v1에서 올라올 때 칸만 추가하는 마이그레이션(`M
 스크린샷(라이트·다크)과 동기화 로그는 [`docs/screenshots/`](docs/screenshots/README.md)에 있어요.
 가짜 기기로 전체 동기화(LIST → FETCH → 저장 → ACK), FETCH 도중 끊김 후 이어받기, 청크 유실 복구, 재시도 실패 → "연결 끊김", 녹음 스위치, 재생, 보관 기간 삭제, 내보내기를 확인했어요.
 
+### 진짜 BLE 경로: 에뮬레이터 + Bumble 가짜 목걸이
+
+`FakeOwlDevice`는 `OwlTransport` 아래를 건너뛰어서 무선 경로(`BleTransport`, `CdmRegistrar`, `BondManager`)는 지나가지 않아요.
+이 경로는 [`tools/fake_owl.py --transport bumble`](../tools/README.md#android-에뮬레이터에서-앱의-진짜-ble-경로-시험하기---transport-bumble)로 시험해요.
+Bumble이 에뮬레이터의 가상 블루투스(netsim)에 BLE 기기로 붙고, 앱은 **코드 수정이나 debug 우회 없이** 실제 목걸이처럼 등록·동기화해요.
+
+```bash
+emulator -avd Medium_Phone &                      # 먼저 에뮬레이터
+cd tools && pip install -r requirements.txt -r requirements-bumble.txt
+python fake_owl.py --transport bumble --state /tmp/owl.json
+# 앱: 온보딩 › 목걸이 찾기 › Owl-FA4E 허용.  동기화: adb shell am broadcast -a dev.owl.app.debug.FAKE -p dev.owl.app --es cmd sync
+```
+
+2026-11-01, 에뮬레이터 36.1.9 · API 37 · debug 빌드에서 확인한 것 (로그는 앱 logcat과 가짜 기기 출력):
+
+| 흐름 | 결과 |
+|---|---|
+| CDM 등록 | 선택 창에 `Owl-FA4E`가 뜸(이름 패턴 + 서비스 UUID 필터) → 허용 → `createBond()`가 **확인 창 없이** 진행(`canBondWithoutDialog=true`, #40의 AOSP 분석과 같음) → LESC Just Works 본딩 → 등록 완료 |
+| 첫 동기화 | MTU 247, 2M PHY, TIME_SYNC → LIST → FETCH → 저장 → ACK 7개, 타임라인에 표시 |
+| 본딩된 재연결 | 가짜 기기가 폰의 RPA를 identity 주소로 풀고 Security Request → 폰이 저장된 키로 암호화(다시 페어링 안 함) → 동기화. 가짜 기기를 다시 띄워도(키 파일) 같음 |
+| FETCH 도중 끊김 | `drop 40` → 앱이 다음 시도에서 `resuming at byte 9440 of 32207`로 이어받음 |
+| 녹음 스위치 | 끄기·켜기가 SET_RECORDING으로 가짜 기기에 반영 |
+| 등록 해제(UNPAIR) | 가짜 기기가 응답 뒤 키 삭제·연결 끊기, 폰은 `CompanionDeviceManager.removeBond`로 본딩 삭제(이유 9 REMOVED) → CDM 해제 → 온보딩. 다시 등록하면 창과 상관없이 받아짐(본딩 없음) |
+| 목걸이가 꺼져 있을 때 등록 해제 | UNPAIR가 15초 뒤 실패해도 폰 본딩·CDM은 지워짐(2.4장 표와 같음) |
+| 창 밖 페어링 거절 | 가짜 기기는 옛 본딩을 가진 채 창이 닫힘 → 등록 시도 → SMP Pairing Failed 0x08 → 폰 bond state NONE(이유 1) → 앱이 CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에" 안내 |
+| 껐다 켠 뒤 다시 등록 | `reboot` → 창 안에서 등록 성공, 옛 본딩은 새 본딩이 생긴 뒤에 교체 |
+
+스크린샷: [CDM 선택 창](docs/screenshots/bumble-cdm-light.png), [등록 완료](docs/screenshots/bumble-registered-light.png),
+[녹음 꺼짐](docs/screenshots/bumble-recording-off-light.png), [페어링 거절 안내](docs/screenshots/bumble-pairing-refused-light.png),
+[키 분실 → 연결 끊김](docs/screenshots/bumble-key-missing-light.png).
+
+확인 못 한 것 / 에뮬레이터라 다른 것:
+
+- **목걸이가 키를 잃은 경우(2.4장 흐름 5)**: 가짜 기기의 키 파일을 지우고 동기화하면 폰이 저장된 키로 암호화하다 실패하고 **폰이
+  스스로** 연결을 끊어서 앱은 GATT status 22(0x16, 로컬 호스트가 끊음)를 받아요. 앱은 0x05·0x06만 "본딩 없음"으로 보니까 세 번
+  재시도한 뒤 "연결 끊김"을 보여주고 "다시 등록"은 안내하지 않아요([스크린샷](docs/screenshots/bumble-key-missing-light.png)).
+  netsim은 이 실패를 진짜 컨트롤러의 0x06 대신 0x05로 내서(`tools/README.md`) Android의 `ACTION_KEY_MISSING` 경로가 돌지 않아요.
+  실제 목걸이에서 어떤 status가 오는지는 아직 몰라요.
+- 60초 암호화 타임아웃은 앱이 늘 바로 암호화해서 에뮬레이터에선 안 일어나요(`tools/tests/test_bumble.py`에서 확인).
+- 2분이 지나 창이 닫히는 것은 `--pairing-window 10`으로 줄여서 확인했어요.
+- 처리량·유실은 netsim 값이라 의미 없어요. API 31–35 경로(리플렉션 `removeBond` 등)는 에뮬레이터 API 37만 봤어요.
+- 관찰: 폰이 본딩을 지웠다가 다시 페어링하면 폰이 보내는 IRK가 바뀌었어요. 그래서 그 사이(본딩 삭제 뒤, 새 페어링 전)엔 가짜 기기가
+  폰의 주소를 풀지 못하고 모르는 상대로 봐요. 규칙엔 영향 없어요(어차피 창 안에서만 받음).
+
 ## 테스트
 
 `./gradlew testDebugUnitTest` — JVM 단위 테스트예요.
@@ -167,12 +211,14 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 - 등록 해제: UNPAIR(목걸이가 모든 본딩 삭제, 10초 안에 못 하면 건너뜀) → 폰 본딩 삭제(API 36 `CompanionDeviceManager.removeBond`,
   31–35는 `BluetoothDevice.removeBond` 리플렉션) → CDM 해제. 폰 본딩 삭제가 안 되면 로그만 남겨요(시스템 블루투스 설정에서 지울 수 있음).
 - 가짜 기기: 본딩을 흉내 내지 않아요. `refuseAsNotBonded`로 거절을, UNPAIR로 STATUS bit4를 시험해요.
+  진짜 본딩 흐름은 에뮬레이터 + Bumble 가짜 목걸이로 확인했어요(위 "진짜 BLE 경로").
 
 ## 실제 목걸이로 확인해야 할 것
 
 가짜 기기와 단위 테스트로는 확인할 수 없는 부분이에요. M4에서 보드+폰으로 확인해요.
 
-- CDM 등록 화면에 `Owl-XXXX`가 뜨는지, 등록 후 범위 진입·이탈 시 `OwlCompanionService`가 불리는지 (특히 앱을 최근 앱에서 지운 뒤, A2)
+- 등록 후 범위 진입·이탈 시 `OwlCompanionService`가 불리는지, 특히 앱을 최근 앱에서 지운 뒤 (A2). CDM 선택 창과 범위 진입 시
+  `DEVICE_APPEARED` 동기화는 에뮬레이터 + Bumble에서 봤어요
 - MTU 247·2M PHY 협상 결과와 실제 처리량. DATA 알림이 빠르게 올 때 유실이 있는지
 - 15분 주기가 Doze·삼성 배터리 관리에서도 지켜지는지 (CDM 존재 중 포그라운드 서비스 유지)
 - 펌웨어가 FETCH 진행 중에 새 FETCH를 받으면 어떻게 하는지(아래 "프로토콜에서 확인할 것")
@@ -181,8 +227,8 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 - 위치: 백그라운드 위치 권한 + PendingIntent 업데이트가 앱 프로세스 없이 들어오는지
 - `SyncService`의 15분 대기: Doze 중엔 코루틴 타이머가 멈춰서 `setAndAllowWhileIdle` 알람으로 깨워요. 몇 분 늦을 수 있어요. 동기화 한 번에 최대 10분 wake lock
 - GATT 오류(status 133 등) 처리, API 31–32 경로(에뮬레이터는 API 37만 확인)
-- 본딩: 등록 때 확인 창이 안 뜨는지(AOSP 소스로는 CDM 등록 10분 안의 `createBond()`면 자동 승인), 목걸이가 거절할 때 실제로 오는
-  status(137 예상), 리플렉션 `removeBond`가 제조사 ROM에서도 되는지, 목걸이가 키를 잃었을 때 Android 버전별 동작
+- 본딩: 확인 창 없는 등록과 창 밖 거절은 에뮬레이터(API 37)에서 확인. 남은 것: 리플렉션 `removeBond`가 제조사 ROM에서도 되는지,
+  목걸이가 키를 잃었을 때 Android 버전별 동작(에뮬레이터에선 앱이 "다시 등록" 대신 "연결 끊김"을 보여줌, 위 참고)
 - Opus 디코더: Android 디코더는 48kHz 출력만 받아서 OpusHead에 16kHz를 적고 48kHz로 디코딩해요. pre-skip 312, seek pre-roll 80ms
 
 ## 아직 안 된 것 / 다음 마일스톤

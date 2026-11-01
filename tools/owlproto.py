@@ -82,11 +82,13 @@ ATT_ERR_INSUFFICIENT_AUTHENTICATION = 0x05  # no bond with this peer
 ATT_ERR_INSUFFICIENT_ENCRYPTION = 0x0F  # bonded, but the link is not encrypted yet
 
 
-def pairing_allowed(since_power_on_ms: int, bond_count: int, window_used: bool) -> bool:
-    """§2.4: no bond -> always; bonded -> only in the window and only once per window."""
+def pairing_allowed(since_power_on_ms: int, bond_count: int, window_used: bool,
+                    window_ms: int = PAIRING_WINDOW_MS) -> bool:
+    """§2.4: no bond -> always; bonded -> only in the window and only once per window.
+    `window_ms` is only shortened by test fakes (fake_owl.py --pairing-window)."""
     if bond_count <= 0:
         return True
-    return not window_used and since_power_on_ms < PAIRING_WINDOW_MS
+    return not window_used and since_power_on_ms < window_ms
 
 
 @dataclass
