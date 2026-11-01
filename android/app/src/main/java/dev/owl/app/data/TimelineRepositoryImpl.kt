@@ -204,6 +204,7 @@ internal class Entry(val key: Long, val rows: List<SegmentRow>) {
             audioDeleted = parts.any { it.audioDeleted },
             segmentCount = parts.size,
             endUnixMs = parts.last().startUnixMs?.plus(durations.last()),
+            sortTimeMs = sortTimeMs,
         )
     }
 

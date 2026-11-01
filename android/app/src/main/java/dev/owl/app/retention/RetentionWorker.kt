@@ -14,6 +14,10 @@ import java.util.concurrent.TimeUnit
 
 /** Deletes expired audio files and marks the rows (text stays). */
 class RetentionManager(private val segments: SegmentDao, private val clock: () -> Long = System::currentTimeMillis) {
+    /** Entries (merged segments, decisions #30) that [apply] with [policy] would touch now. */
+    suspend fun deletableEntries(policy: RetentionPolicy): Int =
+        segments.withAudio().filter { RetentionRules.shouldDelete(policy, it, clock()) }.map { it.entryKey ?: it.rowId }.toSet().size
+
     suspend fun apply(policy: RetentionPolicy): Int {
         var deleted = 0
         for (s in segments.withAudio()) {

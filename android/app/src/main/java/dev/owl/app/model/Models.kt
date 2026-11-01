@@ -63,6 +63,11 @@ data class TimelineItem(
      * #30), so this is later than [startUnixMs] + [durationMs]. Null when the time is unknown.
      */
     val endUnixMs: Long? = startUnixMs?.plus(durationMs),
+    /**
+     * Where it sorts: [startUnixMs] when known; for an unknown-time entry, right after the record
+     * before it in id order (RoomSyncDb.placeUnknownTimes), so marks merge around it correctly.
+     */
+    val sortTimeMs: Long = startUnixMs ?: 0,
 )
 
 /**
