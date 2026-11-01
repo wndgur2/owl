@@ -3,11 +3,17 @@ package dev.owl.app.ui.settings
 import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.LocationOn
@@ -24,6 +31,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -49,6 +58,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.owl.app.R
 import dev.owl.app.model.RetentionPolicy
+import dev.owl.app.model.ThemeMode
 import dev.owl.app.ui.components.BackTopBar
 import dev.owl.app.ui.components.OwlDivider
 import dev.owl.app.ui.components.OwlListRow
@@ -120,6 +130,7 @@ fun SettingsScreen(
         onExport = { exportLauncher.launch(exportName) },
         onOpenPrivacy = onOpenPrivacy,
         onOpenGuide = onOpenGuide,
+        onSelectTheme = viewModel::setThemeMode,
         onUnregister = { viewModel.unregister(onUnregistered) },
     )
 
@@ -157,10 +168,12 @@ fun SettingsContent(
     onExport: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenGuide: () -> Unit,
+    onSelectTheme: (ThemeMode) -> Unit,
     onUnregister: () -> Unit,
 ) {
     val formats = rememberOwlFormats()
     var confirmUnregister by rememberSaveable { mutableStateOf(false) }
+    var choosingTheme by rememberSaveable { mutableStateOf(false) }
     val chevron: @Composable () -> Unit = {
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -226,6 +239,16 @@ fun SettingsContent(
             )
 
             OwlDivider(Modifier.padding(vertical = 4.dp))
+            SectionTitle(stringResource(R.string.settings_section_display))
+            OwlListRow(
+                title = stringResource(R.string.theme_title),
+                subtitle = state.themeMode?.let { themeLabel(it) },
+                icon = Icons.Outlined.DarkMode,
+                onClick = { choosingTheme = true },
+                trailing = chevron,
+            )
+
+            OwlDivider(Modifier.padding(vertical = 4.dp))
             SectionTitle(stringResource(R.string.settings_section_help))
             OwlListRow(
                 title = stringResource(R.string.guide_title),
@@ -258,6 +281,38 @@ fun SettingsContent(
         }
     }
 
+    if (choosingTheme) {
+        AlertDialog(
+            onDismissRequest = { choosingTheme = false },
+            title = { Text(stringResource(R.string.theme_title)) },
+            text = {
+                Column(Modifier.selectableGroup()) {
+                    ThemeMode.entries.forEach { mode ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = state.themeMode == mode,
+                                    role = Role.RadioButton,
+                                    onClick = {
+                                        choosingTheme = false
+                                        onSelectTheme(mode)
+                                    },
+                                )
+                                .defaultMinSize(minHeight = 48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            RadioButton(selected = state.themeMode == mode, onClick = null)
+                            Text(themeLabel(mode), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choosingTheme = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
+
     if (confirmUnregister) {
         AlertDialog(
             onDismissRequest = { confirmUnregister = false },
@@ -276,6 +331,15 @@ fun SettingsContent(
     }
 }
 
+@Composable
+private fun themeLabel(mode: ThemeMode): String = stringResource(
+    when (mode) {
+        ThemeMode.DARK -> R.string.theme_dark
+        ThemeMode.LIGHT -> R.string.theme_light
+        ThemeMode.SYSTEM -> R.string.theme_system
+    },
+)
+
 @Preview(showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun SettingsPreview() {
@@ -283,11 +347,11 @@ private fun SettingsPreview() {
         SettingsContent(
             state = SettingsUiState(
                 retention = RetentionPolicy.DAYS_30, locationEnabled = true, registeredName = "Owl-3F2A",
-                fakeDeviceAvailable = true, usingFakeDevice = true, namedPlaceCount = 4,
+                fakeDeviceAvailable = true, usingFakeDevice = true, namedPlaceCount = 4, themeMode = ThemeMode.DARK,
             ),
             backgroundLocationGranted = true,
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onUnregister = {},
+            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onSelectTheme = {}, onUnregister = {},
         )
     }
 }

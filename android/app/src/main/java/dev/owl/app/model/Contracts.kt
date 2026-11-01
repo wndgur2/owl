@@ -66,6 +66,9 @@ interface SettingsRepository {
 
     val onboardingDone: Flow<Boolean>
     suspend fun setOnboardingDone(done: Boolean)
+
+    val themeMode: Flow<ThemeMode>
+    suspend fun setThemeMode(mode: ThemeMode)
 }
 
 /** A1: one-time pendant registration through CompanionDeviceManager. */

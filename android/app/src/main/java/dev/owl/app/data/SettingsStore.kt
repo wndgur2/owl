@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
+import dev.owl.app.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -19,13 +20,14 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "owl_settings")
 
 /** Small key-value settings (DataStore). Excluded from backup like everything else (decisions #22). */
-class SettingsStore(context: Context) : SettingsRepository, RegistrationStore {
-    private val store = context.dataStore
+class SettingsStore(private val store: DataStore<Preferences>) : SettingsRepository, RegistrationStore {
+    constructor(context: Context) : this(context.dataStore)
 
     private object Keys {
         val retention = stringPreferencesKey("retention")
         val location = booleanPreferencesKey("location_enabled")
         val onboarding = booleanPreferencesKey("onboarding_done")
+        val theme = stringPreferencesKey("theme_mode")
         val address = stringPreferencesKey("device_address")
         val name = stringPreferencesKey("device_name")
         val associationId = intPreferencesKey("device_association_id")
@@ -53,6 +55,14 @@ class SettingsStore(context: Context) : SettingsRepository, RegistrationStore {
 
     override suspend fun setOnboardingDone(done: Boolean) {
         store.edit { it[Keys.onboarding] = done }
+    }
+
+    override val themeMode: Flow<ThemeMode> = store.data.map { p ->
+        p[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.DARK
+    }.distinctUntilChanged()
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        store.edit { it[Keys.theme] = mode.name }
     }
 
     override val device: Flow<RegisteredDevice?> = store.data.map { p ->
