@@ -95,7 +95,7 @@ fun buildTimelineRows(entries: List<TimelineEntry>, nowMs: Long = System.current
         when (entry) {
             is TimelineEntry.Entry -> {
                 start = entry.item.startUnixMs
-                end = start?.plus(entry.item.durationMs)
+                end = entry.item.endUnixMs
                 place = entry.item.place
                 id = "${entry.item.id}"
             }

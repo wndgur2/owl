@@ -58,6 +58,11 @@ data class TimelineItem(
     /** True when any segment's audio is gone (the entry can no longer be played). */
     val audioDeleted: Boolean,
     val segmentCount: Int = 1,
+    /**
+     * Real time the last segment ends. A merged entry spans its gaps (up to 2 min each, decisions
+     * #30), so this is later than [startUnixMs] + [durationMs]. Null when the time is unknown.
+     */
+    val endUnixMs: Long? = startUnixMs?.plus(durationMs),
 )
 
 /**
