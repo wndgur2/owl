@@ -78,7 +78,11 @@ class SyncService : LifecycleService() {
         }
 
         if (running) {
-            if (intent?.action == ACTION_SYNC_NOW) wake.trySend(trigger)
+            // The loop waits up to 15 min between passes. "지금 동기화" and the user opening the
+            // app (A2a; back from the background, decisions #49) must not wait for it.
+            if (intent?.action == ACTION_SYNC_NOW || trigger == SyncTrigger.APP_START || trigger == SyncTrigger.APP_RESUME) {
+                wake.trySend(trigger)
+            }
         } else {
             loop = lifecycleScope.launch { runLoop(trigger) }
         }

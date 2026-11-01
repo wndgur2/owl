@@ -48,7 +48,7 @@
     <string name="timeline_jump_nearest">그날은 기록이 없어서 가까운 날로 이동했어요</string>
     <string name="filter_all">전체</string>
     <string name="filter_bookmark">북마크</string>
-    <string name="filter_by_place">장소별</string>
+    <string name="filter_by_place">장소로 찾기</string>
     <string name="state_receiving">녹음 파일 받는 중</string>
     <string name="state_transcribing">텍스트 추출 중</string>
     <string name="state_no_speech">알아들은 말이 없어요</string>
@@ -161,6 +161,7 @@
     <string name="recording_on">녹음 켜짐</string>
     <string name="recording_off">녹음 꺼짐</string>
     <string name="recording_unknown">연결되면 보여요</string>
+    <string name="recording_last_state">마지막 상태: %1$s</string>
     <string name="device_recording_failed">녹음 설정을 바꾸지 못했어요. 목걸이와 연결된 뒤 다시 해 보세요.</string>
     <string name="device_battery">배터리</string>
     <string name="device_battery_left">약 %1$d시간 남음</string>

@@ -1,5 +1,6 @@
 package dev.owl.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +53,9 @@ fun MainScreen(
 
     val timelineVm = owlViewModel { TimelineViewModel(container.timelineRepository) }
     val searchVm = owlViewModel { SearchViewModel(container.timelineRepository) }
+    // Back on 검색 / 기기 goes to 타임라인 first (Android's convention for bottom tabs), then exits.
+    BackHandler(enabled = tab != MainTab.TIMELINE) { tab = MainTab.TIMELINE }
+
     val deviceVm = owlViewModel { DeviceViewModel(container.deviceController, container.deviceRegistrar) }
 
     Scaffold(

@@ -247,6 +247,8 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 - 위치: 백그라운드 위치 권한 + PendingIntent 업데이트가 앱 프로세스 없이 들어오는지
 - `SyncService`의 15분 대기: Doze 중엔 코루틴 타이머가 멈춰서 `setAndAllowWhileIdle` 알람으로 깨워요. 몇 분 늦을 수 있어요. 동기화 한 번에 최대 10분 wake lock
 - GATT 오류(status 133 등) 처리, API 31–32 경로(에뮬레이터는 API 37만 확인)
+- 연결 시도 타임아웃 15초가 실기기에 맞는지: 목걸이가 꺼져 있으면 15초 × 3번(+ 2·5초 쉼)이라 "연결 끊김"까지 약 1분이에요. 실제 연결에 걸리는 시간을 재서
+  줄일지 정해요(`decisions.md` #49)
 - 본딩: 확인 창 없는 등록과 창 밖 거절, 목걸이가 키를 잃었을 때 "다시 등록 필요"는 에뮬레이터(API 37)에서 확인. 남은 것:
   리플렉션 `removeBond`가 제조사 ROM에서도 되는지, 키 분실 때 진짜 컨트롤러의 0x06·`ACTION_KEY_MISSING`과 API 31–35의 137(위 참고)
 - Opus 디코더: Android 디코더는 48kHz 출력만 받아서 OpusHead에 16kHz를 적고 48kHz로 디코딩해요. pre-skip 312, seek pre-roll 80ms

@@ -193,11 +193,12 @@ class AppContainer(private val context: Context) {
     private val openedThisProcess = AtomicBoolean(false)
 
     /**
-     * MainActivity was created. The first time in this process is an app start; later ones are
-     * the same visit (rotation, theme change recreating the screen).
+     * MainActivity was created. The first time in this process is an app start. Later, a [fresh]
+     * screen (no saved state: opened again, e.g. from the notification, while the process lived)
+     * counts as coming back (decisions #49); a recreated one (rotation, theme change) is the same visit.
      */
-    fun onScreenCreated() {
-        if (openedThisProcess.compareAndSet(false, true)) onAppOpened()
+    fun onScreenCreated(fresh: Boolean) {
+        if (openedThisProcess.compareAndSet(false, true)) onAppOpened() else if (fresh) onAppResumed()
     }
 
     /** Called when the user opens the app (A2a: reconnect on every app start). */
@@ -210,6 +211,21 @@ class AppContainer(private val context: Context) {
             val dev = settingsStore.current() ?: return@launch
             if (dev.isFake) coordinator.setDevicePresent(true)
             SyncService.start(context, SyncTrigger.APP_START)
+        }
+    }
+
+    /**
+     * Back from the background in the same process (decisions #49, A2a): reconnect too, but only
+     * when the last sync is at least [RESUME_SYNC_AFTER_MS] old — switching apps for a moment
+     * should not open a BLE link each time.
+     */
+    fun onAppResumed() {
+        appScope.launch {
+            settingsStore.current() ?: return@launch
+            val last = settingsStore.syncMeta.first().lastSyncAtMs
+            val stale = last == null || System.currentTimeMillis() - last >= RESUME_SYNC_AFTER_MS
+            android.util.Log.i("OwlSync", "app resumed, last sync ${last?.let { (System.currentTimeMillis() - it) / 1000 }} s ago, reconnect=$stale")
+            if (stale) SyncService.start(context, SyncTrigger.APP_RESUME)
         }
     }
 
@@ -242,3 +258,6 @@ class AppContainer(private val context: Context) {
 
 /** Debug pref key: demo sentences for a real (BLE) pendant too. */
 const val DEBUG_DEMO_STT = "demo_stt"
+
+/** [AppContainer.onAppResumed]: no reconnect if the last sync is younger than this. */
+const val RESUME_SYNC_AFTER_MS = 5 * 60_000L

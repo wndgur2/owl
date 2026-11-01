@@ -40,9 +40,13 @@
         android:theme="@style/Theme.Owl"
         tools:targetApi="s">
 
+        <!-- Portrait only: landscape left room for 1.5 timeline cards (QA U12, decisions #49).
+             Phones only (PRD 3); Android 16 ignores this on large screens anyway. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
