@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // Not `savedInstanceState == null`: after Android killed the process in the background the
         // activity comes back with saved state, and that is still the user opening the app (A2a).
-        appContainer.onScreenCreated()
+        appContainer.onScreenCreated(fresh = savedInstanceState == null)
         setContent {
             // Until the setting loads, the configuration already follows it (AppContainer.followThemeSetting).
             val mode: ThemeMode? by appContainer.settingsRepository.themeMode.collectAsStateWithLifecycle(initialValue = null)
@@ -36,6 +36,12 @@ class MainActivity : ComponentActivity() {
             }
             OwlRoot(appContainer, darkTheme = dark)
         }
+    }
+
+    /** Back from the background with the same activity (not a new start: that is onCreate). */
+    override fun onRestart() {
+        super.onRestart()
+        appContainer.onAppResumed()
     }
 
     private companion object {

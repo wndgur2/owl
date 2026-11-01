@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.SdStorage
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.owl.app.model.DeviceNotice
 import dev.owl.app.protocol.Cause
@@ -42,6 +43,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -126,23 +128,24 @@ fun TimelineContent(
     val display = remember(state.rows) { state.rows.asReversed() }
     val unknownTime = stringResource(R.string.time_unknown)
 
-    val headerDate by remember(display) {
+    // Header = the date at the top of the screen, except at the bottom (newest record visible,
+    // as when the app opens): then the newest record's date, so a short "오늘" below a full
+    // screen of yesterday still reads as today (decisions #49).
+    val headerRow by remember(display) {
         derivedStateOf {
-            val top = listState.layoutInfo.visibleItemsInfo.maxOfOrNull { it.index }
-            val row = top?.let { display.getOrNull(it) }
-            when {
-                row == null -> formats.dayLong(today())
-                row.date == null -> unknownTime
-                else -> formats.dayLong(row.date!!)
-            }
+            val info = listState.layoutInfo.visibleItemsInfo
+            val index = if (info.any { it.index == 0 }) 0 else info.maxOfOrNull { it.index }
+            index?.let { display.getOrNull(it) }
         }
     }
-    val headerLocalDate by remember(display) {
-        derivedStateOf {
-            val top = listState.layoutInfo.visibleItemsInfo.maxOfOrNull { it.index }
-            top?.let { display.getOrNull(it)?.date } ?: today()
+    val headerDate = headerRow.let { row ->
+        when {
+            row == null -> formats.dayLong(today())
+            row.date == null -> unknownTime
+            else -> formats.dayLong(row.date!!)
         }
     }
+    val headerLocalDate = headerRow?.date ?: today()
 
     // Scrolling near the top loads older records.
     LaunchedEffect(listState, display.size, state.canLoadMore) {
@@ -240,10 +243,12 @@ fun TimelineContent(
                         )
                     },
                 )
+                // Opens the search tab's place filter; the icon and wording say so (decisions #49).
                 FilterChip(
                     selected = false,
                     onClick = onOpenPlaces,
                     label = { Text(stringResource(R.string.filter_by_place)) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, null, Modifier.size(FilterChipDefaults.IconSize)) },
                 )
             }
 

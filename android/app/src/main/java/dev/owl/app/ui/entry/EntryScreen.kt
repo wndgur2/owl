@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -532,7 +533,8 @@ private fun PlayerBar(
                 Text(formats.clock(duration), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.width(64.dp)) {
+                // At least 64 dp, but never so narrow that "1.0×" wraps at large font sizes.
+                Box(Modifier.widthIn(min = 64.dp)) {
                     if (!gone) {
                         Surface(
                             onClick = onCycleSpeed,
@@ -545,6 +547,8 @@ private fun PlayerBar(
                                 stringResource(R.string.player_speed, player.speed),
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         }
                     }

@@ -280,14 +280,18 @@ private fun PendantCard(
             )
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.device_recording), style = MaterialTheme.typography.bodyLarge)
+                // Not reachable: the switch is disabled (and looks off), so say this is the last
+                // state we saw rather than the pendant's state now (decisions #49).
+                val stale = state.connection == Connection.DISCONNECTED || state.connection == Connection.NOT_PAIRED
+                val label = stringResource(
+                    when (recording) {
+                        true -> R.string.recording_on
+                        false -> R.string.recording_off
+                        null -> R.string.recording_unknown
+                    },
+                )
                 Text(
-                    stringResource(
-                        when (recording) {
-                            true -> R.string.recording_on
-                            false -> R.string.recording_off
-                            null -> R.string.recording_unknown
-                        },
-                    ),
+                    if (stale && recording != null) stringResource(R.string.recording_last_state, label) else label,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (recording == false) colors.tertiary else colors.onSurfaceVariant,
                 )

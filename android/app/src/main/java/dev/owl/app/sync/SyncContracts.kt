@@ -3,7 +3,7 @@ package dev.owl.app.sync
 import kotlinx.coroutines.flow.StateFlow
 
 /** Why a sync pass started; only used for logs and the notification text. */
-enum class SyncTrigger { PERIODIC, MANUAL, APP_START, DEVICE_APPEARED, RECONNECT }
+enum class SyncTrigger { PERIODIC, MANUAL, APP_START, APP_RESUME, DEVICE_APPEARED, RECONNECT }
 
 /** What [dev.owl.app.sync.SyncService] needs from the sync layer. */
 interface SyncRunner {
