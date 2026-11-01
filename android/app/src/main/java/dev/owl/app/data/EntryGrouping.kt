@@ -25,7 +25,7 @@ object EntryGrouping {
         val segmentId: Long,
         val bootCount: Long?,
         val startUptimeMs: Long?,
-        /** Null = time unknown (no TIME_SYNC for that boot): never merged with anything. */
+        /** Null = time unknown (no TIME_SYNC for that boot): merged only by uptime, see [group]. */
         val startUnixMs: Long?,
         val durationMs: Long,
     ) {
@@ -43,8 +43,10 @@ object EntryGrouping {
 
     /**
      * Two neighbouring segments (in id order, same device) merge when all hold:
-     * - both have a known real time and the same boot (an unknown-time boot never merges);
-     * - the gap from the end of the first to the start of the second is at most [gapMs];
+     * - same boot, and either both have a known real time or both do not;
+     * - the gap from the end of the first to the start of the second is at most [gapMs] — in real
+     *   time, or for a boot that never got a TIME_SYNC in uptime, which within one boot is just
+     *   as good a clock (decisions #48, amends #30);
      * - no "recording off" event happened between them (the user turned recording off, so what
      *   follows is a different moment even if it came soon after).
      */
@@ -81,13 +83,17 @@ object EntryGrouping {
 
     private fun canMerge(a: Seg, b: Seg, gapMs: Long, offs: Map<Pair<String, Long>, List<Event>>): Boolean {
         if (a.device != b.device) return false
-        val aStart = a.startUnixMs ?: return false
-        val bStart = b.startUnixMs ?: return false
         if (a.bootCount == null || a.bootCount != b.bootCount) return false
-        val gap = bStart - (aStart + a.durationMs)
-        if (gap > gapMs) return false
         val aEnd = a.endUptimeMs ?: return false
         val bBegin = b.startUptimeMs ?: return false
+        val aStart = a.startUnixMs
+        val bStart = b.startUnixMs
+        val gap = when {
+            aStart != null && bStart != null -> bStart - (aStart + a.durationMs)
+            aStart == null && bStart == null -> bBegin - aEnd
+            else -> return false // can't happen within one boot; never mix known and unknown
+        }
+        if (gap > gapMs) return false
         val turnedOff = offs[a.device to a.bootCount].orEmpty().any { it.uptimeMs in (a.startUptimeMs ?: aEnd)..bBegin }
         return !turnedOff
     }

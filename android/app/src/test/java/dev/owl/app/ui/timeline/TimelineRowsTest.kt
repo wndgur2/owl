@@ -99,4 +99,19 @@ class TimelineRowsTest {
         assertEquals(keys.size, keys.toSet().size)
         assertEquals(3, rows.count { it is TimelineRow.Day })
     }
+
+    @Test
+    fun aKnownNoticeStaysBeforeTheUnknownTimeRecordingsThatFollowedIt() {
+        val off = DeviceNotice(9, event = 6, arg = 0, timeMs = at(18, 0), sortTimeMs = at(18, 0))
+        // Unknown-time entry sorted right after the record before it (here the power-off log).
+        val unknown = item(2, at(18, 0), 10_000, null).copy(startUnixMs = null, endUnixMs = null, sortTimeMs = at(18, 0) + 1)
+        val entries = mergeTimeline(listOf(item(1, at(13, 0), 10_000, at(13, 10)), unknown), emptyList(), listOf(off))
+        assertEquals(listOf("item-1", "ev-9", "item-2"), entries.map {
+            when (it) {
+                is TimelineEntry.Entry -> "item-${it.item.id}"
+                is TimelineEntry.Mark -> "bm-${it.bookmark.id}"
+                is TimelineEntry.Notice -> "ev-${it.notice.id}"
+            }
+        })
+    }
 }

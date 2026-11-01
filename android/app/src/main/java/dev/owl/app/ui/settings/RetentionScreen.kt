@@ -13,10 +13,12 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,6 +42,20 @@ import dev.owl.app.ui.theme.OwlTheme
 fun RetentionScreen(viewModel: RetentionViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     RetentionContent(state, onBack, viewModel::setPolicy)
+    val pending = state.pending
+    if (pending != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancel,
+            title = { Text(stringResource(R.string.retention_confirm_title, pending.entries)) },
+            text = { Text(stringResource(R.string.retention_confirm_body, policyLabel(pending.policy), pending.entries)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirm) {
+                    Text(stringResource(R.string.retention_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = viewModel::cancel) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
 }
 
 @Composable

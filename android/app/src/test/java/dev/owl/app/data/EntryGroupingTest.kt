@@ -33,9 +33,26 @@ class EntryGroupingTest {
     }
 
     @Test
-    fun unknownTimeNeverMerges() {
-        val r = EntryGrouping.group(listOf(seg(1, 0.0, 60, known = false), seg(2, 1.5, 60, known = false), seg(3, 3.0, 60)), emptyList())
-        assertEquals(listOf(1L, 2L, 3L), groupsOf(r, 1, 2, 3))
+    fun unknownTimeMergesByUptimeWithinItsBoot() {
+        // decisions #48: a boot without TIME_SYNC still has uptime; 1.5 min gap merges, 2.5 min splits.
+        val r = EntryGrouping.group(
+            listOf(seg(1, 0.0, 60, known = false), seg(2, 2.5, 60, known = false), seg(3, 6.0, 60, known = false)),
+            emptyList(),
+        )
+        assertEquals(listOf(1L, 1L, 3L), groupsOf(r, 1, 2, 3))
+    }
+
+    @Test
+    fun unknownAndKnownNeverMerge() {
+        val r = EntryGrouping.group(listOf(seg(1, 0.0, 60, known = false), seg(2, 1.5, 60, boot = 3)), emptyList())
+        assertEquals(listOf(1L, 2L), groupsOf(r, 1, 2))
+    }
+
+    @Test
+    fun bookmarkInAnUnknownTimeConversationBelongsToIt() {
+        val mark = Event(11, "d", 3, (1.5 * min).toLong(), EventType.BOOKMARK) // in the gap between 1 and 2
+        val r = EntryGrouping.group(listOf(seg(1, 0.0, 60, known = false), seg(2, 2.5, 60, known = false)), listOf(mark))
+        assertEquals(1L, r.bookmarkEntry.getValue(11))
     }
 
     @Test

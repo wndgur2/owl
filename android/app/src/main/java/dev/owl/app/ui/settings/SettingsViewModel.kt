@@ -8,6 +8,7 @@ import dev.owl.app.model.DeviceController
 import dev.owl.app.model.DeviceRegistrar
 import dev.owl.app.model.Exporter
 import dev.owl.app.model.PlacesRepository
+import dev.owl.app.model.RetentionController
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.model.ThemeMode
@@ -105,13 +106,41 @@ class SettingsViewModel(
     }
 }
 
-data class RetentionUiState(val policy: RetentionPolicy? = null, val usage: AudioUsage? = null)
+/** A period that would delete audio right now, waiting for the user's yes (decisions #48). */
+data class PendingRetention(val policy: RetentionPolicy, val entries: Int)
 
-class RetentionViewModel(private val settings: SettingsRepository, timeline: TimelineRepository) : ViewModel() {
-    val state: StateFlow<RetentionUiState> = combine(settings.retention, timeline.audioUsage()) { p, u -> RetentionUiState(p, u) }
+data class RetentionUiState(
+    val policy: RetentionPolicy? = null,
+    val usage: AudioUsage? = null,
+    val pending: PendingRetention? = null,
+)
+
+class RetentionViewModel(
+    settings: SettingsRepository,
+    timeline: TimelineRepository,
+    private val retention: RetentionController,
+) : ViewModel() {
+    private val pending = kotlinx.coroutines.flow.MutableStateFlow<PendingRetention?>(null)
+
+    val state: StateFlow<RetentionUiState> = combine(settings.retention, timeline.audioUsage(), pending) { p, u, w -> RetentionUiState(p, u, w) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RetentionUiState())
 
+    /** Applies at once; if that deletes audio now, asks first (it cannot be undone). */
     fun setPolicy(policy: RetentionPolicy) {
-        viewModelScope.launch { settings.setRetention(policy) }
+        if (policy == state.value.policy) return
+        viewModelScope.launch {
+            val n = retention.deletableNow(policy)
+            if (n > 0) pending.value = PendingRetention(policy, n) else retention.change(policy)
+        }
+    }
+
+    fun confirm() {
+        val p = pending.value ?: return
+        pending.value = null
+        viewModelScope.launch { retention.change(p.policy) }
+    }
+
+    fun cancel() {
+        pending.value = null
     }
 }

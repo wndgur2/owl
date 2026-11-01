@@ -28,6 +28,7 @@ import dev.owl.app.model.AudioPlayer
 import dev.owl.app.model.DeviceController
 import dev.owl.app.model.DeviceRegistrar
 import dev.owl.app.model.Exporter
+import dev.owl.app.model.RetentionController
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.model.TimelineRepository
@@ -76,6 +77,17 @@ class AppContainer(private val context: Context) {
     private val placeResolver by lazy { PlaceResolver(database) }
     private val entryIndexer by lazy { EntryIndexer(database) }
     val retentionManager by lazy { RetentionManager(database.segments()) }
+
+    /** Settings › 음성 보관: a new period applies at once, not at the next sync (decisions #48). */
+    val retentionController: RetentionController by lazy {
+        object : RetentionController {
+            override suspend fun deletableNow(policy: RetentionPolicy) = retentionManager.deletableEntries(policy)
+            override suspend fun change(policy: RetentionPolicy) {
+                settingsStore.setRetention(policy)
+                retentionManager.apply(policy)
+            }
+        }
+    }
     val transcriptionQueue by lazy { TranscriptionQueue(database) { transcriber() } }
 
     suspend fun currentRetention(): RetentionPolicy = settingsStore.retention.first()

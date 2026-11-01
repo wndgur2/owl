@@ -226,6 +226,9 @@
     <string name="retention_90">90일</string>
     <string name="retention_never">지우지 않음</string>
     <string name="retention_after_stt">텍스트 추출 후 바로 삭제</string>
+    <string name="retention_confirm_title">기록 %1$d개의 음성을 지금 지울까요?</string>
+    <string name="retention_confirm_body">‘%1$s’로 바꾸면 기간이 지난 기록 %2$d개의 음성이 바로 지워지고 되돌릴 수 없어요. 텍스트는 남아요. 음성 보존을 켠 기록은 지우지 않아요.</string>
+    <string name="retention_confirm">지우고 바꾸기</string>
     <string name="retention_usage_title">음성이 쓰는 공간</string>
     <string name="retention_usage_body">이 폰 저장소 · 기록 %1$d개</string>
     <string name="retention_hint">기록 상세 메뉴에서 음성 파일을 보존할 수 있어요.</string>

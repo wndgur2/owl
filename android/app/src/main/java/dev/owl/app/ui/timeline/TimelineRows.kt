@@ -57,8 +57,9 @@ sealed interface TimelineEntry {
 
 /**
  * Merges standalone bookmarks and device notices (any order) into the entries (oldest first) by
- * time. Entries without a known start keep their place in the repository order and never pull
- * marks in front of them; a mark goes right before the first timed entry that starts after it.
+ * sort time: a mark goes right before the first entry that sorts after it. Unknown-time entries
+ * and marks sort by segment id order (after the record before them), so a known "pendant off"
+ * stays before the recordings of the boot that never synced, which came after it.
  */
 fun mergeTimeline(
     items: List<TimelineItem>,
@@ -70,10 +71,7 @@ fun mergeTimeline(
         .sortedBy { it.first } // stable: equal sort times keep bookmarks-then-notices, each in query order
     var next = 0
     for (item in items) {
-        val start = item.startUnixMs
-        if (start != null) {
-            while (next < marks.size && marks[next].first < start) out += marks[next++].second
-        }
+        while (next < marks.size && marks[next].first < item.sortTimeMs) out += marks[next++].second
         out += TimelineEntry.Entry(item)
     }
     while (next < marks.size) out += marks[next++].second

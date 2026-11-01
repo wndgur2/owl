@@ -97,6 +97,15 @@ interface DeviceRegistrar {
     suspend fun unregister()
 }
 
+/** A14 period changes take effect at once (decisions #48). */
+interface RetentionController {
+    /** Timeline entries whose audio [policy] would delete right now. */
+    suspend fun deletableNow(policy: RetentionPolicy): Int
+
+    /** Saves [policy] and deletes the audio it makes expired, now. */
+    suspend fun change(policy: RetentionPolicy)
+}
+
 /** Places the user named (A5/A7). No network geocoding (PRD N8). */
 interface PlacesRepository {
     fun places(): Flow<List<NamedPlace>>

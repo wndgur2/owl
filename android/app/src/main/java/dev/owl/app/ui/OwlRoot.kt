@@ -127,7 +127,7 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
                 }
                 composable(Routes.RETENTION) {
                     RetentionScreen(
-                        owlViewModel { RetentionViewModel(container.settingsRepository, container.timelineRepository) },
+                        owlViewModel { RetentionViewModel(container.settingsRepository, container.timelineRepository, container.retentionController) },
                         onBack = { nav.popBackStack() },
                     )
                 }
