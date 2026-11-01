@@ -142,6 +142,10 @@ DB는 v2예요. v1에서 올라올 때 칸만 추가하는 마이그레이션(`M
 스크린샷(라이트·다크)과 동기화 로그는 [`docs/screenshots/`](docs/screenshots/README.md)에 있어요.
 가짜 기기로 전체 동기화(LIST → FETCH → 저장 → ACK), FETCH 도중 끊김 후 이어받기, 청크 유실 복구, 재시도 실패 → "연결 끊김", 녹음 스위치, 재생, 보관 기간 삭제, 내보내기를 확인했어요.
 
+테마: 업데이트 설치(`installDebug`)는 설정 › 테마 값을 그대로 둬요. 앱이 밝게 뜨면 전에 시험하며 바꾼 값(라이트·시스템 설정 따름)이 남은 거라 테마 값을 먼저 보세요
+(`adb exec-out run-as dev.owl.app cat files/datastore/owl_settings.preferences_pb | strings`, 값이 없으면 다크).
+설치 직후·`pm clear` 뒤 첫 실행만 시작 창이 폰 테마를 따라요(`decisions.md` #43).
+
 ### 진짜 BLE 경로: 에뮬레이터 + Bumble 가짜 목걸이
 
 `FakeOwlDevice`는 `OwlTransport` 아래를 건너뛰어서 무선 경로(`BleTransport`, `CdmRegistrar`, `BondManager`)는 지나가지 않아요.
