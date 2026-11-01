@@ -376,10 +376,11 @@ private fun EntryBody(
     val current = detail.sentences.indexOfLast { it.startMs <= player.positionMs }
     val listState = rememberLazyListState()
 
-    // Keep the playing sentence on screen.
+    // Keep the current sentence on screen: while playing, and when opened at a search hit or
+    // after a seek while paused (the highlight alone is no use if it is scrolled away).
     val currentLine = lines.indexOfFirst { it is EntryLine.Text && it.sentence.index == detail.sentences.getOrNull(current)?.index }
     LaunchedEffect(currentLine) {
-        if (currentLine < 0 || !player.playing) return@LaunchedEffect
+        if (currentLine < 0) return@LaunchedEffect
         val visible = listState.layoutInfo.visibleItemsInfo
         val fully = visible.any { it.index == currentLine && it.offset >= 0 && it.offset + it.size <= listState.layoutInfo.viewportEndOffset }
         if (!fully) listState.animateScrollToItem(currentLine)
