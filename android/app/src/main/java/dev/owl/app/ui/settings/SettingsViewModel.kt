@@ -10,6 +10,7 @@ import dev.owl.app.model.Exporter
 import dev.owl.app.model.PlacesRepository
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
+import dev.owl.app.model.ThemeMode
 import dev.owl.app.model.TimelineRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,8 @@ data class SettingsUiState(
     val exporting: Boolean = false,
     /** Named places (A5/A7), null until known. */
     val namedPlaceCount: Int? = null,
+    /** A17, null until loaded. */
+    val themeMode: ThemeMode? = null,
 )
 
 sealed interface SettingsEvent {
@@ -63,10 +66,16 @@ class SettingsViewModel(
             usingFakeDevice = device.isFake,
             exporting = busy,
         )
-    }.combine(places.places()) { s, list -> s.copy(namedPlaceCount = list.size) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
+    }.combine(places.places()) { s, list -> s.copy(namedPlaceCount = list.size) }
+        .combine(settings.themeMode) { s, mode -> s.copy(themeMode = mode) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
 
     fun setLocationEnabled(on: Boolean) {
         viewModelScope.launch { settings.setLocationEnabled(on) }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { settings.setThemeMode(mode) }
     }
 
     fun export(uri: Uri) {

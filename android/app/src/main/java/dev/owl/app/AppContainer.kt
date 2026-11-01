@@ -1,5 +1,6 @@
 package dev.owl.app
 
+import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
 import dev.owl.app.audio.OpusPlayer
@@ -43,6 +44,7 @@ import dev.owl.app.sync.SyncCoordinator
 import dev.owl.app.sync.SyncEngine
 import dev.owl.app.sync.SyncRunner
 import dev.owl.app.sync.SyncTrigger
+import dev.owl.app.ui.theme.nightMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -186,7 +188,19 @@ class AppContainer(private val context: Context) {
         }
     }
 
+    /**
+     * 설정 › 테마 → the app's night mode. Android keeps it, so the window shown before Compose's first
+     * frame (res/values-night) is already in the chosen theme on the next cold start.
+     */
+    private fun followThemeSetting() {
+        appScope.launch {
+            val uiModes = context.getSystemService(UiModeManager::class.java)
+            settingsStore.themeMode.collect { uiModes.setApplicationNightMode(it.nightMode) }
+        }
+    }
+
     init {
         followLocationSetting()
+        followThemeSetting()
     }
 }

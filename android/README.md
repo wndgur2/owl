@@ -1,14 +1,14 @@
 # android/ — Owl 앱
 
 목걸이에서 녹음을 받아 폰에 저장하고, 시각·장소·텍스트로 타임라인을 보여주는 Android 앱이에요.
-기준 문서는 [PRD](../docs/prd.md) 5.2(A1–A16)·N4·N8, 프로토콜은 [`protocol/ble-protocol.md`](../protocol/ble-protocol.md), 화면은 [`docs/design/android/`](../docs/design/android/README.md)예요.
+기준 문서는 [PRD](../docs/prd.md) 5.2(A1–A17)·N4·N8, 프로토콜은 [`protocol/ble-protocol.md`](../protocol/ble-protocol.md), 화면은 [`docs/design/android/`](../docs/design/android/README.md)예요.
 
 | 항목 | 값 |
 |---|---|
 | 패키지 | `dev.owl.app` |
 | minSdk / target·compile | 31 / 36 |
 | 빌드 | Gradle 8.14.3 (wrapper), AGP 8.13, Kotlin 2.2 |
-| UI | Jetpack Compose + Material 3 (라이트/다크, dynamic color 끔) |
+| UI | Jetpack Compose + Material 3 (라이트/다크, dynamic color 끔). 설정 › 테마: 다크(기본) / 라이트 / 시스템 설정 따름 (`decisions.md` #43) |
 | 저장 | Room(`owl.db`), DataStore(설정), `filesDir/segments/`(세그먼트 원본) |
 | 백그라운드 | CompanionDeviceManager + 포그라운드 서비스(`connectedDevice`) + WorkManager |
 | DI | 수동 — [`AppContainer.kt`](app/src/main/java/dev/owl/app/AppContainer.kt) 한 파일에서 전부 연결 |

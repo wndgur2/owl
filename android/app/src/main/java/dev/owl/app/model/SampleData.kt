@@ -130,12 +130,15 @@ class StubSettingsRepository : SettingsRepository {
     private val retentionFlow = MutableStateFlow(RetentionPolicy.DAYS_30)
     private val locationFlow = MutableStateFlow(true)
     private val onboardingFlow = MutableStateFlow(false)
+    private val themeFlow = MutableStateFlow(ThemeMode.DARK)
     override val retention: Flow<RetentionPolicy> = retentionFlow
     override suspend fun setRetention(policy: RetentionPolicy) { retentionFlow.value = policy }
     override val locationEnabled: Flow<Boolean> = locationFlow
     override suspend fun setLocationEnabled(enabled: Boolean) { locationFlow.value = enabled }
     override val onboardingDone: Flow<Boolean> = onboardingFlow
     override suspend fun setOnboardingDone(done: Boolean) { onboardingFlow.value = done }
+    override val themeMode: Flow<ThemeMode> = themeFlow
+    override suspend fun setThemeMode(mode: ThemeMode) { themeFlow.value = mode }
 }
 
 class StubDeviceRegistrar : DeviceRegistrar {

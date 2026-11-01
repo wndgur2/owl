@@ -144,6 +144,13 @@ enum class RetentionPolicy(val days: Int?) {
     AFTER_TRANSCRIPTION(0),
 }
 
+/** 설정 › 테마. Default [DARK] (decisions.md #43). */
+enum class ThemeMode {
+    DARK,
+    LIGHT,
+    SYSTEM,
+}
+
 data class AudioUsage(val entryCount: Int, val bytes: Long)
 
 /** Power / reachability, shown separately from [recordingOn] (PRD A10). */
