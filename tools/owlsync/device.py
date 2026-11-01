@@ -69,6 +69,7 @@ class OwlDevice:
     fetch_requests: list[tuple[int, int]] = field(default_factory=list)  # (seg_id, offset), for tests
     bytes_sent: int = 0  # DATA payload bytes handed to the link
     bonds: list[str] = field(default_factory=list)  # bonded central ids (§2.4: at most one stays)
+    pairing_window_ms: int = p.PAIRING_WINDOW_MS  # shorter only in tests / fake_owl.py --pairing-window
 
     def __post_init__(self) -> None:
         self._t0 = self.clock()
@@ -94,7 +95,7 @@ class OwlDevice:
     # --- security (§2.4) -----------------------------------------------------
     def pairing_open(self) -> bool:
         since = int((self.clock() - self._power_on_t) * 1000)
-        return p.pairing_allowed(since, len(self.bonds), self._window_used)
+        return p.pairing_allowed(since, len(self.bonds), self._window_used, self.pairing_window_ms)
 
     def is_bonded(self, peer: str) -> bool:
         return peer in self.bonds
@@ -104,10 +105,16 @@ class OwlDevice:
         if not self.pairing_open():
             self.log(f"pairing refused for {peer}")
             return False
+        self.on_bonded(peer)
+        return True
+
+    def on_bonded(self, peer: str) -> None:
+        """A pairing with `peer` completed (a real link asks pairing_open() at the
+        Pairing Request and reports here only after SMP succeeded, so a failed
+        pairing leaves the old bond in place). The window closes, other bonds go."""
         self._window_used = True
         self.bonds = [peer]
         self.log(f"paired with {peer}")
-        return True
 
     def storage_used_kb(self) -> int:
         return math.ceil(sum(len(s.blob) for s in self.segments.values()) / 1024)

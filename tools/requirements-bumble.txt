@@ -1,0 +1,3 @@
+# Optional: fake_owl.py --transport bumble on the Android emulator's virtual radio
+# (netsim gRPC transport). Not needed for tests or CI.
+bumble[android]==0.0.236

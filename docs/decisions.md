@@ -55,6 +55,8 @@
 38. **본딩된 폰엔 기기가 먼저 Security Request, 60초 안에 암호화 안 되면 끊기** — Android 12–15는 연결만으로는 암호화하지 않아서(AOSP 확인) 기기가 요청해요. 모르는 상대에겐 보내지 않아요(페어링 창이 아무 폰에나 뜨지 않게). 기기는 한 번에 하나만 연결되니 암호화 안 된 연결이 그 자리를 붙잡지 못하게 60초(`UNENCRYPTED_TIMEOUT_MS`) 뒤 HCI 0x05로 끊어요
 39. **본딩 키는 칩 안 RRAM `storage_partition`에 (Zephyr settings + ZMS)** — NCS v3.4.1의 nRF54L15 기본 배치(`0x174000`, 36KiB)라 따로 파티션을 만들지 않아도 되고, 외장 플래시의 LittleFS·bring-up 섹터(#29)를 건드리지 않아요. `FILE_SYSTEM=y`라 settings 기본 저장소가 LittleFS 파일이 되므로 `CONFIG_SETTINGS_ZMS`를 직접 지정
 40. **앱: 등록할 때 `createBond()`, 실패하면 등록 취소. 폰에 본딩이 없으면 연결하지 않음** — CDM 등록 직후(10분 안) 앱이 부른 `createBond()`는 Android 설정 앱이 확인 창 없이 받아요(AOSP `BluetoothPairingRequest`). 거절되면 CDM 등록도 되돌려 반쯤 등록된 상태를 남기지 않아요. 백그라운드 동기화 중 페어링 창이 뜨지 않게, 본딩이 없으면 연결 전에 "다시 등록 필요"로 멈추고 재시도하지 않아요. 등록 해제는 UNPAIR → 폰 본딩 삭제(API 36은 `CompanionDeviceManager.removeBond`, 그 아래는 `BluetoothDevice.removeBond` 리플렉션: `@SystemApi`지만 hidden API 차단 목록에 없음) → CDM 해제
+41. **에뮬레이터에서 앱의 진짜 BLE 경로는 Bumble 가짜 목걸이로 시험** — Android 에뮬레이터의 블루투스는 가상 컨트롤러(netsim)라 Google Bumble이 같은 가상 라디오에 BLE 기기로 붙을 수 있어요(`android-netsim` 전송). 그래서 `tools/fake_owl.py --transport bumble`이 기존 기기 모델(`owlsync/device.py`)을 그대로 광고하고, 앱은 코드 수정·debug 우회 없이 CDM 등록·`createBond()`·암호화·동기화·UNPAIR를 진짜 경로로 지나가요(2026-11-01 API 37에서 확인, `android/README.md`). `bless`(macOS)는 페어링을 거절할 수 없고 이 Mac에서 블루투스 권한도 못 받아 탈락. netsim은 키 분실을 0x06 대신 0x05로 흉내 내서 그 경우만은 하드웨어에서 확인해야 해요
+42. **Bumble 가짜 목걸이는 SMP·ATT 결과를 펌웨어(Zephyr)와 같게** — 본딩 안 하는 요청 0x08, LE legacy 0x03, 창 닫힘 0x08(Zephyr `smp_pairing_req()`·`smp_err_get()` 소스 확인), 본딩 없는 상대 ATT 0x05·본딩은 있는데 암호화 전 0x0F. 같은 규칙을 Bumble 가상 링크 두 개로 진짜 SMP를 돌리는 `tools/tests/test_bumble.py`가 CI에서 확인해요(그래서 `bumble`을 `tools/requirements.txt`에 고정). 에뮬레이터 E2E는 에뮬레이터가 있어야 해서 CI에선 안 돌려요
 
 ## 미결정
 

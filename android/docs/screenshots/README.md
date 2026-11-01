@@ -64,3 +64,17 @@ OwlSync : sync (MANUAL) attempt 3 failed: fake: device not reachable   → 기�
 ```
 
 그 밖에 확인한 것: 녹음 스위치(SET_RECORDING → 이벤트 세그먼트 "녹음 꺼짐(앱)"이 다음 동기화로 들어옴), 연결 버튼으로 재연결, Opus 재생·문장 이동, 내보내기(SAF로 `Download/owl-export-2026-10-31.json` 저장), "목걸이 찾기"가 CDM 선택 화면을 `Owl-.*` + 서비스 UUID 필터로 여는 것(에뮬레이터엔 BLE 스캐너가 없어 기기는 못 찾음).
+
+## 진짜 BLE 경로: Bumble 가짜 목걸이 (2026-11-01)
+
+에뮬레이터(API 37)의 가상 블루투스(netsim)에 `tools/fake_owl.py --transport bumble`을 붙여 찍었어요. 앱은 `FakeOwlDevice`가 아니라
+`BleTransport`·`CdmRegistrar`·`BondManager`로 통신해요. 위에 적은 "에뮬레이터엔 BLE 스캐너가 없어 기기는 못 찾음"은 이 방법으로 풀렸어요.
+확인한 흐름 전체는 [android/README.md](../../README.md#진짜-ble-경로-에뮬레이터--bumble-가짜-목걸이)에 있어요.
+
+| 화면 | 라이트 |
+|---|---|
+| CDM 선택 창 · Bumble이 광고하는 `Owl-FA4E` | [bumble-cdm-light](bumble-cdm-light.png) |
+| 등록 완료 (LESC 본딩 + 첫 동기화 뒤, 펌웨어 0.1.0은 STATUS 값) | [bumble-registered-light](bumble-registered-light.png) |
+| 기기 · 녹음 꺼짐 (SET_RECORDING 0이 가짜 기기에 반영) | [bumble-recording-off-light](bumble-recording-off-light.png) |
+| 온보딩 · 창 밖 페어링 거절 (SMP 0x08) 안내 | [bumble-pairing-refused-light](bumble-pairing-refused-light.png) |
+| 기기 · 가짜 기기가 키를 잃음 → "연결 끊김" ("다시 등록"이 아님, android/README 참고) | [bumble-key-missing-light](bumble-key-missing-light.png) |
