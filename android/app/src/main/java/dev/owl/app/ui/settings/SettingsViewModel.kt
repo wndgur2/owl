@@ -29,6 +29,8 @@ data class SettingsUiState(
     val fakeDeviceAvailable: Boolean = false,
     val usingFakeDevice: Boolean = false,
     val exporting: Boolean = false,
+    /** 등록 해제 in progress (UNPAIR waits up to 15 s for a pendant that is away). */
+    val unregistering: Boolean = false,
     /** Named places (A5/A7), null until known. */
     val namedPlaceCount: Int? = null,
     /** A17, null until loaded. */
@@ -48,6 +50,7 @@ class SettingsViewModel(
     places: PlacesRepository,
 ) : ViewModel() {
     private val exporting = kotlinx.coroutines.flow.MutableStateFlow(false)
+    private val unregistering = kotlinx.coroutines.flow.MutableStateFlow(false)
     private val events = Channel<SettingsEvent>(Channel.BUFFERED)
     val eventFlow: Flow<SettingsEvent> = events.receiveAsFlow()
 
@@ -68,6 +71,7 @@ class SettingsViewModel(
         )
     }.combine(places.places()) { s, list -> s.copy(namedPlaceCount = list.size) }
         .combine(settings.themeMode) { s, mode -> s.copy(themeMode = mode) }
+        .combine(unregistering) { s, u -> s.copy(unregistering = u) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
 
     fun setLocationEnabled(on: Boolean) {
@@ -88,8 +92,14 @@ class SettingsViewModel(
     }
 
     fun unregister(onDone: () -> Unit) {
+        if (unregistering.value) return
+        unregistering.value = true
         viewModelScope.launch {
-            registrar.unregister()
+            try {
+                registrar.unregister()
+            } finally {
+                unregistering.value = false
+            }
             onDone()
         }
     }

@@ -313,20 +313,35 @@ fun SettingsContent(
         )
     }
 
-    if (confirmUnregister) {
+    // The dialog stays up with a progress row until unregistering is done (decisions #47): UNPAIR can
+    // wait 15 s for a pendant that is away, and a screen that looked unchanged invited a second tap.
+    if (confirmUnregister || state.unregistering) {
         AlertDialog(
-            onDismissRequest = { confirmUnregister = false },
+            onDismissRequest = { if (!state.unregistering) confirmUnregister = false },
             title = { Text(stringResource(R.string.unregister_confirm_title, state.registeredName.orEmpty())) },
-            text = { Text(stringResource(R.string.unregister_confirm_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmUnregister = false
-                        onUnregister()
-                    },
-                ) { Text(stringResource(R.string.unregister_confirm), color = MaterialTheme.colorScheme.error) }
+            text = {
+                if (state.unregistering) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.unregistering))
+                    }
+                } else {
+                    Text(stringResource(R.string.unregister_confirm_body))
+                }
             },
-            dismissButton = { TextButton(onClick = { confirmUnregister = false }) { Text(stringResource(R.string.action_cancel)) } },
+            confirmButton = {
+                TextButton(onClick = onUnregister, enabled = !state.unregistering) {
+                    Text(
+                        stringResource(R.string.unregister_confirm),
+                        color = if (state.unregistering) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmUnregister = false }, enabled = !state.unregistering) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
         )
     }
 }

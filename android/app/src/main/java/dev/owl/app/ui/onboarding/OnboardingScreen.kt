@@ -109,7 +109,7 @@ private fun Context.startSafely(intent: Intent, fallback: Intent? = null) {
 }
 
 @Composable
-fun OnboardingScreen(viewModel: OnboardingViewModel, onDone: () -> Unit) {
+fun OnboardingScreen(viewModel: OnboardingViewModel, onDone: () -> Unit, autoRegister: Boolean = false) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = LocalActivity.current
@@ -139,13 +139,19 @@ fun OnboardingScreen(viewModel: OnboardingViewModel, onDone: () -> Unit) {
     val chooserLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) viewModel.onAssociationResult(result.data)
     }
-    val failed = stringResource(R.string.onboarding_register_failed)
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { e ->
             when (e) {
                 is OnboardingEvent.LaunchChooser -> chooserLauncher.launch(IntentSenderRequest.Builder(e.sender).build())
-                is OnboardingEvent.RegistrationFailed -> snackbar.showSnackbar(e.message ?: failed)
             }
+        }
+    }
+    // "다시 등록" from the device screen: open the chooser once, not again after rotation.
+    var autoStarted by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(autoRegister) {
+        if (autoRegister && !autoStarted) {
+            autoStarted = true
+            viewModel.startAssociation()
         }
     }
 
@@ -303,6 +309,14 @@ private fun RegistrationCard(state: OnboardingUiState, onRegister: () -> Unit, o
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onRegister, enabled = !state.busy) { Text(stringResource(R.string.onboarding_register)) }
                     if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                }
+                val error = state.registerError
+                if (error != null) {
+                    Text(
+                        error.ifEmpty { stringResource(R.string.onboarding_register_failed) },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.error,
+                    )
                 }
                 if (state.fakeDeviceAvailable) {
                     TextButton(onClick = onRegisterFake, enabled = !state.busy) { Text(stringResource(R.string.onboarding_fake_device)) }

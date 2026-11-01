@@ -149,7 +149,9 @@
     <string name="power_on">켜짐</string>
     <string name="power_disconnected">연결 끊김</string>
     <string name="power_not_paired">다시 등록 필요</string>
-    <string name="device_not_paired">목걸이가 이 폰을 등록된 폰으로 알아보지 못해요. 설정에서 등록을 해제하고, 목걸이를 껐다 켠 뒤 2분 안에 다시 등록해 주세요. 녹음은 목걸이에 계속 쌓여요.</string>
+    <string name="device_not_paired">목걸이가 이 폰을 등록된 폰으로 알아보지 못해요. 목걸이를 껐다 켠 뒤 2분 안에 ‘다시 등록’을 눌러 주세요. 녹음은 목걸이에 계속 쌓여요.</string>
+    <string name="device_re_register">다시 등록</string>
+    <string name="unregistering">등록 해제하는 중…</string>
     <string name="power_connecting">연결 중</string>
     <string name="power_unknown">확인 중</string>
     <string name="device_no_answer_since">%1$s 이후 목걸이 응답이 없어요. 녹음은 목걸이에 계속 쌓여요.</string>
