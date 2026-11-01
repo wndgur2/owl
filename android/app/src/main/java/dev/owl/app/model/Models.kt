@@ -113,6 +113,12 @@ data class EntryDetail(
      * parts were recorded with gaps between them, so "start + offset" would drift.
      */
     val partStarts: List<Pair<Long, Long?>> = emptyList(),
+    /**
+     * Real time of each bookmark, same order as [bookmarkOffsetsMs]. A bookmark pressed in a pause
+     * between merged segments sits at the end of the segment before it on the entry timeline, so
+     * [clockAt] of its offset would show the next segment's start instead of when it was pressed.
+     */
+    val bookmarkTimesMs: List<Long?> = emptyList(),
 ) {
     /** Real time at entry offset [offsetMs], or null when the time is unknown. */
     fun clockAt(offsetMs: Long): Long? {

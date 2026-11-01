@@ -140,6 +140,7 @@ private sealed interface EntryLine {
     data class Mark(val offsetMs: Long, val n: Int) : EntryLine
 }
 
+/** [bookmarks] come in uptime order, which is also offset order, so `n` indexes [EntryDetail.bookmarkTimesMs]. */
 private fun buildLines(sentences: List<Sentence>, bookmarks: List<Long>): List<EntryLine> {
     val marks = bookmarks.sorted().toMutableList()
     val out = ArrayList<EntryLine>(sentences.size + marks.size)
@@ -424,7 +425,8 @@ private fun EntryBody(
                 items(lines, key = { if (it is EntryLine.Text) "s${it.sentence.index}" else "m${(it as EntryLine.Mark).n}" }) { line ->
                     when (line) {
                         is EntryLine.Mark -> BookmarkMarker(
-                            detail.clockAt(line.offsetMs)?.let { formats.hms(it) } ?: formats.clock(line.offsetMs),
+                            (detail.bookmarkTimesMs.getOrNull(line.n) ?: detail.clockAt(line.offsetMs))?.let { formats.hms(it) }
+                                ?: formats.clock(line.offsetMs),
                         )
                         is EntryLine.Text -> {
                             val isCurrent = detail.sentences.getOrNull(current)?.index == line.sentence.index

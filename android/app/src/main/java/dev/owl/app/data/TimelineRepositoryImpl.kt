@@ -66,6 +66,7 @@ class TimelineRepositoryImpl(
                 item = entry.toItem(marks.size),
                 sentences = entry.sentences(sent),
                 bookmarkOffsetsMs = marks.map { entry.offsetOf(it) },
+                bookmarkTimesMs = marks.map { it.unixMs },
                 audioFiles = entry.audioFiles(),
                 audioDeleteAtMs = entry.parts.mapNotNull { RetentionRules.deleteAt(policy, it) }.minOrNull(),
                 partStarts = entry.partStarts(),
