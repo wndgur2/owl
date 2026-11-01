@@ -165,10 +165,11 @@
     <string name="device_not_registered">등록된 목걸이가 없어요</string>
     <string name="device_not_registered_body">목걸이를 등록하면 상태와 동기화가 여기에 보여요.</string>
 
-    <!-- Settings (A5, A13, A14, A16, N8) -->
+    <!-- Settings (A5, A13, A14, A16, A17, N8) -->
     <string name="settings_title">설정</string>
     <string name="settings_section_storage">보관과 위치</string>
     <string name="settings_section_data">데이터</string>
+    <string name="settings_section_display">화면</string>
     <string name="settings_section_help">도움말</string>
     <string name="settings_section_developer">개발자</string>
     <string name="retention_title">음성 보관</string>
@@ -187,6 +188,10 @@
     <string name="export_done">기록 %1$d개를 내보냈어요</string>
     <string name="export_failed">내보내지 못했어요. 다시 해 보세요.</string>
     <string name="privacy_title">개인정보 처리 방침</string>
+    <string name="theme_title">테마</string>
+    <string name="theme_dark">다크</string>
+    <string name="theme_light">라이트</string>
+    <string name="theme_system">시스템 설정 따름</string>
     <string name="guide_title">사용 설명</string>
     <string name="guide_summary">버튼, LED, 배터리 관리</string>
     <string name="dev_fake_in_use">가짜 기기 사용 중</string>

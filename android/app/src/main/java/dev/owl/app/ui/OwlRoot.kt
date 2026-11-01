@@ -52,8 +52,8 @@ private fun NavHostController.resetTo(route: String) = navigate(route) {
 
 /** App root: theme + navigation graph. Every screen gets its dependencies from [container]. */
 @Composable
-fun OwlRoot(container: AppContainer) {
-    OwlTheme {
+fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
+    OwlTheme(darkTheme) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val nav = rememberNavController()
             NavHost(navController = nav, startDestination = Routes.SPLASH) {

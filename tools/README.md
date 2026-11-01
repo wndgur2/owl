@@ -172,7 +172,7 @@ python fake_owl.py --transport bumble --state /tmp/owl.json --pairing-window 10 
   netsim의 컨트롤러(rootcanal)는 거절을 0 LTK로 보내고 폰 쪽은 `0x05`(Authentication Failure)로 끝나요
   (AOSP `tools/rootcanal/model/controller/link_layer_controller.cc` 확인). 그래서 Android의 키 분실 처리(`ACTION_KEY_MISSING`)는
   에뮬레이터에서 볼 수 없어요. 앱은 `ACTION_ENCRYPTION_CHANGE`(status 5)로도 알아채서 "다시 등록 필요"까지는 시험돼요
-  (`decisions.md` #43).
+  (`decisions.md` #44).
 - MTU·PHY·처리량은 netsim 값이에요(MTU 247, 2M PHY는 받아들여짐). 실제 라디오의 유실·간섭은 없어요.
 
 ### macOS BLE에서 흉내 못 내는 것

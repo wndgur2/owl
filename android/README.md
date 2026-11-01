@@ -1,14 +1,14 @@
 # android/ — Owl 앱
 
 목걸이에서 녹음을 받아 폰에 저장하고, 시각·장소·텍스트로 타임라인을 보여주는 Android 앱이에요.
-기준 문서는 [PRD](../docs/prd.md) 5.2(A1–A16)·N4·N8, 프로토콜은 [`protocol/ble-protocol.md`](../protocol/ble-protocol.md), 화면은 [`docs/design/android/`](../docs/design/android/README.md)예요.
+기준 문서는 [PRD](../docs/prd.md) 5.2(A1–A17)·N4·N8, 프로토콜은 [`protocol/ble-protocol.md`](../protocol/ble-protocol.md), 화면은 [`docs/design/android/`](../docs/design/android/README.md)예요.
 
 | 항목 | 값 |
 |---|---|
 | 패키지 | `dev.owl.app` |
 | minSdk / target·compile | 31 / 36 |
 | 빌드 | Gradle 8.14.3 (wrapper), AGP 8.13, Kotlin 2.2 |
-| UI | Jetpack Compose + Material 3 (라이트/다크, dynamic color 끔) |
+| UI | Jetpack Compose + Material 3 (라이트/다크, dynamic color 끔). 설정 › 테마: 다크(기본) / 라이트 / 시스템 설정 따름 (`decisions.md` #43) |
 | 저장 | Room(`owl.db`), DataStore(설정), `filesDir/segments/`(세그먼트 원본) |
 | 백그라운드 | CompanionDeviceManager + 포그라운드 서비스(`connectedDevice`) + WorkManager |
 | DI | 수동 — [`AppContainer.kt`](app/src/main/java/dev/owl/app/AppContainer.kt) 한 파일에서 전부 연결 |
@@ -168,7 +168,7 @@ python fake_owl.py --transport bumble --state /tmp/owl.json
 | 목걸이가 꺼져 있을 때 등록 해제 | UNPAIR가 15초 뒤 실패해도 폰 본딩·CDM은 지워짐(2.4장 표와 같음) |
 | 창 밖 페어링 거절 | 가짜 기기는 옛 본딩을 가진 채 창이 닫힘 → 등록 시도 → SMP Pairing Failed 0x08 → 폰 bond state NONE(이유 1) → 앱이 CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에" 안내 |
 | 껐다 켠 뒤 다시 등록 | `reboot` → 창 안에서 등록 성공, 옛 본딩은 새 본딩이 생긴 뒤에 교체 |
-| 목걸이가 키를 잃음(2.4장 흐름 5) | 등록 → 가짜 기기 끄기 → `/tmp/owl.keys.json` 삭제 → 다시 띄우고 동기화 → 폰이 저장된 키로 암호화하다 실패(netsim은 HCI 0x05) → Android가 **스스로** 연결을 끊음(status 22) → `ACTION_ENCRYPTION_CHANGE`(status 5, 꺼짐) → `NotBondedException` → 재시도 없이 "다시 등록 필요". 브로드캐스트는 끊김 콜백보다 약 9ms **뒤에** 온 적도, 앞에 온 적도 있음(#43). 2026-11-01 API 37 |
+| 목걸이가 키를 잃음(2.4장 흐름 5) | 등록 → 가짜 기기 끄기 → `/tmp/owl.keys.json` 삭제 → 다시 띄우고 동기화 → 폰이 저장된 키로 암호화하다 실패(netsim은 HCI 0x05) → Android가 **스스로** 연결을 끊음(status 22) → `ACTION_ENCRYPTION_CHANGE`(status 5, 꺼짐) → `NotBondedException` → 재시도 없이 "다시 등록 필요". 브로드캐스트는 끊김 콜백보다 약 9ms **뒤에** 온 적도, 앞에 온 적도 있음(#44). 2026-11-01 API 37 |
 
 스크린샷: [CDM 선택 창](docs/screenshots/bumble-cdm-light.png), [등록 완료](docs/screenshots/bumble-registered-light.png),
 [녹음 꺼짐](docs/screenshots/bumble-recording-off-light.png), [페어링 거절 안내](docs/screenshots/bumble-pairing-refused-light.png),
@@ -204,13 +204,13 @@ python fake_owl.py --transport bumble --state /tmp/owl.json
 python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 ```
 
-## 본딩 (프로토콜 2.4장, `decisions.md` #33–#40, #43)
+## 본딩 (프로토콜 2.4장, `decisions.md` #33–#40, #44)
 
 - 등록: CDM 선택 → `BondManager.bond()`가 `createBond()` 후 `ACTION_BOND_STATE_CHANGED`를 기다림(60초) → 성공해야 등록 저장.
   목걸이가 거절하면(다른 폰이 본딩돼 있고 켠 지 2분이 지남) CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에 다시" 안내.
 - 동기화: 폰에 본딩이 없으면 연결하지 않고(백그라운드에서 페어링 창이 뜨지 않게) "다시 등록 필요". GATT status 5·15·137,
   또는 목걸이가 HCI 0x05·0x06으로 끊으면 `NotBondedException` → 재시도하지 않음.
-- 목걸이가 우리 본딩을 잃음(다른 폰 등록, 키 삭제. 2.4장 흐름 5, `decisions.md` #43): 폰이 저장된 키로 암호화하다 실패해요.
+- 목걸이가 우리 본딩을 잃음(다른 폰 등록, 키 삭제. 2.4장 흐름 5, `decisions.md` #44): 폰이 저장된 키로 암호화하다 실패해요.
   Android 버전마다 앱이 받는 신호가 달라요(AOSP `btm_sec.cc`·`gatt_auth.cc` 확인).
 
   | Android | 앱이 보는 것 | 처리 |

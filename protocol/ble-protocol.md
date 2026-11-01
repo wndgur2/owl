@@ -146,7 +146,7 @@ STATUS를 열어 둔 이유: 녹음 내용이 없고(배터리·저장 공간·�
    Authentication Failure). 기기는 한 번에 하나만 연결되니, 모르는 상대가 그 자리를 붙잡고 있지 못하게 하려는 거예요.
 5. 폰은 본딩이 있는데 기기가 그 본딩을 지운 경우(다른 폰이 등록함, UNPAIR): 기기가 저장된 키를 거절해요(HCI `0x06`
    PIN or Key Missing). 폰은 다시 등록해야 해요. Android 앱이 받는 신호는 버전마다 달라요(12–15는 GATT status `137`,
-   16+는 폰이 스스로 끊고 암호화 실패 브로드캐스트. `android/README.md` 본딩, `decisions.md` #43).
+   16+는 폰이 스스로 끊고 암호화 실패 브로드캐스트. `android/README.md` 본딩, `decisions.md` #44).
 
 **페어링 창** — 새 페어링을 받는 때
 

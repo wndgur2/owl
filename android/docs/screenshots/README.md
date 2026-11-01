@@ -36,6 +36,15 @@
 
 장소 이름은 adb로 한글을 입력할 수 없어서 영어("Dorm 302")로 넣었어요.
 
+## 설정 › 테마 (2026-11-01, PRD A17)
+
+| 화면 | 라이트 | 다크 |
+|---|---|---|
+| 설정 · 화면 › 테마 (위 표의 설정 스크린샷도 이걸로 바꿈) | [settings-light](settings-light.png) | [settings-dark](settings-dark.png) |
+| 테마 선택 창 | | [theme-dialog-dark](theme-dialog-dark.png) |
+
+새로 설치하면 폰이 라이트 모드여도 다크로 시작해요. 고른 테마는 앱을 다시 켜도 그대로고, 시작 창도 그 테마예요(화면 녹화로 확인).
+
 ## 동기화 확인 로그
 
 전체 동기화 (첫 등록, 시드 데이터):
@@ -77,4 +86,4 @@ OwlSync : sync (MANUAL) attempt 3 failed: fake: device not reachable   → 기�
 | 등록 완료 (LESC 본딩 + 첫 동기화 뒤, 펌웨어 0.1.0은 STATUS 값) | [bumble-registered-light](bumble-registered-light.png) |
 | 기기 · 녹음 꺼짐 (SET_RECORDING 0이 가짜 기기에 반영) | [bumble-recording-off-light](bumble-recording-off-light.png) |
 | 온보딩 · 창 밖 페어링 거절 (SMP 0x08) 안내 | [bumble-pairing-refused-light](bumble-pairing-refused-light.png) |
-| 기기 · 가짜 기기가 키를 잃음 → "다시 등록 필요" (`decisions.md` #43) | [bumble-key-missing-light](bumble-key-missing-light.png) |
+| 기기 · 가짜 기기가 키를 잃음 → "다시 등록 필요" (`decisions.md` #44) | [bumble-key-missing-light](bumble-key-missing-light.png) |

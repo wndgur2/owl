@@ -70,7 +70,7 @@ import java.util.concurrent.atomic.AtomicReference
  * "local host terminated", which on its own says nothing about keys. API 36 also made two
  * broadcasts public that do: ACTION_ENCRYPTION_CHANGE (with the HCI status) and ACTION_KEY_MISSING.
  * [KeyLossWatcher] listens for them while connected, and a 0x16 disconnect waits briefly for one
- * before deciding between "not bonded" and an ordinary lost link (decisions.md #43).
+ * before deciding between "not bonded" and an ordinary lost link (decisions.md #44).
  */
 class BleTransport(context: Context, private val address: String) : OwlTransport {
 
@@ -524,7 +524,7 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
          */
         private val KEY_REFUSED_STATUSES = setOf(0x05, 0x06, 0x25)
 
-        /** How long a 0x16 disconnect waits for the key-loss broadcast. Measured gap on API 37: see decisions.md #43. */
+        /** How long a 0x16 disconnect waits for the key-loss broadcast. Measured gap on API 37: see decisions.md #44. */
         const val KEY_LOSS_GRACE_MS = 1_000L
 
         // API 36 constants (BluetoothDevice.ACTION_ENCRYPTION_CHANGE etc.), spelled out because they
