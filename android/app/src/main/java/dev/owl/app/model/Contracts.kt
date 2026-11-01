@@ -21,6 +21,9 @@ interface TimelineRepository {
      */
     fun standaloneBookmarks(sinceMs: Long?): Flow<List<StandaloneBookmark>>
 
+    /** Device events (not bookmarks) with sort time ≥ [sinceMs] (null = all), oldest first. */
+    fun deviceNotices(sinceMs: Long?): Flow<List<DeviceNotice>>
+
     /** Standalone bookmarks matching the search filters (period, place); empty if the query is not blank. */
     fun searchBookmarks(filter: SearchFilter): Flow<List<StandaloneBookmark>>
 

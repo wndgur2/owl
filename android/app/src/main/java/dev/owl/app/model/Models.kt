@@ -78,6 +78,20 @@ data class StandaloneBookmark(
     val place: Place?,
 )
 
+/**
+ * A pendant event that explains the timeline (F2 in docs/qa, decisions #46): recording turned
+ * off/on, storage full, battery low, pendant off/on. Low emphasis, like a standalone bookmark.
+ * [event]/[arg] are protocol §3.3 values.
+ */
+data class DeviceNotice(
+    val id: Long,
+    val event: Int,
+    val arg: Int,
+    /** Null = "시각 알 수 없음". */
+    val timeMs: Long?,
+    val sortTimeMs: Long,
+)
+
 /** A place the user named (A5/A7). */
 data class NamedPlace(
     val id: Long,
@@ -204,6 +218,8 @@ data class DeviceUiState(
     val storageFull: Boolean = false,
     /** Computed on the phone from the voltage curve (protocol §2.1). */
     val batteryPercent: Int? = null,
+    /** Below 3.6 V (PRD D10): the pendant is about to warn with its LED and shut down at 3.5 V. */
+    val batteryLow: Boolean = false,
     val batteryHoursLeft: Int? = null,
     val storageUsedMb: Double? = null,
     val storageTotalMb: Double? = null,

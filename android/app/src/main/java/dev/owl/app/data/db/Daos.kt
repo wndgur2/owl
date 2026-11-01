@@ -189,7 +189,19 @@ interface EventDao {
            ORDER BY sortTimeMs""",
     )
     fun standaloneBookmarks(sinceMs: Long): Flow<List<StandaloneRow>>
+
+    /** Device events other than bookmarks (recording off/on, storage full, battery low, power off/on), same sorting. */
+    @Query(
+        """SELECT e.rowId AS id, e.event AS event, e.arg AS arg, e.unixMs AS timeMs,
+           COALESCE(e.unixMs, s.sortTimeMs, 0) AS sortTimeMs FROM events e
+           LEFT JOIN segments s ON s.deviceAddress = e.deviceAddress AND s.segmentId = e.segmentId
+           WHERE e.event BETWEEN 2 AND 7 AND COALESCE(e.unixMs, s.sortTimeMs, 0) >= :sinceMs
+           ORDER BY sortTimeMs, e.bootCount, e.uptimeMs""",
+    )
+    fun deviceEvents(sinceMs: Long): Flow<List<DeviceEventRow>>
 }
+
+data class DeviceEventRow(val id: Long, val event: Int, val arg: Int, val timeMs: Long?, val sortTimeMs: Long)
 
 data class KeyCount(val k: Long, val n: Int)
 

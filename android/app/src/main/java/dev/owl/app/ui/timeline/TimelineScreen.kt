@@ -26,7 +26,17 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.GraphicEq
+import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.PowerSettingsNew
+import androidx.compose.material.icons.outlined.SdStorage
+import androidx.compose.ui.graphics.vector.ImageVector
+import dev.owl.app.model.DeviceNotice
+import dev.owl.app.protocol.Cause
+import dev.owl.app.protocol.EventType
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -262,6 +272,7 @@ fun TimelineContent(
                                 is TimelineRow.PlaceHeader -> PlaceHeaderRow(row, formats)
                                 is TimelineRow.Item -> TimelineCard(row.item, formats, onClick = { onOpenEntry(row.item.id) })
                                 is TimelineRow.Bookmark -> StandaloneBookmarkRow(row.bookmark.timeMs, formats)
+                                is TimelineRow.Notice -> DeviceNoticeRow(row.notice, formats)
                             }
                         }
                     }
@@ -332,7 +343,12 @@ private fun PlaceHeaderRow(row: TimelineRow.PlaceHeader, formats: OwlFormats) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Icons.Outlined.Place, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+        Icon(
+            if (row.place != null) Icons.Outlined.Place else Icons.Outlined.LocationOff,
+            null,
+            Modifier.size(18.dp),
+            tint = if (row.place != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(
             formats.place(row.place),
             modifier = Modifier.weight(1f).semantics { heading() },
@@ -372,6 +388,39 @@ fun StandaloneBookmarkRow(timeMs: Long?, formats: OwlFormats, modifier: Modifier
             color = MaterialTheme.colorScheme.tertiary,
         )
         HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/** A pendant event (decisions #46): even lower emphasis than a standalone bookmark, not clickable. */
+@Composable
+fun DeviceNoticeRow(notice: DeviceNotice, formats: OwlFormats, modifier: Modifier = Modifier) {
+    val time = notice.timeMs?.let { formats.hm(it) } ?: stringResource(R.string.time_unknown)
+    val (icon, label) = noticeLabel(notice)
+    val text = stringResource(R.string.notice_line, time, stringResource(label))
+    val warn = notice.event == EventType.STORAGE_FULL || notice.event == EventType.BATTERY_LOW ||
+        (notice.event == EventType.POWER_OFF && notice.arg == Cause.BATTERY)
+    val color = if (warn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clearAndSetSemantics { contentDescription = text },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(icon, null, Modifier.size(16.dp), tint = color)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = color)
+        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+private fun noticeLabel(n: DeviceNotice): Pair<ImageVector, Int> = when (n.event) {
+    EventType.RECORDING_OFF -> Icons.Outlined.MicOff to if (n.arg == Cause.APP) R.string.notice_recording_off_app else R.string.notice_recording_off_button
+    EventType.RECORDING_ON -> Icons.Outlined.Mic to if (n.arg == Cause.APP) R.string.notice_recording_on_app else R.string.notice_recording_on_button
+    EventType.STORAGE_FULL -> Icons.Outlined.SdStorage to R.string.notice_storage_full
+    EventType.BATTERY_LOW -> Icons.Outlined.BatteryAlert to R.string.notice_battery_low
+    EventType.POWER_OFF -> Icons.Outlined.PowerSettingsNew to if (n.arg == Cause.BATTERY) R.string.notice_power_off_battery else R.string.notice_power_off_button
+    else -> Icons.Outlined.PowerSettingsNew to when (n.arg) {
+        Cause.CHARGED -> R.string.notice_power_on_charged
+        Cause.BUTTON -> R.string.notice_power_on_button
+        else -> R.string.notice_power_on_restart
     }
 }
 

@@ -2,6 +2,7 @@ package dev.owl.app.ui.timeline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.owl.app.model.DeviceNotice
 import dev.owl.app.model.StandaloneBookmark
 import dev.owl.app.model.TimelineItem
 import dev.owl.app.model.TimelineRepository
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -57,15 +59,18 @@ class TimelineViewModel(private val repository: TimelineRepository) : ViewModel(
         val items = MutableStateFlow<List<TimelineItem>?>(null)
         launch { repository.timeline(q.limit, q.bookmarkedOnly).collect { items.value = it } }
         val loaded = items.filterNotNull()
-        val bookmarks = loaded
+        val since = loaded
             .map { list -> if (list.size >= q.limit) list.firstNotNullOfOrNull { it.startUnixMs } else null }
             .distinctUntilChanged()
-            .flatMapLatest { since -> repository.standaloneBookmarks(since) }
-        combine(loaded, bookmarks) { list, marks ->
+        val bookmarks = since.flatMapLatest { repository.standaloneBookmarks(it) }
+        // Device notices explain gaps; the bookmark filter is about bookmarks only.
+        val notices: Flow<List<DeviceNotice>> =
+            if (q.bookmarkedOnly) flowOf(emptyList()) else since.flatMapLatest { repository.deviceNotices(it) }
+        combine(loaded, bookmarks, notices) { list, marks, events ->
             TimelineUiState(
                 items = list,
                 bookmarks = marks,
-                rows = buildTimelineRows(mergeTimeline(list, marks)),
+                rows = buildTimelineRows(mergeTimeline(list, marks, events)),
                 bookmarkedOnly = q.bookmarkedOnly,
                 canLoadMore = list.size >= q.limit,
             )
