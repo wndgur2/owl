@@ -59,6 +59,11 @@
 42. **Bumble 가짜 목걸이는 SMP·ATT 결과를 펌웨어(Zephyr)와 같게** — 본딩 안 하는 요청 0x08, LE legacy 0x03, 창 닫힘 0x08(Zephyr `smp_pairing_req()`·`smp_err_get()` 소스 확인), 본딩 없는 상대 ATT 0x05·본딩은 있는데 암호화 전 0x0F. 같은 규칙을 Bumble 가상 링크 두 개로 진짜 SMP를 돌리는 `tools/tests/test_bumble.py`가 CI에서 확인해요(그래서 `bumble`을 `tools/requirements.txt`에 고정). 에뮬레이터 E2E는 에뮬레이터가 있어야 해서 CI에선 안 돌려요
 43. **앱 테마는 설정에서 고름(다크 / 라이트 / 시스템 설정 따름), 기본은 다크** — 사용자가 고른 기본값. 값은 DataStore(`theme_mode`)에 두고, 같은 값을 `UiModeManager.setApplicationNightMode`(API 31+, 앱별로 Android가 저장)에도 넘겨요. 그래서 Compose가 그리기 전 시작 창(`res/values-night`)도 다음 실행부터 고른 테마예요. XML 테마를 항상 다크로 두는 방법은 라이트를 고른 사람이 켤 때마다 어두운 창을 보게 돼서 탈락. 대가: 설치 후 **첫 실행**만은 앱 코드가 돌기 전이라 시작 창이 폰 테마를 따라요(라이트 폰이면 잠깐 밝음). 테마를 바꾸면 Android가 화면(Activity)을 한 번 다시 만들어요(보던 화면은 그대로) (PRD A17). 확인(2026-11-01, 에뮬레이터 API 37, debug): 밝은 건 시스템 시작 창뿐이고 Compose 화면은 첫 프레임부터 다크(첫 실행 시작 창은 2.7–3.7초, 첫 콜드 스타트라 김). 앱별 night mode는 업데이트 설치(`installDebug`)에선 남고, 앱 삭제·데이터 삭제(`pm clear`)에선 지워져서 그 뒤 첫 실행이 설치 직후와 같아요(AOSP `PackageConfigPersister`의 `onPackageUninstall`·`onPackageDataCleared`). 런처 시작 창을 늘 다크로 하는 길은 없어요: "아직 안 정함"과 "라이트"가 둘 다 `notnight` 리소스로 보여서 구분 못 함
 44. **목걸이가 우리 키를 거절하면(2.4장 흐름 5) API 36+는 암호화 브로드캐스트로 알아냄** — Android 16+는 저장된 키로 한 암호화가 실패하면 폰이 스스로 연결을 끊어서(AOSP `btm_sec.cc`, 플래그 `disconnect_on_encryption_failure`) 앱은 HCI 0x16(로컬 호스트가 끊음)만 받아요. 0x16은 다른 이유로도 오니 그것만으로 "다시 등록"을 띄우진 않고, API 36에 공개된 `ACTION_ENCRYPTION_CHANGE`(실패 status 0x05·0x06·0x25, AOSP가 LE 키를 잊는 조건과 같음)나 `ACTION_KEY_MISSING`이 같은 기기에 대해 오면 `NotBondedException`으로 바꿔요. 두 경로가 달라 브로드캐스트가 끊김 콜백보다 늦게 올 수 있어서(에뮬레이터에서 약 9ms 뒤) 0x16이면 최대 1초 기다려요. API 31–35는 끊지 않고 GATT 작업이 137로 끝나 기존 처리로 충분해요(소스 확인, 기기 미확인). 둘 다 보호된 브로드캐스트라 다른 앱이 흉내 낼 수 없어요. 에뮬레이터(API 37)에서 "다시 등록 필요"까지 확인, 진짜 컨트롤러의 0x06은 하드웨어에서 확인해야 해요
+45. **앱 QA는 Bumble 가짜 목걸이에 일주일 치 데이터를 부팅별로 재생해서** — 폰은 그 부팅 안에서 받은 TIME_SYNC로만 시각을 복원해요(프로토콜 4장).
+    QA 폰은 "지금"에만 있어서, 가짜 목걸이(`tools/owlsync/week.py`)가 지난 부팅을 지금 uptime(= 지금 − 켜진 시각)으로 하나씩 보여주고
+    동기화가 끝날 때마다 다음 부팅으로 넘어가요. 폰에 쌓이는 시각은 15분마다 동기화했을 때와 같아요. 에뮬레이터 시계를 과거로 돌리는 방법은
+    Play 이미지에 root가 없어 탈락. 지난 날의 폰 GPS와 텍스트는 debug 빌드에만 있는 명령(`import-locations`, `demo-stt`)으로 넣어요
+    (`geo fix`는 지금 시각만, 진짜 목걸이 등록이면 STT가 없음). 시나리오와 결과는 `docs/qa/` (2026-11-01)
 
 ## 미결정
 

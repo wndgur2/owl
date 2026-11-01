@@ -70,6 +70,7 @@ class OwlDevice:
     bytes_sent: int = 0  # DATA payload bytes handed to the link
     bonds: list[str] = field(default_factory=list)  # bonded central ids (§2.4: at most one stays)
     pairing_window_ms: int = p.PAIRING_WINDOW_MS  # shorter only in tests / fake_owl.py --pairing-window
+    on_disconnected: Callable[[], None] | None = None  # fake_owl.py --week: next boot after a sync
 
     def __post_init__(self) -> None:
         self._t0 = self.clock()
@@ -91,6 +92,14 @@ class OwlDevice:
         self._power_on_t = self._t0
         self._window_used = False
         self.add_event(p.EVT_POWER_ON, cause)
+
+    def jump_to_boot(self, boot_count: int, uptime_ms: int) -> None:
+        """Week replay (owlsync/week.py): be in `boot_count`, up for `uptime_ms`. Unlike reboot(),
+        logs nothing and leaves the pairing window alone; it is not a power cycle, only which
+        past boot the phone sees next."""
+        self.boot_count = boot_count
+        self.uptime_offset_ms = uptime_ms
+        self._t0 = self.clock()
 
     # --- security (§2.4) -----------------------------------------------------
     def pairing_open(self) -> bool:
@@ -183,6 +192,8 @@ class OwlDevice:
         self._cancel_fetch()
         self._link = None
         self.log("central disconnected")
+        if self.on_disconnected:
+            self.on_disconnected()
 
     def _cancel_fetch(self) -> None:
         if self._fetch_task and not self._fetch_task.done():
