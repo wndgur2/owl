@@ -222,6 +222,7 @@ internal class Entry(val key: Long, val rows: List<SegmentRow>) {
 
     fun offsetOfSentence(s: SentenceEntity): Long = startOf(s.segmentRowId) + s.startMs
 
+    /** [Sentence.index] here is the index inside its segment; [sentences] renumbers for the whole entry. */
     fun sentence(s: SentenceEntity): Sentence {
         val base = startOf(s.segmentRowId)
         return Sentence(s.idx, base + s.startMs, base + s.endMs, s.text)
