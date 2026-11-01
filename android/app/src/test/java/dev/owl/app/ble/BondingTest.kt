@@ -26,5 +26,18 @@ class BondingTest {
         assertTrue(BleTransport.isAuthDisconnect(6))
         assertFalse(BleTransport.isAuthDisconnect(8)) // supervision timeout = out of range
         assertFalse(BleTransport.isAuthDisconnect(19)) // remote user terminated
+        // Android 16+ drops the link itself on encryption failure: 0x16 alone is not "not bonded"
+        assertFalse(BleTransport.isAuthDisconnect(BleTransport.HCI_LOCAL_HOST_TERMINATED))
+    }
+
+    @Test
+    fun encryptionChangeBroadcastMeansKeyRefused() {
+        // Real controller: PIN or Key Missing. netsim: Authentication Failure. Encryption Mode Not Acceptable.
+        for (s in listOf(0x06, 0x05, 0x25)) assertTrue("status $s", BleTransport.isKeyRefused(s, encryptionEnabled = false))
+        // Success, or a transient failure (LL response timeout, connection timeout) is not a key problem
+        assertFalse(BleTransport.isKeyRefused(0x00, encryptionEnabled = true))
+        assertFalse(BleTransport.isKeyRefused(0x00, encryptionEnabled = false))
+        assertFalse(BleTransport.isKeyRefused(0x22, encryptionEnabled = false))
+        assertFalse(BleTransport.isKeyRefused(0x08, encryptionEnabled = false))
     }
 }

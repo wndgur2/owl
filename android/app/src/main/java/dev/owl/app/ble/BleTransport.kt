@@ -10,11 +10,17 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import dev.owl.app.device.Characteristic
 import dev.owl.app.device.NotBondedException
 import dev.owl.app.device.OwlTransport
@@ -56,6 +62,15 @@ import java.util.concurrent.atomic.AtomicReference
  * own retry (BluetoothGatt re-tries a status 5/15 operation after pairing/encrypting) ends with
  * status 137 (GATT_AUTH_FAIL), which becomes [NotBondedException]: the sync coordinator stops
  * retrying and shows "다시 등록".
+ *
+ * The pendant lost our bond (§2.4 flow 5) while the phone still has it: the phone encrypts with its
+ * stored key and the controller reports an encryption failure. Android 12–15 then ends the GATT
+ * operation with 137 (AOSP gatt_auth.cc), handled above. Android 16+ instead drops the link itself
+ * (AOSP btm_sec.cc, flag `disconnect_on_encryption_failure`), so we only see disconnect status 0x16
+ * "local host terminated", which on its own says nothing about keys. API 36 also made two
+ * broadcasts public that do: ACTION_ENCRYPTION_CHANGE (with the HCI status) and ACTION_KEY_MISSING.
+ * [KeyLossWatcher] listens for them while connected, and a 0x16 disconnect waits briefly for one
+ * before deciding between "not bonded" and an ordinary lost link (decisions.md #43).
  */
 class BleTransport(context: Context, private val address: String) : OwlTransport {
 
@@ -87,6 +102,10 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
     /** The operation currently waiting for its callback, if any. */
     private val pending = AtomicReference<Pending?>(null)
 
+    /** API 36+: watches for "our stored key was refused" while a connection is open. */
+    @Volatile private var keyLoss: KeyLossWatcher? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     private enum class Kind { CONNECT, MTU, DISCOVER, READ, WRITE, DESCRIPTOR }
 
     private class Pending(val kind: Kind, val target: Any? = null) {
@@ -115,6 +134,7 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
         if (device.bondState != BluetoothDevice.BOND_BONDED) throw NotBondedException("phone has no bond with $address")
 
         negotiatedMtu = DEFAULT_MTU
+        keyLoss = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) KeyLossWatcher(device.address).also { it.register() } else null
         try {
             // 1. Link. autoConnect=false = direct connection attempt, fast but gives up (status 133)
             //    when the pendant is not advertising; the sync engine retries (decisions.md #16).
@@ -275,7 +295,76 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
         gatt = null
         characteristics = emptyMap()
         failPending("disconnected")
+        keyLoss?.unregister()
+        keyLoss = null
         if (g != null) closeQuietly(g)
+    }
+
+    /**
+     * Android dropped the link itself (0x16). If it did so because our key was refused, the
+     * broadcast saying so may arrive just before or just after this callback (they come through
+     * different paths), so give it [KEY_LOSS_GRACE_MS] before failing [p] as an ordinary lost link.
+     * [KeyLossWatcher] fails the pending op as not bonded as soon as the broadcast arrives.
+     */
+    private fun failAfterKeyLossGrace(p: Pending?, watcher: KeyLossWatcher, status: Int) {
+        if (p == null) return
+        mainHandler.postDelayed({
+            val reason = watcher.reason
+            if (pending.compareAndSet(p, null)) {
+                p.result.completeExceptionally(
+                    if (reason != null) NotBondedException("pendant refused our key: $reason")
+                    else TransportException("link lost (GATT status $status)"),
+                )
+            }
+        }, KEY_LOSS_GRACE_MS)
+    }
+
+    /**
+     * API 36+ broadcasts that tell us the pendant no longer has our bond. Both are protected
+     * broadcasts sent by the Bluetooth process (uid 1002), so, as for ACTION_BOND_STATE_CHANGED in
+     * [BondManager], the receiver must be exported and no other app can fake them.
+     */
+    private inner class KeyLossWatcher(private val deviceAddress: String) : BroadcastReceiver() {
+        @Volatile var reason: String? = null
+            private set
+        private var registered = false
+
+        fun register() {
+            val filter = IntentFilter().apply {
+                addAction(ACTION_ENCRYPTION_CHANGE)
+                addAction(ACTION_KEY_MISSING)
+            }
+            ContextCompat.registerReceiver(appContext, this, filter, ContextCompat.RECEIVER_EXPORTED)
+            registered = true
+        }
+
+        fun unregister() {
+            if (!registered) return
+            registered = false
+            try {
+                appContext.unregisterReceiver(this)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "key-loss receiver already gone", e)
+            }
+        }
+
+        override fun onReceive(c: Context, intent: Intent) {
+            val d = IntentCompat.getParcelableExtra(intent, BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+            if (!d?.address.equals(deviceAddress, ignoreCase = true)) return
+            val why = when (intent.action) {
+                ACTION_KEY_MISSING -> "KEY_MISSING"
+                ACTION_ENCRYPTION_CHANGE -> {
+                    val status = intent.getIntExtra(EXTRA_ENCRYPTION_STATUS, 0)
+                    val enabled = intent.getBooleanExtra(EXTRA_ENCRYPTION_ENABLED, false)
+                    Log.i(TAG, "encryption change: status $status, enabled $enabled")
+                    if (isKeyRefused(status, enabled)) "encryption failed, HCI status $status" else null
+                }
+                else -> null
+            } ?: return
+            Log.w(TAG, "pendant refused our key ($why)")
+            reason = why
+            failPending(NotBondedException("pendant refused our key: $why"))
+        }
     }
 
     /**
@@ -332,10 +421,14 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
                     characteristics = emptyMap()
                     closeQuietly(g)
                 }
-                failPending(
-                    if (isAuthDisconnect(status)) NotBondedException("pendant dropped the link: not bonded (status $status)")
-                    else TransportException("link lost (GATT status $status)"),
-                )
+                val watcher = keyLoss
+                val keyRefused = watcher?.reason
+                when {
+                    isAuthDisconnect(status) -> failPending(NotBondedException("pendant dropped the link: not bonded (status $status)"))
+                    keyRefused != null -> failPending(NotBondedException("pendant refused our key: $keyRefused"))
+                    watcher != null && status == HCI_LOCAL_HOST_TERMINATED -> failAfterKeyLossGrace(pending.get(), watcher, status)
+                    else -> failPending(TransportException("link lost (GATT status $status)"))
+                }
                 if (wasConnected) eventChannel.trySend(TransportEvent.Disconnected)
             }
         }
@@ -420,8 +513,33 @@ class BleTransport(context: Context, private val address: String) : OwlTransport
          */
         private val AUTH_DISCONNECT_REASONS = setOf(0x05, 0x06)
 
+        /** HCI 0x16 Connection Terminated by Local Host: Android itself dropped the link. */
+        const val HCI_LOCAL_HOST_TERMINATED = 0x16
+
+        /**
+         * Encryption-change statuses that mean "the peer does not accept our stored key": 0x05
+         * Authentication Failure, 0x06 PIN or Key Missing (what a real controller reports when the
+         * peer answers LTK Negative Reply; netsim reports 0x05), 0x25 Encryption Mode Not Acceptable.
+         * The same set for which AOSP's btm_sec_encrypt_change forgets the LE key.
+         */
+        private val KEY_REFUSED_STATUSES = setOf(0x05, 0x06, 0x25)
+
+        /** How long a 0x16 disconnect waits for the key-loss broadcast. Measured gap on API 37: see decisions.md #43. */
+        const val KEY_LOSS_GRACE_MS = 1_000L
+
+        // API 36 constants (BluetoothDevice.ACTION_ENCRYPTION_CHANGE etc.), spelled out because they
+        // are @FlaggedApi in the SDK; the strings are fixed public API.
+        private const val ACTION_ENCRYPTION_CHANGE = "android.bluetooth.device.action.ENCRYPTION_CHANGE"
+        private const val ACTION_KEY_MISSING = "android.bluetooth.device.action.KEY_MISSING"
+        private const val EXTRA_ENCRYPTION_STATUS = "android.bluetooth.device.extra.ENCRYPTION_STATUS"
+        private const val EXTRA_ENCRYPTION_ENABLED = "android.bluetooth.device.extra.ENCRYPTION_ENABLED"
+
         fun isAuthFailure(gattStatus: Int): Boolean = gattStatus in AUTH_FAILURE_STATUSES
 
         fun isAuthDisconnect(status: Int): Boolean = status in AUTH_DISCONNECT_REASONS
+
+        /** An ACTION_ENCRYPTION_CHANGE broadcast that means the pendant refused our key. */
+        fun isKeyRefused(encryptionStatus: Int, encryptionEnabled: Boolean): Boolean =
+            !encryptionEnabled && encryptionStatus in KEY_REFUSED_STATUSES
     }
 }

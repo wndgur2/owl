@@ -168,18 +168,20 @@ python fake_owl.py --transport bumble --state /tmp/owl.json
 | 목걸이가 꺼져 있을 때 등록 해제 | UNPAIR가 15초 뒤 실패해도 폰 본딩·CDM은 지워짐(2.4장 표와 같음) |
 | 창 밖 페어링 거절 | 가짜 기기는 옛 본딩을 가진 채 창이 닫힘 → 등록 시도 → SMP Pairing Failed 0x08 → 폰 bond state NONE(이유 1) → 앱이 CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에" 안내 |
 | 껐다 켠 뒤 다시 등록 | `reboot` → 창 안에서 등록 성공, 옛 본딩은 새 본딩이 생긴 뒤에 교체 |
+| 목걸이가 키를 잃음(2.4장 흐름 5) | 등록 → 가짜 기기 끄기 → `/tmp/owl.keys.json` 삭제 → 다시 띄우고 동기화 → 폰이 저장된 키로 암호화하다 실패(netsim은 HCI 0x05) → Android가 **스스로** 연결을 끊음(status 22) → `ACTION_ENCRYPTION_CHANGE`(status 5, 꺼짐) → `NotBondedException` → 재시도 없이 "다시 등록 필요". 브로드캐스트는 끊김 콜백보다 약 9ms **뒤에** 온 적도, 앞에 온 적도 있음(#43). 2026-11-01 API 37 |
 
 스크린샷: [CDM 선택 창](docs/screenshots/bumble-cdm-light.png), [등록 완료](docs/screenshots/bumble-registered-light.png),
 [녹음 꺼짐](docs/screenshots/bumble-recording-off-light.png), [페어링 거절 안내](docs/screenshots/bumble-pairing-refused-light.png),
-[키 분실 → 연결 끊김](docs/screenshots/bumble-key-missing-light.png).
+[키 분실 → 다시 등록 필요](docs/screenshots/bumble-key-missing-light.png).
 
 확인 못 한 것 / 에뮬레이터라 다른 것:
 
-- **목걸이가 키를 잃은 경우(2.4장 흐름 5)**: 가짜 기기의 키 파일을 지우고 동기화하면 폰이 저장된 키로 암호화하다 실패하고 **폰이
-  스스로** 연결을 끊어서 앱은 GATT status 22(0x16, 로컬 호스트가 끊음)를 받아요. 앱은 0x05·0x06만 "본딩 없음"으로 보니까 세 번
-  재시도한 뒤 "연결 끊김"을 보여주고 "다시 등록"은 안내하지 않아요([스크린샷](docs/screenshots/bumble-key-missing-light.png)).
-  netsim은 이 실패를 진짜 컨트롤러의 0x06 대신 0x05로 내서(`tools/README.md`) Android의 `ACTION_KEY_MISSING` 경로가 돌지 않아요.
-  실제 목걸이에서 어떤 status가 오는지는 아직 몰라요.
+- **목걸이가 키를 잃은 경우(2.4장 흐름 5)**: 에뮬레이터(API 37)에서는 위 표처럼 "다시 등록 필요"까지 확인했어요. 확인 못 한 것:
+  - netsim은 암호화 실패를 진짜 컨트롤러의 0x06(PIN or Key Missing) 대신 0x05로 내서(`tools/README.md`) `ACTION_KEY_MISSING`은
+    에뮬레이터에서 안 와요. 0x06이면 `ACTION_ENCRYPTION_CHANGE`(status 6)와 `ACTION_KEY_MISSING`이 둘 다 온다는 건 AOSP 소스로만 확인.
+  - API 31–35: 연결을 끊지 않고 GATT 작업이 status 137로 끝나서 기존 처리로 "다시 등록"이 된다는 건 AOSP 소스(`gatt_auth.cc`)로만 확인.
+  - API 36에서 끊는 플래그(`disconnect_on_encryption_failure`)와 브로드캐스트 플래그가 제조사 폰에서 켜져 있는지. 끊기만 하고
+    브로드캐스트가 없으면 예전처럼 "연결 끊김"이 돼요.
 - 60초 암호화 타임아웃은 앱이 늘 바로 암호화해서 에뮬레이터에선 안 일어나요(`tools/tests/test_bumble.py`에서 확인).
 - 2분이 지나 창이 닫히는 것은 `--pairing-window 10`으로 줄여서 확인했어요.
 - 처리량·유실은 netsim 값이라 의미 없어요. API 31–35 경로(리플렉션 `removeBond` 등)는 에뮬레이터 API 37만 봤어요.
@@ -202,12 +204,22 @@ python fake_owl.py --transport bumble --state /tmp/owl.json
 python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 ```
 
-## 본딩 (프로토콜 2.4장, `decisions.md` #33–#40)
+## 본딩 (프로토콜 2.4장, `decisions.md` #33–#40, #43)
 
 - 등록: CDM 선택 → `BondManager.bond()`가 `createBond()` 후 `ACTION_BOND_STATE_CHANGED`를 기다림(60초) → 성공해야 등록 저장.
   목걸이가 거절하면(다른 폰이 본딩돼 있고 켠 지 2분이 지남) CDM 등록을 되돌리고 "껐다 켠 뒤 2분 안에 다시" 안내.
 - 동기화: 폰에 본딩이 없으면 연결하지 않고(백그라운드에서 페어링 창이 뜨지 않게) "다시 등록 필요". GATT status 5·15·137,
   또는 목걸이가 HCI 0x05·0x06으로 끊으면 `NotBondedException` → 재시도하지 않음.
+- 목걸이가 우리 본딩을 잃음(다른 폰 등록, 키 삭제. 2.4장 흐름 5, `decisions.md` #43): 폰이 저장된 키로 암호화하다 실패해요.
+  Android 버전마다 앱이 받는 신호가 달라요(AOSP `btm_sec.cc`·`gatt_auth.cc` 확인).
+
+  | Android | 앱이 보는 것 | 처리 |
+  |---|---|---|
+  | 12–15 (API 31–35) | 연결은 유지, 진행 중인 GATT 작업이 137 | 기존 137 처리 |
+  | 16+ (API 36+) | 폰이 스스로 끊음(status 22 = 0x16) + `ACTION_ENCRYPTION_CHANGE`(실패 status), 0x06이면 `ACTION_KEY_MISSING`도 | `BleTransport`가 연결 동안 두 브로드캐스트를 받아요. 0x16으로 끊기면 브로드캐스트를 최대 1초(`KEY_LOSS_GRACE_MS`) 기다려 "본딩 없음"인지 정해요 |
+
+  0x16만으로는 판단하지 않아요(Android가 다른 이유로 끊어도 0x16). 암호화 실패 status 0x05·0x06·0x25만 "키 거절"로 봐요
+  (AOSP가 LE 키를 잊는 조건과 같음).
 - 등록 해제: UNPAIR(목걸이가 모든 본딩 삭제, 10초 안에 못 하면 건너뜀) → 폰 본딩 삭제(API 36 `CompanionDeviceManager.removeBond`,
   31–35는 `BluetoothDevice.removeBond` 리플렉션) → CDM 해제. 폰 본딩 삭제가 안 되면 로그만 남겨요(시스템 블루투스 설정에서 지울 수 있음).
 - 가짜 기기: 본딩을 흉내 내지 않아요. `refuseAsNotBonded`로 거절을, UNPAIR로 STATUS bit4를 시험해요.
@@ -227,8 +239,8 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
 - 위치: 백그라운드 위치 권한 + PendingIntent 업데이트가 앱 프로세스 없이 들어오는지
 - `SyncService`의 15분 대기: Doze 중엔 코루틴 타이머가 멈춰서 `setAndAllowWhileIdle` 알람으로 깨워요. 몇 분 늦을 수 있어요. 동기화 한 번에 최대 10분 wake lock
 - GATT 오류(status 133 등) 처리, API 31–32 경로(에뮬레이터는 API 37만 확인)
-- 본딩: 확인 창 없는 등록과 창 밖 거절은 에뮬레이터(API 37)에서 확인. 남은 것: 리플렉션 `removeBond`가 제조사 ROM에서도 되는지,
-  목걸이가 키를 잃었을 때 Android 버전별 동작(에뮬레이터에선 앱이 "다시 등록" 대신 "연결 끊김"을 보여줌, 위 참고)
+- 본딩: 확인 창 없는 등록과 창 밖 거절, 목걸이가 키를 잃었을 때 "다시 등록 필요"는 에뮬레이터(API 37)에서 확인. 남은 것:
+  리플렉션 `removeBond`가 제조사 ROM에서도 되는지, 키 분실 때 진짜 컨트롤러의 0x06·`ACTION_KEY_MISSING`과 API 31–35의 137(위 참고)
 - Opus 디코더: Android 디코더는 48kHz 출력만 받아서 OpusHead에 16kHz를 적고 48kHz로 디코딩해요. pre-skip 312, seek pre-roll 80ms
 
 ## 아직 안 된 것 / 다음 마일스톤

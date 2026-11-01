@@ -77,4 +77,4 @@ OwlSync : sync (MANUAL) attempt 3 failed: fake: device not reachable   → 기�
 | 등록 완료 (LESC 본딩 + 첫 동기화 뒤, 펌웨어 0.1.0은 STATUS 값) | [bumble-registered-light](bumble-registered-light.png) |
 | 기기 · 녹음 꺼짐 (SET_RECORDING 0이 가짜 기기에 반영) | [bumble-recording-off-light](bumble-recording-off-light.png) |
 | 온보딩 · 창 밖 페어링 거절 (SMP 0x08) 안내 | [bumble-pairing-refused-light](bumble-pairing-refused-light.png) |
-| 기기 · 가짜 기기가 키를 잃음 → "연결 끊김" ("다시 등록"이 아님, android/README 참고) | [bumble-key-missing-light](bumble-key-missing-light.png) |
+| 기기 · 가짜 기기가 키를 잃음 → "다시 등록 필요" (`decisions.md` #43) | [bumble-key-missing-light](bumble-key-missing-light.png) |
