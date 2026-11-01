@@ -80,10 +80,22 @@ class AppContainer(private val context: Context) {
 
     suspend fun currentRetention(): RetentionPolicy = settingsStore.retention.first()
 
-    /** STT engine: demo sentences only for the fake pendant in debug builds (see stt/Transcriber.kt). */
+    /**
+     * STT engine: demo sentences only in debug builds — for the fake pendant, or for any pendant
+     * after the debug `demo-stt` command (QA over the real BLE path, docs/qa/). See stt/Transcriber.kt.
+     */
     private suspend fun transcriber(): Transcriber {
         val fake = settingsStore.current()?.isFake == true
-        return if (fake && BuildConfig.DEBUG) DemoTranscriber() else PlaceholderTranscriber()
+        val demo = BuildConfig.DEBUG && (fake || debugPrefs.getBoolean(DEBUG_DEMO_STT, false))
+        return if (demo) DemoTranscriber() else PlaceholderTranscriber()
+    }
+
+    /** Debug-build switches set over adb (FakeDeviceCommandReceiver). Never read in release. */
+    val debugPrefs: android.content.SharedPreferences by lazy { context.getSharedPreferences("debug", Context.MODE_PRIVATE) }
+
+    /** Debug: re-resolves places after fixes were imported (FakeDeviceCommandReceiver). */
+    suspend fun resolvePlaces() {
+        placeResolver.resolve()
     }
 
     val timelineRepository: TimelineRepository by lazy {
@@ -215,3 +227,6 @@ class AppContainer(private val context: Context) {
         followThemeSetting()
     }
 }
+
+/** Debug pref key: demo sentences for a real (BLE) pendant too. */
+const val DEBUG_DEMO_STT = "demo_stt"

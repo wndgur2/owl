@@ -95,6 +95,7 @@ class BumblePeripheral(PeripheralLink):
         self._chars: dict[str, object] = {}
         self._timeout_task: asyncio.Task | None = None
         self.drop_after_data: int | None = None  # test hook: drop the link after N more DATA chunks
+        self.lose_data_at: int | None = None  # test hook: silently skip the Nth next DATA chunk
 
     # --- PeripheralLink ------------------------------------------------------------------
     @property
@@ -124,6 +125,12 @@ class BumblePeripheral(PeripheralLink):
                 await self._disconnect(conn, HCI_REMOTE_USER_TERMINATED)
                 raise TransportError("link dropped (test hook)")
             self.drop_after_data -= 1
+        if char_uuid == p.DATA_UUID and self.lose_data_at is not None:
+            if self.lose_data_at <= 0:
+                self.lose_data_at = None
+                self.log("losing one DATA chunk (test hook)")
+                return
+            self.lose_data_at -= 1
         await self.bumble.notify_subscriber(conn, self._chars[char_uuid], value)
 
     def drop_central(self) -> None:

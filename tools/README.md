@@ -13,7 +13,7 @@ PC(macOS)에서 돌리는 Python 도구예요. 펌웨어와 앱을 **서로 없�
 | `fake_owl.py` | 가짜 Owl. macOS에서 진짜 BLE로 광고(`bless`), 또는 Android 에뮬레이터의 가상 블루투스에 붙어 광고(`--transport bumble`) |
 | `ble_scan.py` | 근처 Owl 찾기, STATUS 읽기 |
 | `owlsync/` | 위 도구들이 쓰는 패키지 (아래 표) |
-| `tests/` | `test_owlproto.py`(스펙 숫자), `test_sync.py`(동기화 E2E + 고장 주입), `test_audio.py`(Ogg/Opus), `test_security.py`(본딩 규칙, loopback), `test_bumble.py`(본딩 규칙, 진짜 SMP·ATT) |
+| `tests/` | `test_owlproto.py`(스펙 숫자), `test_sync.py`(동기화 E2E + 고장 주입), `test_audio.py`(Ogg/Opus), `test_security.py`(본딩 규칙, loopback), `test_bumble.py`(본딩 규칙, 진짜 SMP·ATT), `test_week.py`(QA용 일주일 시드) |
 
 `owlsync/` 안:
 
@@ -28,6 +28,7 @@ PC(macOS)에서 돌리는 Python 도구예요. 펌웨어와 앱을 **서로 없�
 | `timesync.py`, `render.py` | TIME_SYNC 기록과 시각 복원 / `.owls` → `.ogg`·`.wav`·`.json`·`.csv` |
 | `ble.py`, `ble_peripheral.py` | `bleak` 중앙(central) 전송 / `bless` 주변기기(peripheral) |
 | `ble_bumble.py` | Bumble 주변기기: 에뮬레이터(netsim)·USB 동글·테스트용 가상 링크. 프로토콜 2.4장 보안을 펌웨어처럼 지킴 |
+| `week.py` | 앱 QA용 일주일 시드와 부팅별 재생 (`fake_owl.py --week`) |
 
 ## 설치
 
@@ -148,10 +149,33 @@ python fake_owl.py --transport bumble --state /tmp/owl.json --pairing-window 10 
 
 - `--state X.json`이면 본딩 키가 `X.keys.json`(Bumble `JsonKeyStore`)에 남아요. 다시 띄우는 것 = 껐다 켜기(부팅 번호 +1, 페어링 창 열림).
   주소는 이름 끝 4자리에서 만들어서(`Owl-FA4E` → `C0:0F:F0:00:FA:4E`) 다시 띄워도 폰의 본딩이 그대로 맞아요.
-- 실행 중 표준 입력 명령: `reboot`(연결 끊고 껐다 켜기), `record`, `bookmark`, `status`(STATUS·본딩·녹음 상태 출력),
-  `drop N`(다음 FETCH에서 DATA N개 뒤 연결 끊기, 이어받기 시험).
+- 실행 중 표준 입력 명령: `reboot`(연결 끊고 껐다 켜기), `record`(녹음 꺼짐·가득 참이면 안 함), `bookmark`, `rec`(버튼 2초:
+  녹음 끄기/켜기, 이벤트 원인 0), `battery MV`(3600 아래로 내려가면 배터리 부족 이벤트), `storage KB`(플래시 크기, 가득 참 시험),
+  `status`(STATUS·본딩·녹음 상태 출력), `drop N`(다음 FETCH에서 DATA N개 뒤 연결 끊기, 이어받기 시험),
+  `lose N`(다음 FETCH의 N번째 DATA 하나만 안 보내기, 빈 곳 다시 받기 시험), `next`(`--week`: 다음 부팅으로 바로).
 - 앱의 debug 빌드에서 `adb shell am broadcast -a dev.owl.app.debug.FAKE -p dev.owl.app --es cmd sync`로 바로 동기화할 수 있어요
   (등록된 기기가 진짜든 가짜든 같은 명령).
+
+#### 일주일 치 데이터 (`--week`, 앱 QA용)
+
+```bash
+python fake_owl.py --transport bumble --name Owl-0A7E --state /tmp/qa.json --week --locations-out /tmp/qa_fixes.csv \
+    --phone-clock-offset "$(python3 -c "import time,subprocess; t=time.time(); e=float(subprocess.check_output(['adb','shell','date','+%s.%N'])); print(round(e-(t+time.time())/2,3))")"
+```
+
+[`owlsync/week.py`](owlsync/week.py)가 오늘을 기준으로 7일 전 아침부터 지금(20분 전)까지 녹음·북마크·녹음 꺼짐·재부팅(시각 동기화를 못 한 부팅 포함)·
+배터리 부족·저장 공간 가득 참·2분 묶기 경계·위치 없는 시간을 만들어요. 날짜별 내용과 시나리오는 [`docs/qa/scenarios.md`](../docs/qa/scenarios.md).
+
+- **같은 데이터**: 오늘 날짜·`--seed`(기본 7)·state(부팅 번호·다음 id)가 같으면 같아요. 다시 하려면 state·키 파일을 지우고 앱도 지워요
+  (id가 이미 받은 것과 겹치면 앱은 받은 것으로 알고 ACK만 해요).
+- **부팅을 하나씩**: 폰은 그 부팅 안의 TIME_SYNC로만 시각을 복원해요(프로토콜 4장). 그래서 가짜 기기가 지난 부팅을 "지금 uptime = 지금 −
+  켜진 시각"으로 하나씩 보여주고, 그 부팅에서 TIME_SYNC가 있던 연결이 끊기면 다음 부팅으로 넘어가요. 동기화 세 번이면 일주일이 다 들어와요.
+  동기화를 못 한 부팅은 건너뛰고 그 녹음은 다음 부팅과 같이 넘겨요("시각 알 수 없음").
+- **규모**: 시각은 실제처럼, 오디오는 짧게(대화 = 60–110초 간격의 2–3초 세그먼트). 약 530개, 2MB.
+- **폰 시계**: 에뮬레이터 시계는 이 컴퓨터와 몇 초 달라요(이번엔 −9.4초). `--phone-clock-offset`을 주면 녹음이 폰 시각으로 정확히 그 시각(14:00:00)에 놓여요.
+- **위치**: 지난 날의 폰 GPS는 에뮬레이터 `geo fix`로 못 만들어서(지금 시각으로만 찍힘) CSV로 쓰고 앱 debug 명령 `import-locations`로 넣어요
+  ([`android/README.md`](../android/README.md) 가짜 기기 모드 표).
+- 테스트: `tests/test_week.py`(결정성, 경계 사례가 데이터에 있는지, 부팅별 재생이 PC 엔진으로 정확한 시각을 내는지).
 
 가짜 기기가 펌웨어(`firmware/src/ble.c`)처럼 하는 것 (프로토콜 2.4장):
 

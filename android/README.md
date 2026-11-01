@@ -60,6 +60,10 @@ adb shell am broadcast -a dev.owl.app.debug.FAKE -p dev.owl.app --es cmd registe
 | `reboot` | | 기기 재시작 (boot_count +1) |
 | `button-rec` | | 버튼 2초 (녹음 끄기/켜기) |
 | `battery` | mV | 배터리 전압 바꾸기 |
+| `import-locations` | | `files/qa_locations.csv`(`time_ms,lat,lon,accuracy_m`)의 폰 GPS 기록을 넣고 장소를 다시 계산. 진짜 목걸이에도 됨 (QA 일주일 시드, `tools/fake_owl.py --week --locations-out`) |
+| `demo-stt` | 1 / 0 | 진짜 목걸이로 등록해도 `DemoTranscriber` 고정 문장을 씀(기본은 가짜 기기에서만). QA용 |
+
+`import-locations` 파일 넣기: `adb push qa_fixes.csv /data/local/tmp/ && adb shell run-as dev.owl.app cp /data/local/tmp/qa_fixes.csv files/qa_locations.csv`.
 
 이 receiver는 debug 빌드에만 있고, adb shell만 가진 `DUMP` 권한으로 막혀 있어요.
 
