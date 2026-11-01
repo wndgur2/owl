@@ -2,6 +2,7 @@ package dev.owl.app.export
 
 import android.content.ContentResolver
 import android.net.Uri
+import dev.owl.app.data.PlaceResolver
 import dev.owl.app.data.assemble
 import dev.owl.app.data.db.OwlDatabase
 import kotlinx.coroutines.flow.first
@@ -44,9 +45,14 @@ class JsonExporter(
                 sortTimeMs = e.sortTimeMs,
             )
         }
+        val places = db.places().all()
         val bookmarks = db.events().standaloneBookmarks(Long.MIN_VALUE).first().map { b ->
+            // Same place the timeline shows for it: the nearest fix in time, named if inside a named place.
+            val fix = b.timeMs?.let { t -> db.locations().nearest(t, t - PlaceResolver.MAX_GAP_MS, t + PlaceResolver.MAX_GAP_MS) }
             ExportRecord(
-                kind = "bookmark", start = b.timeMs, durationMs = 0, placeName = null, latitude = null, longitude = null,
+                kind = "bookmark", start = b.timeMs, durationMs = 0,
+                placeName = fix?.let { PlaceResolver.nearestPlace(places, it.latitude, it.longitude)?.name },
+                latitude = fix?.latitude, longitude = fix?.longitude,
                 bookmarksMs = listOf(0), sentences = emptyList(), sortTimeMs = b.sortTimeMs,
             )
         }
