@@ -164,11 +164,14 @@ fun TimelineContent(
         } else {
             val reversed = rows.lastIndex - hit.index
             listState.scrollToItem(reversed)
-            // In reverse layout the item lands at the bottom edge; push it up to the top edge.
+            // In reverse layout the item lands at the bottom edge; push it up to the top edge. Not by
+            // a whole viewport: near the oldest record the list can't scroll that far, so the item
+            // already sits higher (offset > 0) and a full push would scroll the day out of view.
             val info = listState.layoutInfo
-            val size = info.visibleItemsInfo.firstOrNull { it.index == reversed }?.size ?: 0
+            val item = info.visibleItemsInfo.firstOrNull { it.index == reversed }
             val viewport = info.viewportEndOffset - info.viewportStartOffset - info.beforeContentPadding - info.afterContentPadding
-            if (viewport > size) listState.scrollBy(-(viewport - size).toFloat())
+            val push = viewport - ((item?.offset ?: 0) + (item?.size ?: 0))
+            if (push > 0) listState.scrollBy(-push.toFloat())
         }
         if (hit?.value?.date != target) snackbar.showSnackbar(movedToNearest)
         onJumpHandled()
