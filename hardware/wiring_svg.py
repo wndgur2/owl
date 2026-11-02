@@ -3,16 +3,17 @@
 
 납땜할 때 옆에 두고 보는 2D 배선도. 연결은 wiring.md, 핀 배열은 실물(위에서 본 모습) 그대로이고,
 선 경로는 보기 좋게 정리한 것(실제 경로는 case.md). 선은 직각으로만 꺾고, 건너는 곳은 넘어가는 표시를 해요.
-플래시 핀 순서상 선 세 군데는 꼭 건너야 해요(평면에 그리면 피할 수 없음). 그보다 많이 건너거나 선이 겹치면 실패해요.
+3V3을 플래시 8번 VCC에 바로 이으면(3D 모델과 같음) 핀 순서상 평면에선 선 네 군데가 꼭 건너야 해요.
+그보다 많이 건너거나 선이 겹치면 실패해요.
 """
 from pathlib import Path
 
 RED, BLACK, BLUE = "#d62828", "#1d1d1d", "#1f6fd1"
 SANS = "-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif"
 MONO = "ui-monospace, Menlo, Consolas, monospace"
-W, H = 1080, 1056
+W, H = 1080, 1080
 HOP = 7          # 건너는 곳 반원 반지름
-EXPECTED_CROSSINGS = 3
+EXPECTED_CROSSINGS = 4
 
 # ---------- 배치 ----------
 # XIAO: USB-C 위, 왼쪽 줄 D0–D6, 오른쪽 줄 5V·GND·3V3·D10·D9·D8·D7 (위→아래)
@@ -32,20 +33,21 @@ def pad_y(name):
 # BAT+·BAT−: 밑면 패드(위치는 추정). BAT+가 오른쪽(오른쪽 줄 쪽)
 BAT_P, BAT_N = (480, 367), (420, 367)
 
-# W25Q128, 다리를 위로 뒤집어 위에서 본 모습(dead-bug). 1번에서 시계 방향으로 1..8
+# W25Q128, 다리를 위로 뒤집어 위에서 본 모습(dead-bug). 1번에서 시계 방향으로 1..8.
+# 3D 모델과 같은 방향: 보드 쪽 줄이 8·7·6·5, 바깥 줄이 1·2·3·4
 FX0, FX1, FY0, FY1 = 760, 920, 285, 485
 LEG = 30
-FLEFT = [(4, "GND"), (3, "/WP"), (2, "DO"), (1, "/CS")]     # 보드 쪽 줄, 위→아래
-FRIGHT = [(5, "DI"), (6, "CLK"), (7, "/HOLD"), (8, "VCC")]  # 바깥 줄, 위→아래
+FLEFT = [(8, "VCC"), (7, "/HOLD"), (6, "CLK"), (5, "DI")]   # 보드 쪽 줄, 위→아래
+FRIGHT = [(1, "/CS"), (2, "DO"), (3, "/WP"), (4, "GND")]    # 바깥 줄, 위→아래
 
 
 def fpin_y(n):
-    col = FLEFT if n <= 4 else FRIGHT
+    col = FLEFT if n >= 5 else FRIGHT
     return FY0 + 25 + [p for p, _ in col].index(n) * PITCH
 
 
 def ftip(n):
-    return (FX0 - LEG if n <= 4 else FX1 + LEG, fpin_y(n))
+    return (FX0 - LEG if n >= 5 else FX1 + LEG, fpin_y(n))
 
 
 # 마스터 버튼: 다리 4개, 대각선 두 다리(왼쪽 위·오른쪽 아래)가 스위치 양쪽
@@ -65,33 +67,35 @@ def L(name):
 
 
 # ---------- 전선 ----------
-# (이름, 색, 점들, 점선?, 넘어가는 선?) — 넘어가는 선이 건너는 곳에 반원을 그려요
+# (이름, 색, 점들, 점선?, 넘어가는 순위) — 두 선이 건너면 순위가 높은 선에 반원을 그려요
 WIRES = [
-    ("BAT+", RED, [(AX1, 100), (515, 100), (515, BY0)], False, False),
-    ("BAT+ 밑", RED, [(515, BY0), (515, BAT_P[1]), BAT_P], True, False),
-    ("BAT−", BLACK, [(AX1, 125), (385, 125), (385, BY0)], False, False),
-    ("BAT− 밑", BLACK, [(385, BY0), (385, BAT_N[1]), BAT_N], True, False),
-    ("GND→4", BLACK, [R("GND"), (705, pad_y("GND")), (705, fpin_y(4)), ftip(4)], False, False),
-    ("3V3→3", RED, [R("3V3"), (685, pad_y("3V3")), (685, fpin_y(3)), ftip(3)], False, False),
-    ("D9→2", BLUE, [R("D9"), (665, pad_y("D9")), (665, fpin_y(2)), ftip(2)], False, False),
-    # D10은 3V3·GND를 넘어 칩 위쪽으로 돌아 5번으로
-    ("D10→5", BLUE, [R("D10"), (632, pad_y("D10")), (632, 255), (975, 255), (975, fpin_y(5)), ftip(5)], False, True),
-    # D8은 칩 아래로 돌아 6번으로
-    ("D8→6", BLUE, [R("D8"), (645, pad_y("D8")), (645, 545), (995, 545), (995, fpin_y(6)), ftip(6)], False, False),
-    # D3은 보드 아래로 돌아 1번으로 (D8을 넘어감)
-    ("D3→1", BLUE, [L("D3"), (260, pad_y("D3")), (260, 600), (715, 600), (715, fpin_y(1)), ftip(1)], False, True),
-    ("D1→버튼", BLUE, [L("D1"), (240, pad_y("D1")), (240, 640), (K_UL[0], 640), K_UL], False, False),
-    # 버튼 GND: GND 선에서 갈라져 바깥으로 돌아 버튼 오른쪽 아래 다리로
-    ("GND→버튼", BLACK, [(614, pad_y("GND")), (614, 225), (1020, 225), (1020, 810), (K_LR[0], 810), K_LR], False, False),
+    ("BAT+", RED, [(AX1, 100), (515, 100), (515, BY0)], False, 0),
+    ("BAT+ 밑", RED, [(515, BY0), (515, BAT_P[1]), BAT_P], True, 0),
+    ("BAT−", BLACK, [(AX1, 125), (385, 125), (385, BY0)], False, 0),
+    ("BAT− 밑", BLACK, [(385, BY0), (385, BAT_N[1]), BAT_N], True, 0),
+    ("3V3→8", RED, [R("3V3"), (705, pad_y("3V3")), (705, fpin_y(8)), ftip(8)], False, 0),
+    # D10·D8은 5·6번이 패드와 순서가 반대라 한 번 건너요
+    ("D10→5", BLUE, [R("D10"), (665, pad_y("D10")), (665, fpin_y(5)), ftip(5)], False, 2),
+    ("D8→6", BLUE, [R("D8"), (685, pad_y("D8")), (685, fpin_y(6)), ftip(6)], False, 0),
+    # 바깥 줄(1·2·4번)로 가는 선은 칩을 돌아가요. D9는 칩 아래로 (D8을 넘어감)
+    ("D9→2", BLUE, [R("D9"), (645, pad_y("D9")), (645, 545), (980, 545), (980, fpin_y(2)), ftip(2)], False, 1),
+    # D3은 보드와 칩 아래로 돌아 1번으로
+    ("D3→1", BLUE, [L("D3"), (260, pad_y("D3")), (260, 600), (1000, 600), (1000, fpin_y(1)), ftip(1)], False, 0),
+    # GND는 칩 위로 넘어 바깥에서 4번으로 (D9·D3를 넘어감)
+    ("GND→4", BLACK, [R("GND"), (625, pad_y("GND")), (625, 255), (1020, 255), (1020, fpin_y(4)), ftip(4)], False, 3),
+    ("D1→버튼", BLUE, [L("D1"), (240, pad_y("D1")), (240, 640), (K_UL[0], 640), K_UL], False, 0),
+    # 버튼 GND: GND 선 모서리에서 갈라져 버튼 오른쪽 아래 다리로
+    ("GND→버튼", BLACK, [(1020, fpin_y(4)), (1020, 810), (K_LR[0], 810), K_LR], False, 0),
 ]
-# 칩 위 점퍼(3V3): 3 /WP → 칩 등 위로 → 7 /HOLD, 7 → 8 VCC
+# 칩 위 점퍼(3V3): 8 VCC → 옆 다리 7 /HOLD, 7 → 칩 등 위로 → 3 /WP
 JUMPERS = [
-    ("3→7", RED, [(FX0, fpin_y(3)), (840, fpin_y(3)), (840, fpin_y(7)), (FX1, fpin_y(7))]),
-    ("7→8", RED, [(FX1 + 15, fpin_y(7)), (FX1 + 15, fpin_y(8))]),
+    ("8→7", RED, [(FX0 - 15, fpin_y(8)), (FX0 - 15, fpin_y(7))]),
+    ("7→3", RED, [(FX0, fpin_y(7)), (840, fpin_y(7)), (840, fpin_y(3)), (FX1, fpin_y(3))]),
 ]
+GND_SPLIT = (1020, fpin_y(4))
 SOLDER = [w[2][-1] for w in WIRES if not w[0].startswith("BAT")] + \
-         [w[2][0] for w in WIRES if w[0] in ("GND→4", "3V3→3", "D9→2", "D10→5", "D8→6", "D3→1", "D1→버튼")] + \
-         [(FX1 + 15, fpin_y(7)), (FX1 + 15, fpin_y(8)), BAT_P, BAT_N]
+         [w[2][0] for w in WIRES if not w[0].startswith("BAT") and w[0] != "GND→버튼"] + \
+         [(FX0 - 15, fpin_y(8)), (FX0 - 15, fpin_y(7)), BAT_P, BAT_N]
 
 
 # ---------- 검사: 직각, 겹침 없음, 건너는 곳 수 ----------
@@ -100,7 +104,7 @@ def segs(pts):
 
 
 def net(name):
-    return {"BAT+": "BAT+", "BAT−": "BAT−", "3→7": "3V3", "7→8": "3V3"}.get(name.split(" ")[0], name.split("→")[0])
+    return {"BAT+": "BAT+", "BAT−": "BAT−", "8→7": "3V3", "7→3": "3V3"}.get(name.split(" ")[0], name.split("→")[0])
 
 
 def check():
@@ -216,10 +220,9 @@ def draw():
             add(f'<rect x="{x0}" y="{y - 4}" width="{LEG}" height="8" fill="#b9bcc2" stroke="#7d828a"/>')
             tx, anchor = (FX0 + 8, "start") if side == "L" else (FX1 - 8, "end")
             text(tx, y - 7, f"{n} {lab}" if side == "L" else f"{lab} {n}", 13, anchor, "700", "#ffffff", MONO)
-    add(f'<circle cx="{FX0 + 12}" cy="{FY1 - 10}" r="5" fill="#ffffff"/>')
-    text(FX0 + 22, FY1 - 6, "1번", 11, fill="#ffffff")
-    text((FX0 + FX1) / 2, FY1 + 20, "W25Q128 · 다리가 위(dead-bug)", 13, "middle", "700")
-    text((FX0 + FX1) / 2, FY1 + 36, "SOIC-8", 11, "middle", fill="#555")
+    add(f'<circle cx="{FX1 - 12}" cy="{fpin_y(1) + 13}" r="5" fill="#ffffff"/>')
+    text(FX1 - 22, fpin_y(1) + 17, "1번", 11, "end", fill="#ffffff")
+    text((FX0 + FX1) / 2, FY1 + 20, "W25Q128 (SOIC-8) · 다리가 위", 13, "middle", "700")
 
     # 버튼
     for (x, y) in (K_UL, K_UR, K_LL, K_LR):
@@ -233,7 +236,8 @@ def draw():
     # 전선
     hops = {}
     for n1, n2, p in crossings:
-        over = n1 if next(w for w in WIRES if w[0] == n1)[4] else n2
+        rank = {w[0]: w[4] for w in WIRES}
+        over = n1 if rank.get(n1, 0) > rank.get(n2, 0) else n2
         hops.setdefault(over, []).append(p)
     for n, c, pts, dashed, _ in WIRES:
         dash = ' stroke-dasharray="7 5"' if dashed else ""
@@ -242,48 +246,48 @@ def draw():
     for n, c, pts in JUMPERS:
         add(f'<path d="{wire_path(pts, [])}" fill="none" stroke="{c}" stroke-width="3.2" stroke-linejoin="round" '
             f'stroke-linecap="round"/>')
-    add(f'<circle cx="614" cy="{pad_y("GND")}" r="5" fill="{BLACK}"/>')  # 갈림점
+    add(f'<circle cx="{GND_SPLIT[0]}" cy="{GND_SPLIT[1]}" r="5" fill="{BLACK}"/>')  # 갈림점
     for x, y in SOLDER:
         add(f'<circle cx="{x}" cy="{y}" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>')
 
     # 전선 이름
     lab = [
         (395, 92, "BAT+ (빨강)", RED), (300, 140, "BAT− (검정)", BLACK),
-        (800, 248, "D10 → 5 DI (MOSI)", BLUE), (800, 218, "GND → 버튼", BLACK),
-        (850, 538, "D8 → 6 CLK", BLUE), (480, 593, "D3 → 1 /CS", BLUE), (480, 633, "D1 → 버튼", BLUE),
+        (840, 249, "GND → 4 GND · 버튼", BLACK), (840, 539, "D9 → 2 DO (MISO)", BLUE),
+        (480, 593, "D3 → 1 /CS", BLUE), (480, 633, "D1 → 버튼", BLUE),
     ]
     for x, y, s, c in lab:
         text(x, y, s, 12, "middle", "700", c, extra='paint-order="stroke" stroke="#ffffff" stroke-width="4"')
-    text(722, pad_y("GND") - 6, "GND", 11, "end", "700", BLACK)
-    text(722, pad_y("3V3") - 6, "3V3", 11, "end", "700", RED)
-    text(722, fpin_y(2) - 6, "DO", 11, "end", "700", BLUE)
-    text(FX1 + 22, fpin_y(7) + 30, "점퍼", 11, "start", "700", RED)
+    text(652, pad_y("3V3") - 6, "3V3", 11, "middle", "700", RED)
+    text(FX0 - 22, (fpin_y(8) + fpin_y(7)) / 2 + 4, "점퍼", 11, "end", "700", RED)
 
-    # 범례·메모
+    # 범례·메모 (글꼴이 넓어도 잘리지 않게 두 줄)
     y = 870
     add(f'<line x1="40" y1="{y - 30}" x2="{W - 40}" y2="{y - 30}" stroke="#ddd"/>')
-    items = [(RED, "전원 (3V3, BAT+)", False), (BLACK, "GND (BAT−)", False), (BLUE, "신호", False), ("#777", "보드 밑으로 지나감", True)]
-    x = 40
-    for c, s, d in items:
-        dash = ' stroke-dasharray="7 5"' if d else ""
-        add(f'<line x1="{x}" y1="{y}" x2="{x + 34}" y2="{y}" stroke="{c}" stroke-width="3.2"{dash}/>')
-        text(x + 42, y + 4, s, 13)
-        x += 200
-    add(f'<circle cx="{x + 8}" cy="{y}" r="4.2" fill="#c0c4ca" stroke="#555"/>')
-    text(x + 20, y + 4, "납땜", 13)
-    add(f'<line x1="{x + 80}" y1="{y}" x2="{x + 120}" y2="{y}" stroke="{BLACK}" stroke-width="3.2"/>')
-    add(f'<path d="{wire_path([(x + 100, y - 14), (x + 100, y + 14)], [(x + 100, y)])}" fill="none" stroke="{BLUE}" stroke-width="3.2"/>')
-    text(x + 128, y + 4, "건너감 (안 이어짐)", 13)
+    rows = [[(RED, "전원 (3V3, BAT+)", ""), (BLACK, "GND (BAT−)", ""), (BLUE, "신호", "")],
+            [("#777", "보드 밑으로 지나감", "dash"), ("#555", "납땜", "dot"), (BLACK, "건너감 (안 이어짐)", "hop")]]
+    for r, row in enumerate(rows):
+        for i, (c, s, kind) in enumerate(row):
+            x, yy = 40 + i * 240, y + r * 30
+            if kind == "dot":
+                add(f'<circle cx="{x + 17}" cy="{yy}" r="4.2" fill="#c0c4ca" stroke="{c}"/>')
+            elif kind == "hop":
+                add(f'<line x1="{x}" y1="{yy}" x2="{x + 34}" y2="{yy}" stroke="{c}" stroke-width="3.2"/>')
+                add(f'<path d="{wire_path([(x + 17, yy - 12), (x + 17, yy + 12)], [(x + 17, yy)])}" fill="none" stroke="{BLUE}" stroke-width="3.2"/>')
+            else:
+                dash = ' stroke-dasharray="7 5"' if kind == "dash" else ""
+                add(f'<line x1="{x}" y1="{yy}" x2="{x + 34}" y2="{yy}" stroke="{c}" stroke-width="3.2"{dash}/>')
+            text(x + 44, yy + 4, s, 13)
     notes = [
         "· 플래시는 다리를 위로 뒤집어(dead-bug) 붙여서, 위에서 보면 데이터시트 그림과 좌우가 바뀌어요. 칩 몸통의 1번 점(●)을 기준으로 맞춰요.",
-        "· 그림은 플래시를 3D 모델보다 시계 방향으로 90° 돌려 그렸어요(3D 모델에선 5–8번 줄이 보드 쪽). 핀 순서는 같아요.",
-        "· 3 /WP · 7 /HOLD · 8 VCC는 모두 3V3이에요. /WP·/HOLD를 3V3에 묶어야 쓰기 보호와 일시 정지가 꺼져요. 3→7은 칩 등 위로, 7→8은 옆 다리로 점퍼.",
+        "· 플래시 방향은 3D 모델과 같아요: 보드 쪽 줄이 8 VCC · 7 /HOLD · 6 CLK · 5 DI, 바깥 줄이 1 /CS · 2 DO · 3 /WP · 4 GND.",
+        "· 3V3은 8 VCC로 바로 가요. 7 /HOLD는 옆 다리 8에서, 3 /WP는 칩 등 위로 7에서 점퍼해요. /WP·/HOLD를 3V3에 묶어야 쓰기 보호와 일시 정지가 꺼져요.",
         "· 버튼은 같은 쪽 두 다리가 안에서 이미 이어져 있어요. 대각선 두 다리를 쓰면 어느 방향으로 붙여도 스위치 양쪽이에요.",
-        "· 버튼 GND는 GND 아무 데나 이어도 같아요. 그림은 겹치지 않게 바깥으로 돌렸고, 3D 모델에서는 플래시 4번 다리에서 짧게 점퍼해요.",
+        "· 버튼 GND는 GND 선에서 갈라져요. GND 아무 데나 이어도 같고, 3D 모델에서는 플래시 4번 다리에서 짧게 점퍼해요.",
         "· D1은 펌웨어가 내부 풀업을 켜서, 버튼을 누르면 GND로 내려가 0이 돼요(active low). 배터리 극성은 납땜 전에 멀티미터로 확인!",
     ]
     for i, s in enumerate(notes):
-        text(40, y + 38 + i * 24, s, 13, fill="#333")
+        text(40, y + 68 + i * 24, s, 13, fill="#333")
     add("</svg>")
 
 
