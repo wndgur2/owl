@@ -3,7 +3,7 @@
 OpenSCAD 파라메트릭 모델([`case/owl-case.scad`](case/owl-case.scad))로 설계해서 3D 프린팅으로 만들어요 (`docs/decisions.md` #50).
 모양은 둥근 사각 조약돌, 몸통 + 뚜껑 + 버튼 캡 세 부품이에요. 모델 안에는 보드·배터리·플래시·버튼·배선도 들어 있어서 조립 모습을 미리 볼 수 있어요.
 
-**3D 뷰어**: [Owl 케이스 뷰어](https://claude.ai/artifact/Ly6exwUtzJy4tZDKZR8X52)에서 돌려 보고, 분해·단면·케이스 투명·핀 이름을 켜고 끄고, 부품을 눌러 설명을 봐요.
+**3D 뷰어**: [Owl 케이스 뷰어](https://claude.ai/artifact/Ly6exwUtzJy4tZDKZR8X52)에서 돌려 보고(위·아래로도 끝없이 돌아가요), WASD로 이동·Q/E로 확대 축소하고, 분해·단면·케이스 투명·핀 이름을 켜고 끄고, 부품을 눌러 설명을 봐요.
 로컬에서는 아래 명령으로 띄우고 <http://localhost:8000>을 열어요. 뷰어는 `case/viewer/index.html`, 데이터는 `build.sh`가 만드는 `case/viewer/parts.json` 하나예요.
 
 ```bash
