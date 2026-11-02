@@ -80,6 +80,13 @@ aside {
 header h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
 header .dims { margin-top: 4px; font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .note { margin: 6px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.keys { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; font-size: 12.5px; color: var(--muted); }
+.keys dt { white-space: nowrap; }
+.keys dd { margin: 0; }
+kbd {
+  font: 500 11px var(--mono); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px;
+}
 .controls { display: grid; gap: 12px; }
 .row { display: grid; grid-template-columns: 72px 1fr 44px; align-items: center; gap: 10px; }
 .row label { font-weight: 500; }
@@ -131,7 +138,13 @@ h2 button { font: 500 11px var(--sans); color: var(--accent); background: none; 
   <header>
     <h1>Owl 케이스 v0</h1>
     <div class="dims" id="dims">36 × 24 × 13 mm · 고리 포함 40.5 mm</div>
-    <p class="note">끌어서 돌리고, 휠·두 손가락으로 확대해요. 부품을 누르면 설명이 나와요. 보드 위 부품 위치와 LED·마이크 자리는 실물 측정 전 추정이에요.</p>
+    <p class="note">부품을 누르면 설명이 나와요. 보드 위 부품 위치와 LED·마이크 자리는 실물 측정 전 추정이에요.</p>
+    <dl class="keys" aria-label="조작법">
+      <dt>드래그 · <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></dt><dd>돌리기 (위·아래로도 끝없이)</dd>
+      <dt>오른쪽 드래그 · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>이동</dd>
+      <dt>휠 · <kbd>E</kbd> <kbd>Q</kbd></dt><dd>확대 · 축소 (휠은 커서 기준)</dd>
+      <dt><kbd>Shift</kbd> · <kbd>R</kbd></dt><dd>빠르게 · 처음 시점</dd>
+    </dl>
   </header>
 
   <section class="controls" aria-label="보기 조절">
@@ -163,7 +176,7 @@ h2 button { font: 500 11px var(--sans); color: var(--accent); background: none; 
 </script>
 <script type="module">
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { TrackballControls } from "three/addons/controls/TrackballControls.js";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
@@ -181,10 +194,14 @@ const labelRenderer = new CSS2DRenderer({ element: $("labels") });
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 1, 1000);
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.minDistance = 25;
+// 트랙볼: 위·아래로 넘어가도 멈추지 않고 계속 돌아감 (OrbitControls는 꼭대기에서 멈춤)
+const controls = new TrackballControls(camera, renderer.domElement);
+controls.rotateSpeed = 2.5;
+controls.zoomSpeed = 1.2;
+controls.panSpeed = 0.6;
+controls.minDistance = 15;
 controls.maxDistance = 260;
+controls.keys = [];   // 트랙볼 기본 A·S·D 단축키를 끄고 아래 WASD 이동을 씀
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8a9590, 1.6));
 const key = new THREE.DirectionalLight(0xffffff, 1.8);
@@ -226,6 +243,7 @@ function resize() {
   labelRenderer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  controls.handleResize();
 }
 
 const VIEWS = {
@@ -238,9 +256,59 @@ function setView(id) {
   // 세로로 긴 화면에서는 모델이 옆으로 잘리지 않게 멀리서 봄
   const k = Math.max(1, 1.05 / camera.aspect);
   camera.position.set(...VIEWS[id].map((v) => v * k));
+  camera.up.set(0, 1, 0);
   controls.target.set(0, 0, 0);
+  camera.lookAt(controls.target);
   controls.update();
 }
+
+// 키보드: WASD 이동, Q/E 확대·축소, 방향키 돌리기, R 처음 시점. 누르고 있는 동안 계속
+const held = new Set();
+const KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+addEventListener("keydown", (ev) => {
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.target.type === "range" && ev.code.startsWith("Arrow")) return;   // 슬라이더 조절은 그대로
+  if (ev.code === "KeyR") { setView("v-iso"); return; }
+  if (!KEYS.has(ev.code)) return;
+  ev.preventDefault();
+  held.add(ev.code);
+});
+addEventListener("keyup", (ev) => held.delete(ev.code));
+addEventListener("blur", () => held.clear());
+
+const clock = new THREE.Clock();
+const _off = new THREE.Vector3(), _right = new THREE.Vector3(), _up = new THREE.Vector3(), _move = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+function keyboard(dt, fast) {
+  if (!held.size) return;
+  const k = fast ? 2.5 : 1;
+  _off.subVectors(camera.position, controls.target);
+  _right.setFromMatrixColumn(camera.matrixWorld, 0);
+  _up.setFromMatrixColumn(camera.matrixWorld, 1);
+
+  // 돌리기: 화면의 위·오른쪽 축으로 돌려서 꼭대기를 넘어도 이어짐
+  const turn = 1.6 * dt * k;
+  const yaw = (held.has("ArrowLeft") ? 1 : 0) - (held.has("ArrowRight") ? 1 : 0);
+  const pitch = (held.has("ArrowUp") ? 1 : 0) - (held.has("ArrowDown") ? 1 : 0);
+  if (yaw) { _q.setFromAxisAngle(_up, yaw * turn); _off.applyQuaternion(_q); }
+  if (pitch) { _q.setFromAxisAngle(_right, pitch * turn); _off.applyQuaternion(_q); camera.up.applyQuaternion(_q); }
+
+  // 확대·축소
+  const zoom = (held.has("KeyQ") ? 1 : 0) - (held.has("KeyE") ? 1 : 0);
+  if (zoom) _off.setLength(THREE.MathUtils.clamp(_off.length() * Math.exp(zoom * 1.4 * dt * k), controls.minDistance, controls.maxDistance));
+
+  // 이동: 화면 기준 위·아래·왼쪽·오른쪽, 멀리 있을수록 빠르게
+  const step = _off.length() * 0.5 * dt * k;
+  _move.set(0, 0, 0)
+    .addScaledVector(_up, ((held.has("KeyW") ? 1 : 0) - (held.has("KeyS") ? 1 : 0)) * step)
+    .addScaledVector(_right, ((held.has("KeyD") ? 1 : 0) - (held.has("KeyA") ? 1 : 0)) * step);
+  controls.target.add(_move);
+  camera.position.copy(controls.target).add(_off);
+  camera.lookAt(controls.target);
+}
+let shift = false;
+addEventListener("keydown", (ev) => { shift = ev.shiftKey; });
+addEventListener("keyup", (ev) => { shift = ev.shiftKey; });
 
 function material(p) {
   return new THREE.MeshStandardMaterial({
@@ -360,16 +428,38 @@ function buildList() {
 
 // 마우스 아래 부품
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-function pick(ev) {
+function hitAt(ev) {
   const r = renderer.domElement.getBoundingClientRect();
   ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const xray = $("xray").checked;
   const targets = [...meshes.values()].filter((m) => m.visible && !(xray && CASE.has(m.userData.id)));
-  const hits = ray.intersectObjects(targets, false)
-    .filter((h) => !CASE.has(h.object.userData.id) || clip.distanceToPoint(h.point) >= 0);
-  return hits[0]?.object.userData.id ?? null;
+  return ray.intersectObjects(targets, false)
+    .filter((h) => !CASE.has(h.object.userData.id) || clip.distanceToPoint(h.point) >= 0)[0] ?? null;
 }
+function pick(ev) { return hitAt(ev)?.object.userData.id ?? null; }
+
+// 휠: 커서 아래 점을 기준으로 확대·축소. 그 점은 화면에서 제자리에 남음
+// (트랙볼의 휠 확대는 화면 가운데 기준이라 캡처 단계에서 가로챔. 두 손가락 확대는 트랙볼 그대로)
+const _pivot = new THREE.Vector3(), _viewPlane = new THREE.Plane(), _dir = new THREE.Vector3();
+stage.addEventListener("wheel", (ev) => {
+  if (ev.target !== renderer.domElement) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const hit = hitAt(ev);
+  if (hit) _pivot.copy(hit.point);
+  else {
+    // 부품이 없는 곳이면 지금 보고 있는 중심을 지나는 화면 평행 평면 위의 점
+    camera.getWorldDirection(_dir);
+    _viewPlane.setFromNormalAndCoplanarPoint(_dir, controls.target);
+    if (!ray.ray.intersectPlane(_viewPlane, _pivot)) return;
+  }
+  const dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+  const dist = camera.position.distanceTo(controls.target);
+  const f = THREE.MathUtils.clamp(Math.exp(dy * 0.0015), controls.minDistance / dist, controls.maxDistance / dist);
+  camera.position.sub(_pivot).multiplyScalar(f).add(_pivot);
+  controls.target.sub(_pivot).multiplyScalar(f).add(_pivot);
+}, { capture: true, passive: false });
 let down = null;
 renderer.domElement.addEventListener("pointerdown", (ev) => { down = [ev.clientX, ev.clientY]; });
 renderer.domElement.addEventListener("pointerup", (ev) => {
@@ -430,6 +520,7 @@ resize();
 setView("v-iso");
 applyTheme();
 renderer.setAnimationLoop(() => {
+  keyboard(Math.min(clock.getDelta(), 0.1), shift);
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
