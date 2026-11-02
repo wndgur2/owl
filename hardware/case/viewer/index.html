@@ -1,0 +1,532 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Owl 케이스 뷰어</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* 작업대: 왼쪽은 돌려 보는 3D 캔버스, 오른쪽은 부품·배선 패널(폰에서는 아래로) */
+:root {
+  --bg: #eef0ee;
+  --panel: #f8f9f7;
+  --canvas: #e3e7e4;
+  --fg: #1b211e;
+  --muted: #5b6661;
+  --line: #d3d9d5;
+  --accent: #1f6f78;
+  --accent-soft: #d6e9ea;
+  --grid: #c6ceca;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141816; --panel: #1b201e; --canvas: #0f1311; --fg: #e4eae7; --muted: #94a19b;
+    --line: #2c3431; --accent: #62b9c2; --accent-soft: #1d3436; --grid: #29312e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141816; --panel: #1b201e; --canvas: #0f1311; --fg: #e4eae7; --muted: #94a19b;
+  --line: #2c3431; --accent: #62b9c2; --accent-soft: #1d3436; --grid: #29312e; color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px;
+  display: flex; overflow: hidden;
+}
+.stage { position: relative; flex: 1; min-width: 0; background: var(--canvas); }
+.stage canvas { display: block; }
+#labels { position: absolute; inset: 0; pointer-events: none; }
+.pin {
+  font: 500 10px/1 var(--mono); padding: 2px 4px; border-radius: 3px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); white-space: nowrap;
+}
+.hud {
+  position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); top: 12px;
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.hud button, .seg button {
+  font: 500 12px var(--sans); color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+.hud button:hover, .seg button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tip {
+  position: absolute; pointer-events: none; font: 500 12px var(--sans);
+  background: var(--fg); color: var(--bg); padding: 3px 7px; border-radius: 4px; white-space: nowrap;
+}
+.card {
+  position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 12px; max-width: min(380px, calc(100% - 24px));
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+  display: grid; gap: 4px;
+}
+.card h3 { margin: 0; font-size: 15px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.card .meta { font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.card p { margin: 0; line-height: 1.55; }
+.status {
+  position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted);
+  text-align: center; padding: 24px; line-height: 1.6;
+}
+.status code { font-family: var(--mono); background: var(--panel); padding: 2px 6px; border-radius: 4px; }
+
+aside {
+  width: 330px; flex: none; background: var(--panel); border-left: 1px solid var(--line);
+  overflow-y: auto; padding-block: 18px 24px;
+  padding-left: 18px; padding-right: max(18px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+header h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+header .dims { margin-top: 4px; font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { margin: 6px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.keys { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; font-size: 12.5px; color: var(--muted); }
+.keys dt { white-space: nowrap; }
+.keys dd { margin: 0; }
+kbd {
+  font: 500 11px var(--mono); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px;
+}
+.controls { display: grid; gap: 12px; }
+.row { display: grid; grid-template-columns: 72px 1fr 44px; align-items: center; gap: 10px; }
+.row label { font-weight: 500; }
+.row output { font: 12px var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.toggles { display: flex; gap: 14px; flex-wrap: wrap; }
+.toggles label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
+h2 {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+h2 button { font: 500 11px var(--sans); color: var(--accent); background: none; border: 0; cursor: pointer; padding: 0; letter-spacing: 0; }
+.group { display: grid; gap: 1px; }
+.part {
+  display: grid; grid-template-columns: 16px 12px 1fr; gap: 8px; align-items: center;
+  padding: 5px 6px; border-radius: 5px; cursor: pointer;
+}
+.part:hover { background: var(--bg); }
+.part.sel { background: var(--accent-soft); }
+.part .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.2); }
+.part .name { min-width: 0; }
+.part small { display: block; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+
+@media (max-width: 760px) {
+  body { flex-direction: column; overflow: auto; height: auto; }
+  .stage { flex: none; height: 58vh; }
+  aside { width: auto; border-left: 0; border-top: 1px solid var(--line); overflow: visible;
+          padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .card { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="stage" id="stage">
+  <div id="labels"></div>
+  <div class="hud" role="toolbar" aria-label="시점">
+    <button id="v-iso" type="button">비스듬히</button>
+    <button id="v-top" type="button">위</button>
+    <button id="v-usb" type="button">USB 쪽</button>
+    <button id="v-side" type="button">옆</button>
+  </div>
+  <div class="tip" id="tip" hidden></div>
+  <div class="card" id="card" hidden></div>
+  <div class="status" id="status">부품을 불러오는 중…</div>
+</div>
+
+<aside>
+  <header>
+    <h1>Owl 케이스 v0</h1>
+    <div class="dims" id="dims">36 × 24 × 13 mm · 고리 포함 40.5 mm</div>
+    <p class="note">부품을 누르면 설명이 나와요. 보드 위 부품 위치와 LED·마이크 자리는 실물 측정 전 추정이에요.</p>
+    <dl class="keys" aria-label="조작법">
+      <dt>드래그 · <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></dt><dd>돌리기 (위·아래로도 끝없이)</dd>
+      <dt>오른쪽 드래그 · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>이동</dd>
+      <dt>휠 · <kbd>E</kbd> <kbd>Q</kbd></dt><dd>확대 · 축소 (휠은 커서 기준)</dd>
+      <dt><kbd>Shift</kbd> · <kbd>R</kbd></dt><dd>빠르게 · 처음 시점</dd>
+    </dl>
+  </header>
+
+  <section class="controls" aria-label="보기 조절">
+    <div class="row">
+      <label for="explode">분해</label>
+      <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+      <output id="explode-out" for="explode">0%</output>
+    </div>
+    <div class="row">
+      <label for="section">단면</label>
+      <input id="section" type="range" min="0" max="24" step="0.2" value="0">
+      <output id="section-out" for="section">끔</output>
+    </div>
+    <div class="toggles">
+      <label><input id="xray" type="checkbox" checked> 케이스 투명</label>
+      <label><input id="pins" type="checkbox"> 핀 이름</label>
+      <label><input id="grid" type="checkbox" checked> 5mm 격자</label>
+    </div>
+  </section>
+
+  <section id="list" aria-label="부품"></section>
+</aside>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { TrackballControls } from "three/addons/controls/TrackballControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
+
+const $ = (id) => document.getElementById(id);
+const stage = $("stage");
+const CASE = new Set(["body", "lid", "cap"]);
+const METAL = new Set(["usbc", "pads", "ufl", "flash_legs", "button_legs", "battery"]);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+stage.prepend(renderer.domElement);
+const labelRenderer = new CSS2DRenderer({ element: $("labels") });
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 1000);
+// 트랙볼: 위·아래로 넘어가도 멈추지 않고 계속 돌아감 (OrbitControls는 꼭대기에서 멈춤)
+const controls = new TrackballControls(camera, renderer.domElement);
+controls.rotateSpeed = 2.5;
+controls.zoomSpeed = 1.2;
+controls.panSpeed = 0.6;
+controls.minDistance = 15;
+controls.maxDistance = 260;
+controls.keys = [];   // 트랙볼 기본 A·S·D 단축키를 끄고 아래 WASD 이동을 씀
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a9590, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.8);
+key.position.set(40, 80, 60);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xffffff, 0.6);
+rim.position.set(-60, 30, -50);
+scene.add(rim);
+
+// STL은 Z가 위. three.js는 Y가 위라서 바깥 묶음을 눕힘
+const world = new THREE.Group();
+world.rotation.x = -Math.PI / 2;
+scene.add(world);
+const model = new THREE.Group();
+world.add(model);
+const labelGroup = new THREE.Group();
+model.add(labelGroup);
+
+let grid;
+const clip = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+const meshes = new Map();
+let parts = [], size = [36, 24, 13], selected = null;
+
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function applyTheme() {
+  scene.background = new THREE.Color(css("--canvas"));
+  if (grid) world.remove(grid);
+  grid = new THREE.GridHelper(80, 16, css("--grid"), css("--grid"));
+  grid.rotation.x = Math.PI / 2;
+  grid.position.z = -size[2] / 2 - 0.05;
+  grid.visible = $("grid").checked;
+  world.add(grid);
+}
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  labelRenderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  controls.handleResize();
+}
+
+const VIEWS = {
+  "v-iso": [52, 46, 62],
+  "v-top": [0, 95, 0.01],
+  "v-usb": [-90, 8, 0],
+  "v-side": [0, 8, 90],
+};
+function setView(id) {
+  // 세로로 긴 화면에서는 모델이 옆으로 잘리지 않게 멀리서 봄
+  const k = Math.max(1, 1.05 / camera.aspect);
+  camera.position.set(...VIEWS[id].map((v) => v * k));
+  camera.up.set(0, 1, 0);
+  controls.target.set(0, 0, 0);
+  camera.lookAt(controls.target);
+  controls.update();
+}
+
+// 키보드: WASD 이동, Q/E 확대·축소, 방향키 돌리기, R 처음 시점. 누르고 있는 동안 계속
+const held = new Set();
+const KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+addEventListener("keydown", (ev) => {
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.target.type === "range" && ev.code.startsWith("Arrow")) return;   // 슬라이더 조절은 그대로
+  if (ev.code === "KeyR") { setView("v-iso"); return; }
+  if (!KEYS.has(ev.code)) return;
+  ev.preventDefault();
+  held.add(ev.code);
+});
+addEventListener("keyup", (ev) => held.delete(ev.code));
+addEventListener("blur", () => held.clear());
+
+const clock = new THREE.Clock();
+const _off = new THREE.Vector3(), _right = new THREE.Vector3(), _up = new THREE.Vector3(), _move = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+function keyboard(dt, fast) {
+  if (!held.size) return;
+  const k = fast ? 2.5 : 1;
+  _off.subVectors(camera.position, controls.target);
+  _right.setFromMatrixColumn(camera.matrixWorld, 0);
+  _up.setFromMatrixColumn(camera.matrixWorld, 1);
+
+  // 돌리기: 화면의 위·오른쪽 축으로 돌려서 꼭대기를 넘어도 이어짐
+  const turn = 1.6 * dt * k;
+  const yaw = (held.has("ArrowLeft") ? 1 : 0) - (held.has("ArrowRight") ? 1 : 0);
+  const pitch = (held.has("ArrowUp") ? 1 : 0) - (held.has("ArrowDown") ? 1 : 0);
+  if (yaw) { _q.setFromAxisAngle(_up, yaw * turn); _off.applyQuaternion(_q); }
+  if (pitch) { _q.setFromAxisAngle(_right, pitch * turn); _off.applyQuaternion(_q); camera.up.applyQuaternion(_q); }
+
+  // 확대·축소
+  const zoom = (held.has("KeyQ") ? 1 : 0) - (held.has("KeyE") ? 1 : 0);
+  if (zoom) _off.setLength(THREE.MathUtils.clamp(_off.length() * Math.exp(zoom * 1.4 * dt * k), controls.minDistance, controls.maxDistance));
+
+  // 이동: 화면 기준 위·아래·왼쪽·오른쪽, 멀리 있을수록 빠르게
+  const step = _off.length() * 0.5 * dt * k;
+  _move.set(0, 0, 0)
+    .addScaledVector(_up, ((held.has("KeyW") ? 1 : 0) - (held.has("KeyS") ? 1 : 0)) * step)
+    .addScaledVector(_right, ((held.has("KeyD") ? 1 : 0) - (held.has("KeyA") ? 1 : 0)) * step);
+  controls.target.add(_move);
+  camera.position.copy(controls.target).add(_off);
+  camera.lookAt(controls.target);
+}
+let shift = false;
+addEventListener("keydown", (ev) => { shift = ev.shiftKey; });
+addEventListener("keyup", (ev) => { shift = ev.shiftKey; });
+
+function material(p) {
+  return new THREE.MeshStandardMaterial({
+    color: p.color,
+    roughness: METAL.has(p.id) ? 0.35 : 0.65,
+    metalness: METAL.has(p.id) ? 0.55 : 0.0,
+    side: THREE.DoubleSide,
+    clippingPlanes: CASE.has(p.id) ? [clip] : [],
+  });
+}
+
+function update() {
+  const e = +$("explode").value;
+  $("explode-out").textContent = Math.round(e * 100) + "%";
+  for (const p of parts) {
+    const m = meshes.get(p.id);
+    if (m) m.position.z = p.explode * e;
+  }
+  labelGroup.position.z = 10 * e;
+
+  const s = +$("section").value;
+  $("section-out").textContent = s === 0 ? "끔" : s.toFixed(1);
+  // y < s 인 앞쪽을 잘라냄 (모델 중심 기준으로 평면 위치 계산)
+  clip.constant = s === 0 ? 1000 : size[1] / 2 - s;
+
+  const xray = $("xray").checked;
+  for (const id of CASE) {
+    const m = meshes.get(id);
+    if (!m) continue;
+    m.material.transparent = xray;
+    m.material.opacity = xray ? 0.22 : 1;
+    m.material.depthWrite = !xray;
+  }
+  // CSS2DRenderer는 부모의 visible을 보지 않아서 이름표마다 지정
+  for (const o of labelGroup.children) o.visible = $("pins").checked;
+  if (grid) grid.visible = $("grid").checked;
+}
+
+function select(id) {
+  if (selected) {
+    const prev = meshes.get(selected);
+    if (prev) prev.material.emissive.setHex(0x000000);
+  }
+  selected = id;
+  document.querySelectorAll(".part").forEach((r) => r.classList.toggle("sel", r.dataset.id === id));
+  const card = $("card");
+  if (!id) { card.hidden = true; return; }
+  const p = parts.find((x) => x.id === id);
+  const m = meshes.get(id);
+  m.material.emissive.set(css("--accent"));
+  m.material.emissiveIntensity = 0.45;
+  m.geometry.computeBoundingBox();
+  const b = m.geometry.boundingBox, d = new THREE.Vector3();
+  b.getSize(d);
+  card.innerHTML = "";
+  const h = document.createElement("h3");
+  const sw = document.createElement("span");
+  sw.className = "sw"; sw.style.cssText = `width:12px;height:12px;border-radius:3px;background:${p.color}`;
+  h.append(sw, p.name);
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = `${p.group} · ${d.x.toFixed(1)} × ${d.y.toFixed(1)} × ${d.z.toFixed(1)} mm`;
+  const info = document.createElement("p");
+  info.textContent = p.info;
+  card.append(h, meta, info);
+  card.hidden = false;
+}
+
+function buildList() {
+  const list = $("list");
+  const groups = [...new Set(parts.map((p) => p.group))];
+  for (const g of groups) {
+    const sec = document.createElement("div");
+    const h = document.createElement("h2");
+    const all = document.createElement("button");
+    all.type = "button";
+    h.append(g);
+    h.append(all);
+    const wrap = document.createElement("div");
+    wrap.className = "group";
+    const boxes = [];
+    for (const p of parts.filter((x) => x.group === g)) {
+      const row = document.createElement("div");
+      row.className = "part";
+      row.dataset.id = p.id;
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = true; cb.id = "show-" + p.id;
+      cb.setAttribute("aria-label", p.name + " 보이기");
+      cb.addEventListener("click", (ev) => ev.stopPropagation());
+      cb.addEventListener("change", () => { meshes.get(p.id).visible = cb.checked; syncAll(); });
+      boxes.push(cb);
+      const sw = document.createElement("span");
+      sw.className = "sw"; sw.style.background = p.color;
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = p.name;
+      if (g === "배선") {
+        const s = document.createElement("small");
+        s.textContent = p.info;
+        name.append(s);
+      }
+      row.append(cb, sw, name);
+      row.addEventListener("click", () => select(selected === p.id ? null : p.id));
+      wrap.append(row);
+    }
+    const syncAll = () => { all.textContent = boxes.every((b) => b.checked) ? "모두 숨기기" : "모두 보이기"; };
+    all.addEventListener("click", () => {
+      const on = !boxes.every((b) => b.checked);
+      for (const b of boxes) { b.checked = on; meshes.get(b.id.slice(5)).visible = on; }
+      syncAll();
+    });
+    syncAll();
+    sec.append(h, wrap);
+    list.append(sec);
+  }
+}
+
+// 마우스 아래 부품
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function hitAt(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const xray = $("xray").checked;
+  const targets = [...meshes.values()].filter((m) => m.visible && !(xray && CASE.has(m.userData.id)));
+  return ray.intersectObjects(targets, false)
+    .filter((h) => !CASE.has(h.object.userData.id) || clip.distanceToPoint(h.point) >= 0)[0] ?? null;
+}
+function pick(ev) { return hitAt(ev)?.object.userData.id ?? null; }
+
+// 휠: 커서 아래 점을 기준으로 확대·축소. 그 점은 화면에서 제자리에 남음
+// (트랙볼의 휠 확대는 화면 가운데 기준이라 캡처 단계에서 가로챔. 두 손가락 확대는 트랙볼 그대로)
+const _pivot = new THREE.Vector3(), _viewPlane = new THREE.Plane(), _dir = new THREE.Vector3();
+stage.addEventListener("wheel", (ev) => {
+  if (ev.target !== renderer.domElement) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const hit = hitAt(ev);
+  if (hit) _pivot.copy(hit.point);
+  else {
+    // 부품이 없는 곳이면 지금 보고 있는 중심을 지나는 화면 평행 평면 위의 점
+    camera.getWorldDirection(_dir);
+    _viewPlane.setFromNormalAndCoplanarPoint(_dir, controls.target);
+    if (!ray.ray.intersectPlane(_viewPlane, _pivot)) return;
+  }
+  const dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+  const dist = camera.position.distanceTo(controls.target);
+  const f = THREE.MathUtils.clamp(Math.exp(dy * 0.0015), controls.minDistance / dist, controls.maxDistance / dist);
+  camera.position.sub(_pivot).multiplyScalar(f).add(_pivot);
+  controls.target.sub(_pivot).multiplyScalar(f).add(_pivot);
+}, { capture: true, passive: false });
+let down = null;
+renderer.domElement.addEventListener("pointerdown", (ev) => { down = [ev.clientX, ev.clientY]; });
+renderer.domElement.addEventListener("pointerup", (ev) => {
+  if (down && Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) < 5) select(pick(ev));
+  down = null;
+});
+renderer.domElement.addEventListener("pointermove", (ev) => {
+  const tip = $("tip");
+  if (ev.pointerType !== "mouse" || ev.buttons) { tip.hidden = true; return; }
+  const id = pick(ev);
+  tip.hidden = !id;
+  if (id) {
+    const r = stage.getBoundingClientRect();
+    tip.textContent = parts.find((p) => p.id === id).name;
+    tip.style.left = ev.clientX - r.left + 14 + "px";
+    tip.style.top = ev.clientY - r.top + 12 + "px";
+  }
+});
+renderer.domElement.addEventListener("pointerleave", () => { $("tip").hidden = true; });
+
+for (const id of ["explode", "section", "xray", "pins", "grid"]) $(id).addEventListener("input", update);
+for (const id of Object.keys(VIEWS)) $(id).addEventListener("click", () => setView(id));
+new ResizeObserver(resize).observe(stage);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+async function load() {
+  const res = await fetch("parts.json");
+  if (!res.ok) throw new Error("parts.json " + res.status);
+  const data = await res.json();
+  parts = data.parts; size = data.size;
+  model.position.set(-size[0] / 2, -size[1] / 2, -size[2] / 2);
+  applyTheme();
+  const loader = new STLLoader();
+  for (const p of parts) {
+    const bytes = Uint8Array.from(atob(p.stl), (c) => c.charCodeAt(0));
+    const geo = toCreasedNormals(loader.parse(bytes.buffer), Math.PI / 6);
+    const mesh = new THREE.Mesh(geo, material(p));
+    mesh.userData.id = p.id;
+    meshes.set(p.id, mesh);
+    model.add(mesh);
+  }
+  for (const l of data.labels) {
+    const el = document.createElement("div");
+    el.className = "pin";
+    el.textContent = l.text;
+    const o = new CSS2DObject(el);
+    o.position.set(...l.pos);
+    o.center.set(0.5, 1.4);
+    labelGroup.add(o);
+  }
+  buildList();
+  $("status").hidden = true;
+  update();
+}
+
+resize();
+setView("v-iso");
+applyTheme();
+renderer.setAnimationLoop(() => {
+  keyboard(Math.min(clock.getDelta(), 0.1), shift);
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+load().catch((err) => {
+  console.error(err);
+  $("status").innerHTML = "부품 파일을 불러오지 못했어요.<br>로컬에서는 <code>python3 -m http.server -d hardware/case/viewer</code>로 서버를 띄우고 열어요.";
+});
+</script>
