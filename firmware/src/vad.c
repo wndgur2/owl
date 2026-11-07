@@ -6,7 +6,7 @@
  * Per sensitivity (0 = least, 3 = most sensitive):
  *   ratio: how far above the noise floor a frame must be (x8, x5, x3, x2)
  *   min:   absolute mean-square floor (RMS 40, 25, 15, 8 of 32767)
- * The absolute values are first guesses: tune them with the RMS numbers the M0
+ * The absolute values are first guesses: tune them with the "ac rms" numbers the M0
  * bring-up prints for a quiet room vs. talking (firmware/README.md).
  */
 static const uint8_t ratio_q4[4] = {128, 80, 48, 32};

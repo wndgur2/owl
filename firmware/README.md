@@ -2,7 +2,7 @@
 
 Zephyr RTOS + nRF Connect SDK 앱. 보드: Seeed XIAO nRF54L15 Sense. NCS **v3.4.1**(Zephyr 4.4)로 고정.
 
-현재 상태: M1(녹음·저장)·M2(VAD·Opus)·M3(BLE 프로토콜 v1, 버튼·LED)와 M5의 기기 쪽 로직(배터리 경고·차단, System OFF, GRTC 깨우기)까지 구현. **빌드와 호스트 테스트까지만 확인했고 보드에서는 아직 한 번도 돌려보지 않았어요.** 보드가 오면 아래 [bring-up 체크리스트](#bring-up-체크리스트-m0m3)부터.
+현재 상태: M1(녹음·저장)·M2(VAD·Opus)·M3(BLE 프로토콜 v1, 버튼·LED)와 M5의 기기 쪽 로직(배터리 경고·차단, System OFF, GRTC 깨우기)까지 구현. **본 앱은 빌드와 호스트 테스트까지만 확인했고, 보드에서는 M0 bring-up 앱만 돌려봤어요(납땜 전).** 이어서 아래 [bring-up 체크리스트](#bring-up-체크리스트-m0m3)대로 해요.
 
 ## 빌드
 
@@ -168,7 +168,7 @@ USB에 꽂고 `uart.conf` 빌드로 시리얼 로그(115200)를 보면서 해요
 | 리셋 원인 | `reset cause: 0x...` | |
 | 배터리 전압 | `battery: 3xxx mV` (USB만 꽂고 배터리 없으면 ~4.2V나 잡음) | 값이 흔들리면 `CONFIG_OWL_VBAT_SETTLE_MS`(본 앱) / bring-up의 `k_msleep(10)`을 100으로 |
 | 플래시 | `flash: JEDEC ef 40 18`, `flash: erase/write/read OK` | `ef 70 18`이면 -IM 변형 → overlay `jedec-id` 수정. `not ready`면 배선(CS=D3) |
-| 마이크 | `mic: 16000 samples, peak P, rms R`. 조용할 때와 말할 때 R을 둘 다 적어두기(VAD 튜닝값) | R이 0 근처면 채널 반대: bring-up `PDM_CHAN_LEFT`→`RIGHT`, 본 앱 `CONFIG_OWL_PDM_CHANNEL_RIGHT=y` |
+| 마이크 | `mic: 16000 samples, peak P, rms R, mean M, ac rms A`. M은 직류 성분, A는 직류를 뺀 rms로 VAD가 보는 값이에요. 조용할 때와 말할 때 A를 둘 다 적어두기(VAD 튜닝값) | A가 0 근처면 채널 반대: bring-up `PDM_CHAN_LEFT`→`RIGHT`, 본 앱 `CONFIG_OWL_PDM_CHANNEL_RIGHT=y` |
 | 버튼 | 짧게 누르면 `button: pressed -> mic test` | 배선(D1–GND) |
 | System OFF 깨우기 | 5초 누르면 `System OFF`, LED 꺼짐 → 다시 누르면 재부팅하며 `(wakeup from System OFF)` | |
 | 전체 | LED 2초마다 짧게 = 통과 / 빠르게 = 실패 | |
@@ -195,7 +195,7 @@ USB에 꽂고 `uart.conf` 빌드로 시리얼 로그(115200)를 보면서 해요
 | 무음 제거 | 조용히 1분 → 세그먼트 안 생김. 선풍기 켜면 처음 ~14초만 녹음되고 끊김 |
 | 용량 | 1분 말하기 ≈ 120KB(16kbps) |
 
-VAD가 너무 둔하거나 예민하면 M0의 rms를 보고 `src/vad.c`의 `min_energy`를 고치거나, 마이크 신호가 작으면 `CONFIG_OWL_MIC_GAIN_SHIFT=1~2`.
+VAD가 너무 둔하거나 예민하면 M0의 `ac rms`를 보고 `src/vad.c`의 `min_energy`를 고치거나, 마이크 신호가 작으면 `CONFIG_OWL_MIC_GAIN_SHIFT=1~2`.
 
 ### M3 — BLE·버튼·LED
 
@@ -230,10 +230,17 @@ M5에서: 실제 전류 측정, 3.5V 차단과 1시간 깨우기(가변 전원�
 - 바이트 레이아웃 = `tools/owlproto.py`(고정 벡터 테스트), storage 동작(가상 플래시 테스트), libopus 빌드·인코딩·디코딩(native_sim)
 - Zephyr SMP(v3.4.1 소스): `pairing_accept`는 Pairing Request마다 불림. 그 전에 "이미 본딩된 상대의 Just Works 재페어링"을 거절하는 검사가 있어서 `CONFIG_BT_SMP_ALLOW_UNAUTH_OVERWRITE=y`가 필요. GATT 권한 검사는 키가 없으면 ATT 0x05, 키는 있는데 암호화 전이면 0x0F. `bt_unpair`는 연결된 상대면 끊음. `FILE_SYSTEM=y`면 settings 기본 저장소가 파일이라 `CONFIG_SETTINGS_ZMS`를 직접 지정
 
+**보드에서 확인함** (XIAO nRF54L15 Sense, USB만 연결, 납땜 전, bring-up 앱):
+- 굽기: brew OpenOCD 0.12.0으로 `flash.sh`. 시리얼 로그 115200
+- 마이크: LEFT 채널이 맞고, `dmic_configure`부터 1초 캡처(16000 샘플)까지 동작해요
+- 마이크 직류 성분: 조용할 때 평균이 -153~-238로 부팅마다 달라져요. 그래서 직류가 포함된 `rms`는 조용한 정도를 나타내지 못하고, VAD와 비교할 값은 `ac rms`예요
+- `ac rms` 실측: 조용할 때 34, 48, 48, 50, 53 / 평소 목소리로 말할 때 152, 305, 423. 1초 평균이라 말 사이의 빈틈이 섞여 있어요
+- 그래서 VAD 기본 민감도 2의 절대 하한(rms 15)은 조용할 때 값보다 낮아요. 실제 판단은 잡음 바닥의 에너지 ×3(rms로 약 1.7배, 조용할 때 기준 약 80)이 해요. 말할 때 값이 이보다 커서 `min_energy`는 그대로 뒀어요
+- 원인을 모르는 것: 말할 때 평균이 -16~-78로 조용할 때보다 작게 나왔어요(3회). VAD는 프레임마다 평균을 빼니 판단에는 영향이 없어요
+
 **가정 (보드에서 확인 필요)**:
 - Opus 복잡도 3이 128MHz M33에서 20ms 안에 충분히 끝남(로그 `encode: avg/max`)
-- 마이크가 LEFT 채널(아니면 `CONFIG_OWL_PDM_CHANNEL_RIGHT`), VAD 절대 임계값(`src/vad.c` `min_energy`)
-- PDM 클럭 1–3.5MHz 범위가 PCLK32M에서 나옴(빌드만 확인, `dmic_configure` 실행은 안 해봄)
+- VAD가 실제 말소리와 주변 소음을 프레임(20ms) 단위로 잘 가름(`src/vad.c`, M2에서 확인)
 - 배터리 분압 안정 10ms면 충분, `adc_raw_to_millivolts_dt` × 2가 실제 전압과 맞음
 - 스레드 스택 크기, BLE 처리량, System OFF 전류, GRTC 1시간 깨우기 실제 동작
 - 페어링 흐름 전체(Android 확인 창, 거절될 때 폰이 보는 오류, Security Request 후 자동 암호화, RRAM에 본딩 저장·리셋 후 유지)

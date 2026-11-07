@@ -191,7 +191,7 @@
     <details>
       <summary>측정값 표</summary>
       <table>
-        <thead><tr><th>구분</th><th>rms</th><th>peak</th></tr></thead>
+        <thead><tr><th>구분</th><th>rms</th><th>직류</th><th>직류 포함 rms</th><th>peak</th></tr></thead>
         <tbody id="mic-table"></tbody>
       </table>
     </details>
@@ -264,7 +264,7 @@
     const top = Math.max(...mics.map((m) => m.rms), 1);
     $("history").replaceChildren(...mics.map((mic) => {
       const item = el("div", "history-item " + (mic.label ?? ""));
-      item.title = `${LABELS[mic.label] ?? "구분 없음"}: rms ${mic.rms}, peak ${mic.peak}`;
+      item.title = `${LABELS[mic.label] ?? "구분 없음"}: rms ${mic.rms}, 직류 ${mic.mean ?? "-"}, peak ${mic.peak}`;
       const bar = el("div");
       bar.style.height = (mic.rms / top * 100) + "%";
       item.append(bar);
@@ -275,7 +275,13 @@
 
     $("mic-table").replaceChildren(...[...mics].reverse().map((mic) => {
       const row = el("tr");
-      row.append(el("td", "", LABELS[mic.label] ?? "구분 없음"), el("td", "", mic.rms), el("td", "", mic.peak));
+      row.append(
+        el("td", "", LABELS[mic.label] ?? "구분 없음"),
+        el("td", "", mic.rms),
+        el("td", "", mic.mean ?? "-"),
+        el("td", "", mic.raw_rms),
+        el("td", "", mic.peak),
+      );
       return row;
     }));
   }
