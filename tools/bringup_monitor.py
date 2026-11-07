@@ -36,7 +36,7 @@ ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 LOG_LINE = re.compile(r"^\[(?P<ts>[\d:.,]+)\]\s+<(?P<level>\w+)>\s+(?P<module>\w+):\s*(?P<msg>.*)$")
 BATTERY = re.compile(r"^battery: (-?\d+) mV")
 JEDEC = re.compile(r"^flash: JEDEC (\w\w \w\w \w\w)")
-MIC = re.compile(r"^mic: (\d+) samples, peak (\d+), rms (\d+)")
+MIC = re.compile(r"^mic: (\d+) samples, peak (\d+), rms (\d+)(?:, mean (-?\d+), ac rms (\d+))?")
 GOOD_JEDEC = "ef 40 18"
 
 
@@ -111,7 +111,10 @@ class BringupLog:
         elif msg.startswith("flash: erase/write/read test FAILED"):
             c["flash"] = {**c["flash"], "status": "fail", "note": "지우기·쓰기·읽기 실패"}
         elif m := MIC.match(msg):
-            self._mic_result(int(m[1]), int(m[2]), int(m[3]))
+            # ac rms is what the main app's VAD sees; older bring-up builds only print rms.
+            rms = int(m[5]) if m[5] is not None else int(m[3])
+            mean = int(m[4]) if m[4] is not None else None
+            self._mic_result(int(m[1]), int(m[2]), rms, int(m[3]), mean)
         elif msg.startswith("mic:"):
             c["mic"] = {"status": "fail", "value": "오류", "note": msg}
         elif msg.startswith("button: pressed"):
@@ -126,8 +129,17 @@ class BringupLog:
                 "note": "LED는 2초마다 짧게 깜빡여요" if passed else "LED는 빠르게 깜빡여요",
             }
 
-    def _mic_result(self, samples, peak, rms):
-        self.mics.append({"rms": rms, "peak": peak, "samples": samples, "label": self.pending_label})
+    def _mic_result(self, samples, peak, rms, raw_rms, mean):
+        self.mics.append(
+            {
+                "rms": rms,
+                "raw_rms": raw_rms,
+                "mean": mean,
+                "peak": peak,
+                "samples": samples,
+                "label": self.pending_label,
+            }
+        )
         self.mics = self.mics[-40:]
         self.mic_count += 1
         self.pending_label = None

@@ -47,10 +47,22 @@ def test_bare_board_log():
     assert s["checks"]["battery"]["status"] == "info"
     assert s["checks"]["flash"]["status"] == "fail"
     assert s["checks"]["overall"]["status"] == "fail"
-    assert s["mics"] == [{"rms": 181, "peak": 671, "samples": 16000, "label": None}]
+    assert s["mics"] == [
+        {"rms": 181, "raw_rms": 181, "mean": None, "peak": 671, "samples": 16000, "label": None}
+    ]
     assert parsed[0]["level"] == "err"
     assert parsed[1]["level"] == "plain"
     assert "\x1b" not in parsed[0]["text"]
+
+
+def test_mic_uses_rms_without_dc_offset():
+    log = BringupLog()
+    boot(log, "mic: 16000 samples, peak 322, rms 251, mean -249, ac rms 30 (of 32767)")
+    s = log.snapshot()
+    assert s["mics"] == [
+        {"rms": 30, "raw_rms": 251, "mean": -249, "peak": 322, "samples": 16000, "label": None}
+    ]
+    assert s["checks"]["mic"]["value"] == "rms 30"
 
 
 def test_all_parts_pass():

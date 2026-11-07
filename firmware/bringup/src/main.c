@@ -5,7 +5,7 @@
  *   1. battery voltage (AIN7, behind the vbat_pwr load switch)
  *   2. external SPI flash: JEDEC ID + erase/write/read of the last sector
  *      (the main app keeps that 4 KiB sector out of its LittleFS partition)
- *   3. PDM microphone: 1 s capture, prints peak and RMS
+ *   3. PDM microphone: 1 s capture, prints peak, RMS, DC offset and RMS without it
  * Then: master button press -> repeat the mic test.
  *       master button held 5 s -> System OFF; the next press must wake the
  *       board (it reboots and logs "reset cause: ... wakeup from System OFF").
@@ -191,6 +191,7 @@ static int mic_test(void)
 	}
 
 	uint64_t sum_sq = 0;
+	int64_t sum = 0;
 	uint32_t n = 0;
 	int32_t peak = 0;
 
@@ -211,6 +212,7 @@ static int mic_test(void)
 				int32_t v = s[i] < 0 ? -s[i] : s[i];
 
 				peak = MAX(peak, v);
+				sum += s[i];
 				sum_sq += (int64_t)s[i] * s[i];
 				n++;
 			}
@@ -220,8 +222,11 @@ static int mic_test(void)
 	dmic_trigger(dmic, DMIC_TRIGGER_STOP);
 
 	if (!err && n) {
-		LOG_INF("mic: %u samples, peak %d, rms %u (of 32767)", n, peak,
-			isqrt64(sum_sq / n));
+		/* ac rms leaves out the mic's DC offset, like the main app's VAD (src/vad.c). */
+		uint64_t ac_sq = sum_sq - (uint64_t)(sum * sum / n);
+
+		LOG_INF("mic: %u samples, peak %d, rms %u, mean %d, ac rms %u (of 32767)", n, peak,
+			isqrt64(sum_sq / n), (int)(sum / n), isqrt64(ac_sq / n));
 	}
 	return err;
 }
