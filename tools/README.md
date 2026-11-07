@@ -12,8 +12,9 @@ PC(macOS)에서 돌리는 Python 도구예요. 펌웨어와 앱을 **서로 없�
 | `sync.py` | PC 동기화 CLI: `sync`, `status`, `list`, `set-recording`, `set-config`, `render` |
 | `fake_owl.py` | 가짜 Owl. macOS에서 진짜 BLE로 광고(`bless`), 또는 Android 에뮬레이터의 가상 블루투스에 붙어 광고(`--transport bumble`) |
 | `ble_scan.py` | 근처 Owl 찾기, STATUS 읽기 |
+| `bringup_monitor.py` | M0 bring-up 대시보드. 보드의 시리얼 로그를 읽어 항목별 결과와 마이크 값을 브라우저에 보여줘요 (아래) |
 | `owlsync/` | 위 도구들이 쓰는 패키지 (아래 표) |
-| `tests/` | `test_owlproto.py`(스펙 숫자), `test_sync.py`(동기화 E2E + 고장 주입), `test_audio.py`(Ogg/Opus), `test_security.py`(본딩 규칙, loopback), `test_bumble.py`(본딩 규칙, 진짜 SMP·ATT), `test_week.py`(QA용 일주일 시드) |
+| `tests/` | `test_owlproto.py`(스펙 숫자), `test_sync.py`(동기화 E2E + 고장 주입), `test_audio.py`(Ogg/Opus), `test_security.py`(본딩 규칙, loopback), `test_bumble.py`(본딩 규칙, 진짜 SMP·ATT), `test_week.py`(QA용 일주일 시드), `test_bringup_monitor.py`(bring-up 로그 해석) |
 
 `owlsync/` 안:
 
@@ -69,6 +70,19 @@ loopback은 central 이름(`peer`)으로 본딩을 흉내 내요. 암호화 자�
 전엔 0x0F, 창 밖의 새 폰은 SMP 0x08로 거절되고 옛 본딩·키는 그대로, 껐다 켜면 새 폰이 옛 본딩을 대체(그 부팅에선 옛 폰이 못
 되돌림), LE legacy(0x03)·본딩 안 하는 요청(0x08) 거절, UNPAIR 응답 뒤 키 삭제·연결 끊김, 60초(테스트는 0.3초) 암호화
 안 된 연결 끊기(HCI 0x05), FETCH 도중 끊김 → 이어받기.
+
+## bringup_monitor.py — M0 bring-up 대시보드
+
+보드에 `uart.conf`로 빌드한 bring-up 펌웨어를 구운 뒤 켜고 <http://localhost:8765>를 열어요. 표준 라이브러리만 써서 설치할 게 없어요.
+
+```bash
+python3 tools/bringup_monitor.py
+```
+
+- 시리얼 로그(`/dev/cu.usbmodem*`, 115200)를 읽어 전체 결과, 마이크, 플래시, 배터리, 버튼, System OFF 깨우기 상태를 실시간으로 보여줘요. 다른 펌웨어의 로그도 로그 창에는 나오지만 항목으로 해석하지는 않아요
+- bring-up은 부팅할 때마다 1초간 마이크를 재요. 그래서 "조용히 측정"과 "말하면서 측정"은 OpenOCD로 보드를 리셋해서 재고, 말할 때가 2배 이상 크면 통과로 표시해요. 이 2배는 눈으로 보기 위한 기준이고 VAD 임계값이 아니에요
+- 리셋에는 `firmware/scripts/flash.sh`가 `build/`에 받아 두는 OpenOCD 설정을 써요. 한 번은 먼저 구워 두세요
+- 시리얼 포트를 잡고 있으니 `screen`과 함께 쓰지 말아요. 페이지가 꺼져 있어도 서버는 계속 읽어요
 
 ## sync.py
 

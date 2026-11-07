@@ -159,7 +159,7 @@ Zephyr settings(ZMS)로 저장돼요. 앱 코드는 0번지부터 약 330KB라 �
 
 ## Bring-up 체크리스트 (M0–M3)
 
-USB에 꽂고 `uart.conf` 빌드로 시리얼 로그(115200)를 보면서 해요. 배터리 단독 확인은 마지막에 기본 빌드로.
+USB에 꽂고 `uart.conf` 빌드로 시리얼 로그(115200)를 보면서 해요. 배터리 단독 확인은 마지막에 기본 빌드로. M0은 대시보드([`tools/bringup_monitor.py`](../tools/README.md#bringup_monitorpy--m0-bring-up-대시보드))로 봐도 돼요.
 
 ### M0 — 부품 (`bringup/`)
 
