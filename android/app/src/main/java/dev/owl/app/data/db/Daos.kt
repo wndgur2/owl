@@ -229,6 +229,9 @@ interface LocationDao {
 
     @Query("SELECT * FROM locations WHERE timeMs < :before ORDER BY timeMs DESC LIMIT 1")
     suspend fun lastBefore(before: Long): LocationEntity?
+
+    @Query("SELECT * FROM locations WHERE timeMs >= :from ORDER BY timeMs LIMIT 1")
+    suspend fun firstFrom(from: Long): LocationEntity?
 }
 
 @Dao

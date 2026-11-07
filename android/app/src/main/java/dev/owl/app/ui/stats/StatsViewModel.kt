@@ -48,14 +48,11 @@ class StatsViewModel(
     private val period = MutableStateFlow(StatsPeriod(StatsSpan.DAY, currentDay()))
     private var lastShownDay = period.value.end
 
-    /** A stay still going on is counted up to now, so showing the tab again reads again. */
-    private val shown = MutableStateFlow(0)
-
     private fun millis(date: LocalDate) = date.atStartOfDay(zone()).toInstant().toEpochMilli()
     private fun fromMs(p: StatsPeriod) = millis(p.start)
     private fun toMs(p: StatsPeriod) = millis(p.end.plusDays(1))
 
-    private val places = combine(period, shown) { p, _ -> p }.flatMapLatest { p -> placesRepository.stays(fromMs(p), toMs(p)).map { p to it } }
+    private val places = period.flatMapLatest { p -> placesRepository.stays(fromMs(p), toMs(p)).map { p to it } }
     private val apps = period.flatMapLatest { p -> usage.summary(fromMs(p), toMs(p)).map { p to it } }
 
     val state: StateFlow<StatsUiState> = combine(period, places, apps, usage.enabled, usage.hasRecords) { p, placeRows, appRows, enabled, hasRecords ->
@@ -76,7 +73,6 @@ class StatsViewModel(
         val day = currentDay()
         if (period.value.end == lastShownDay) period.value = period.value.copy(end = day)
         lastShownDay = day
-        shown.value++
     }
 
     fun setSpan(span: StatsSpan) {

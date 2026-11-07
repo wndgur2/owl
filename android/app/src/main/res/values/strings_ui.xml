@@ -215,14 +215,10 @@
     <string name="stats_previous">이전 기간</string>
     <string name="stats_next">다음 기간</string>
     <string name="stats_place_visits">%1$d번 방문</string>
-    <string name="stats_places_empty">이 기간에는 위치 기록이 없어요</string>
-    <string name="stats_places_hint">다음 위치가 기록될 때까지 그 자리에 머문 것으로 계산해요. 장소 기록을 꺼 둔 시간은 구분하지 못해 최대 24시간까지 더해질 수 있어요.</string>
+    <string name="stats_places_empty">이 기간에는 머문 곳 기록이 없어요</string>
     <string name="app_usage_total">총 %1$s</string>
     <string name="app_usage_sessions">%1$d번 사용</string>
     <string name="app_usage_empty_title">이 기간에는 앱 사용 기록이 없어요</string>
-    <string name="app_usage_empty_off_body">켜면 그때부터 기록해요. 그 전 사용은 가져오지 않아요.</string>
-    <string name="app_usage_empty_on_body">방금 쓴 앱은 잠시 뒤에 보여요.</string>
-    <string name="app_usage_hint">홈 화면과 시스템 화면은 기록하지 않아요. 기록은 자동으로 지워지지 않고 이 폰에만 남아요.</string>
     <string name="app_usage_delete">모두 지우기</string>
     <string name="app_usage_delete_title">앱 사용 기록을 모두 지울까요?</string>
     <string name="app_usage_delete_body">지운 기록은 되돌릴 수 없어요. 녹음과 장소 기록은 그대로 남아요.</string>

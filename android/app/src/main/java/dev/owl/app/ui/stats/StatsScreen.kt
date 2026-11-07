@@ -58,7 +58,6 @@ import dev.owl.app.model.AppUsageSummary
 import dev.owl.app.model.Place
 import dev.owl.app.model.PlaceSummary
 import dev.owl.app.ui.components.EmptyState
-import dev.owl.app.ui.components.HintCard
 import dev.owl.app.ui.components.OwlDivider
 import dev.owl.app.ui.components.OwlFormats
 import dev.owl.app.ui.components.OwlListRow
@@ -274,9 +273,6 @@ private fun LazyListScope.placeRows(state: StatsUiState, formats: OwlFormats) {
             )
         }
     }
-    item(key = "places-hint") {
-        HintCard(stringResource(R.string.stats_places_hint), Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp))
-    }
 }
 
 private fun LazyListScope.appUsageSwitch(
@@ -312,11 +308,7 @@ private fun LazyListScope.appRows(state: StatsUiState, formats: OwlFormats) {
     val apps = state.apps ?: return
     if (apps.isEmpty()) {
         item(key = "apps-empty") {
-            EmptyState(
-                icon = Icons.Outlined.Apps,
-                title = stringResource(R.string.app_usage_empty_title),
-                body = stringResource(if (state.appUsageEnabled) R.string.app_usage_empty_on_body else R.string.app_usage_empty_off_body),
-            )
+            EmptyState(icon = Icons.Outlined.Apps, title = stringResource(R.string.app_usage_empty_title), body = null)
         }
     } else {
         item(key = "apps-total") {
@@ -329,9 +321,6 @@ private fun LazyListScope.appRows(state: StatsUiState, formats: OwlFormats) {
                 trailing = { DurationLabel(formats.duration(app.totalMs, estimate = false)) },
             )
         }
-    }
-    item(key = "apps-hint") {
-        HintCard(stringResource(R.string.app_usage_hint), Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp))
     }
 }
 

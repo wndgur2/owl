@@ -34,56 +34,77 @@ class PlacesTest {
         assertNull(PlaceResolver.nearestPlace(places, 37.5645, 126.9780))
     }
 
-    private fun fix(timeMs: Long, place: PlaceEntity) = LocationEntity(0, timeMs, place.latitude, place.longitude, null)
-    private fun nowhere(timeMs: Long) = LocationEntity(0, timeMs, 37.0, 127.0, null)
-    private val hour = 3_600_000L
+    private val minute = 60_000L
+    private val hour = 60 * minute
+    private fun fix(timeMs: Long, place: PlaceEntity, accuracyM: Float? = null) = LocationEntity(0, timeMs, place.latitude, place.longitude, accuracyM)
+    private fun nowhere(timeMs: Long, latitude: Double = 37.0) = LocationEntity(0, timeMs, latitude, 127.0, null)
+    private fun stays(vararg fixes: LocationEntity, from: Long = 0, to: Long = 100 * hour) =
+        summarizeStays(fixes.toList(), listOf(library, cafe), from, to)
 
     @Test
-    fun eachFixHoldsUntilTheNextOne() {
-        val rows = summarizeStays(
-            listOf(fix(0, library), fix(2 * hour, cafe), fix(3 * hour, library)),
-            listOf(library, cafe), fromMs = 0, toMs = 10 * hour, nowMs = 5 * hour,
-        )
-        assertEquals(listOf("중앙도서관" to 4 * hour, "학생회관 카페" to hour), rows.map { it.place.name to it.totalMs })
-        assertEquals(listOf(2, 1), rows.map { it.visits })
+    fun onlyTimeBetweenFixesAtTheSamePlaceCounts() {
+        val rows = stays(fix(0, library), fix(hour, library), fix(2 * hour, cafe), fix(5 * hour, cafe))
+        // The hour between the library's last fix and the café's first is travel: neither gets it.
+        assertEquals(listOf("학생회관 카페" to 3 * hour, "중앙도서관" to hour), rows.map { it.place.name to it.totalMs })
     }
 
     @Test
-    fun aStayAcrossThePeriodStartCountsFromTheStart() {
-        val rows = summarizeStays(listOf(fix(-5 * hour, library), fix(hour, cafe)), listOf(library, cafe), 0, 2 * hour, 10 * hour)
-        assertEquals(listOf(hour, hour), rows.map { it.totalMs })
+    fun aStayEndsAtItsLastFix() {
+        assertEquals(hour, stays(fix(0, library), fix(hour, library)).single().totalMs)
+        assertEquals(emptyList<Any>(), stays(fix(0, library)))
     }
 
     @Test
-    fun stopsAtThePeriodEnd() {
-        val rows = summarizeStays(listOf(fix(hour, library), fix(5 * hour, cafe)), listOf(library, cafe), 0, 2 * hour, 10 * hour)
-        assertEquals(listOf("중앙도서관" to hour), rows.map { it.place.name to it.totalMs })
+    fun comingBackIsAnotherVisit() {
+        val row = stays(fix(0, library), fix(hour, library), fix(2 * hour, cafe), fix(3 * hour, library), fix(4 * hour, library)).single()
+        assertEquals(2, row.visits)
+        assertEquals(2 * hour, row.totalMs)
     }
 
     @Test
-    fun aFixHoldsForAtMost24Hours() {
-        val rows = summarizeStays(listOf(fix(0, library)), listOf(library), 0, 100 * hour, 100 * hour)
-        assertEquals(MAX_STAY_PER_FIX_MS, rows.single().totalMs)
+    fun aStayAcrossThePeriodEdgesCountsOnlyInside() {
+        val row = stays(fix(-hour, library), fix(hour, library), fix(3 * hour, library), from = 0, to = 2 * hour).single()
+        assertEquals(2 * hour, row.totalMs)
     }
 
     @Test
-    fun movingWithinOnePlaceIsOneVisitAndGapsSplitVisits() {
-        val within = summarizeStays(listOf(fix(0, library), fix(hour, library)), listOf(library), 0, 2 * hour, 2 * hour)
-        assertEquals(1, within.single().visits)
-        val apart = summarizeStays(listOf(fix(0, library), fix(30 * hour, library)), listOf(library), 0, 31 * hour, 31 * hour)
-        assertEquals(2, apart.single().visits)
-        assertEquals(25 * hour, apart.single().totalMs)
+    fun aGapOver24HoursSaysNothing() {
+        val row = stays(fix(0, library), fix(hour, library), fix(hour + MAX_STAY_GAP_MS + 1, library), fix(hour + MAX_STAY_GAP_MS + 1 + hour, library)).single()
+        assertEquals(2 * hour, row.totalMs)
+        assertEquals(2, row.visits)
+        assertEquals(MAX_STAY_GAP_MS, stays(fix(0, library), fix(MAX_STAY_GAP_MS, library)).single().totalMs)
     }
 
     @Test
-    fun unnamedPlacesAddUpAsOne() {
-        val rows = summarizeStays(listOf(nowhere(0), nowhere(hour).copy(latitude = 36.0), fix(2 * hour, library)), listOf(library), 0, 3 * hour, 3 * hour)
-        assertEquals(listOf(null to 2 * hour, "중앙도서관" to hour), rows.map { it.place.name to it.totalMs })
+    fun passingThroughIsNotAStay() {
+        assertEquals(emptyList<Any>(), stays(fix(0, library), fix(MIN_STAY_MS - 1, library)))
+        assertEquals(MIN_STAY_MS, stays(fix(0, library), fix(MIN_STAY_MS, library)).single().totalMs)
     }
 
     @Test
-    fun nothingBeforeTheFirstFixAndNothingInTheFuture() {
-        assertEquals(emptyList<Any>(), summarizeStays(emptyList(), listOf(library), 0, hour, hour))
-        assertEquals(emptyList<Any>(), summarizeStays(listOf(fix(5 * hour, library)), listOf(library), 0, 10 * hour, 3 * hour))
+    fun aCoarseFixNeitherStartsNorBreaksAStay() {
+        val jump = LocationEntity(0, hour, 37.0, 127.0, 900f)
+        assertEquals(2 * hour, stays(fix(0, library), jump, fix(2 * hour, library)).single().totalMs)
+    }
+
+    @Test
+    fun nearbyNamedPlacesStayApart() {
+        // The café is ~78 m from the library: inside the radius, but a different place.
+        assertEquals(emptyList<Any>(), stays(fix(0, library), fix(hour, cafe)))
+    }
+
+    @Test
+    fun unnamedPlacesSplitBeyondTheRadiusAndAddUpAsOne() {
+        val rows = stays(nowhere(0), nowhere(hour), nowhere(2 * hour, latitude = 36.0), nowhere(3 * hour, latitude = 36.0))
+        assertEquals(listOf(null to 2 * hour), rows.map { it.place.name to it.totalMs })
+        assertEquals(2, rows.single().visits)
+    }
+
+    @Test
+    fun aFixJustOutsideANamedPlaceStaysInIt() {
+        val edge = LocationEntity(0, hour, library.latitude + 0.00095, library.longitude, null) // ~105 m north, past the radius from its centre
+        val anchor = LocationEntity(0, 0, library.latitude + 0.0005, library.longitude, null) // ~55 m north, inside
+        val row = summarizeStays(listOf(anchor, edge), listOf(library), 0, 10 * hour).single()
+        assertEquals("중앙도서관" to hour, row.place.name to row.totalMs)
     }
 }

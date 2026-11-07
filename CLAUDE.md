@@ -8,6 +8,7 @@ Offline wearable lifelogging pendant. Monorepo: `protocol/` (spec), `firmware/` 
 - Firmware build: `west build -p -b xiao_nrf54l15/nrf54l15/cpuapp firmware -- -DEXTRA_CONF_FILE=uart.conf`, then `west flash`.
 - Default `prj.conf` has UART off (battery boot issue). Debug with `uart.conf`.
 - Pin assignments live in `firmware/boards/*.overlay` and must match `hardware/wiring.md`.
+- App UI copy: no hint cards or fine print explaining how a feature works or its limits. Keep only text needed to act (labels, permission prompts, confirmations); rules and limits go in `docs/prd.md` and `docs/decisions.md`.
 - Record design decisions in `docs/decisions.md`; update `docs/roadmap.md` when a milestone closes.
 - Protocol tests: `python3 tools/tests/test_owlproto.py`.
 - CI (`.github/workflows/`): `tools.yml` (pytest), `firmware.yml` (NCS v3.4.1 container, default + uart builds, twister on `native_sim` if `firmware/tests/` exists), `android.yml` (no-op until `android/gradlew` exists). Path-filtered (on `main`, firmware builds only for `firmware/**`/`protocol/**` pushes); run the same commands locally before pushing. Bump NCS in `firmware.yml` (`NCS_VERSION` + both `image:` tags) together.
