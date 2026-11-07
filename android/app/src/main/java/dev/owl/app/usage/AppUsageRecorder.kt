@@ -106,7 +106,7 @@ class AndroidUsageSource(private val context: Context) : UsageEventSource {
 /**
  * A18: copies the system's usage events into our database. The system keeps them only for days, so
  * [sync] runs periodically and when the app opens. Rows go in before the cursor moves and duplicates
- * are ignored, so a crash in between or an overlapping read loses and repeats nothing (decisions #51).
+ * are ignored, so a crash in between or an overlapping read loses and repeats nothing (decisions #53).
  */
 class AppUsageRecorder(
     private val dao: AppUsageDao,

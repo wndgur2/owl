@@ -131,7 +131,7 @@ fun SettingsScreen(
             }
         },
         onExport = {
-            // Left out unless chosen each time (decisions #51). Nothing to choose without records.
+            // Left out unless chosen each time (decisions #53). Nothing to choose without records.
             includeAppUsage = false
             if (state.hasAppUsage) choosingExport = true else exportLauncher.launch(exportName)
         },

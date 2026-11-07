@@ -30,7 +30,7 @@ data class ClockReading(val bootCount: Int, val wallMinusElapsedMs: Long)
  */
 data class UsageWindow(val finished: List<UsageSession>, val nextCursorMs: Long)
 
-/** Pure rules for turning system usage events into sessions and day totals (decisions #51). */
+/** Pure rules for turning system usage events into sessions and day totals (decisions #53). */
 object UsageSessions {
     /**
      * The same app back within this, with no other app in between, is one session: moving between

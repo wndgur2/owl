@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif">
+<rect width="210" height="297" fill="#fff"/>
+<text x="10.000" y="15.000" font-size="5.6" text-anchor="start" font-weight="700" fill="#1d1d1d">3D펜 케이스 도면 — 실제 크기 본</text>
+<text x="10.000" y="21.000" font-size="3" text-anchor="start" font-weight="400" fill="#1d1d1d">배율 100%(실제 크기)로 인쇄해요. 맞춤 인쇄·페이지에 맞춤을 끄고, 본 위에 투명 파일을 덮고 그려요.</text>
+<line x1="10.000" y1="24.000" x2="200.000" y2="24.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<text x="200.000" y="15.000" font-size="2.8" text-anchor="end" font-weight="400" fill="#6b6b6b">Owl 케이스 · 3D펜 · 2/2쪽</text>
+<rect x="148.000" y="31.000" width="50.000" height="2.000" stroke="#1d1d1d" stroke-width="0.2" fill="none"/>
+<rect x="148.000" y="31.000" width="10.000" height="2.000" stroke="#1d1d1d" stroke-width="0" fill="#1d1d1d"/>
+<rect x="168.000" y="31.000" width="10.000" height="2.000" stroke="#1d1d1d" stroke-width="0" fill="#1d1d1d"/>
+<rect x="188.000" y="31.000" width="10.000" height="2.000" stroke="#1d1d1d" stroke-width="0" fill="#1d1d1d"/>
+<text x="148.000" y="30.000" font-size="2.4" text-anchor="middle" font-weight="400" fill="#1d1d1d">0</text>
+<text x="198.000" y="30.000" font-size="2.4" text-anchor="middle" font-weight="400" fill="#1d1d1d">50 mm</text>
+<text x="173.000" y="36.000" font-size="2.4" text-anchor="middle" font-weight="400" fill="#d62828">자로 재서 50 mm가 아니면 다시 인쇄</text>
+<path d="M17.500 56.000H46.500A3.5 3.5 0 0 1 50.000 59.500V76.500A3.5 3.5 0 0 1 46.500 80.000H17.500A3.5 3.5 0 0 1 14.000 76.500V59.500A3.5 3.5 0 0 1 17.500 56.000Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M17.000 57.000H47.000A2.0 2.0 0 0 1 49.000 59.000V77.000A2.0 2.0 0 0 1 47.000 79.000H17.000A2.0 2.0 0 0 1 15.000 77.000V59.000A2.0 2.0 0 0 1 17.000 57.000Z" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="1 0.7"/>
+<text x="14.000" y="53.000" font-size="3.4" text-anchor="start" font-weight="700" fill="#1d1d1d">① 바닥</text>
+<text x="32.000" y="67.000" font-size="2.4" text-anchor="middle" font-weight="400" fill="#6b6b6b">바깥선까지 채우기</text>
+<text x="32.000" y="70.600" font-size="2.4" text-anchor="middle" font-weight="400" fill="#6b6b6b">점선 = 벽·더미 자리</text>
+<text x="32.000" y="84.000" font-size="2.4" text-anchor="middle" font-weight="400" fill="#6b6b6b">36 × 24, 두께 1</text>
+<path d="M83.500 56.000H112.500A3.5 3.5 0 0 1 116.000 59.500V76.500A3.5 3.5 0 0 1 112.500 80.000H83.500A3.5 3.5 0 0 1 80.000 76.500V59.500A3.5 3.5 0 0 1 83.500 56.000Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M83.000 57.150H113.000A1.85 1.85 0 0 1 114.850 59.000V77.000A1.85 1.85 0 0 1 113.000 78.850H83.000A1.85 1.85 0 0 1 81.150 77.000V59.000A1.85 1.85 0 0 1 83.000 57.150ZM83.000 57.950H113.000A1.05 1.05 0 0 1 114.050 59.000V77.000A1.05 1.05 0 0 1 113.000 78.050H83.000A1.05 1.05 0 0 1 81.950 77.000V59.000A1.05 1.05 0 0 1 83.000 57.950Z" fill="#dedad2" fill-rule="evenodd" stroke="#6b6b6b" stroke-width="0.12"/>
+<rect x="80.990" y="63.000" width="1.150" height="10.000" stroke="none" stroke-width="0.25" fill="#fff"/>
+<circle cx="98.000" cy="63.100" r="2.300" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="84.000" cy="62.300" r="0.600" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="82.600" y1="62.300" x2="85.400" y2="62.300" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="84.000" y1="60.900" x2="84.000" y2="63.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="84.000" cy="73.700" r="0.600" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="82.600" y1="73.700" x2="85.400" y2="73.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="84.000" y1="72.300" x2="84.000" y2="75.100" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="98.000" cy="63.100" r="0.500" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="96.700" y1="63.100" x2="99.300" y2="63.100" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="98.000" y1="61.800" x2="98.000" y2="64.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="109.500" cy="68.000" r="1.900" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="106.800" y1="68.000" x2="112.200" y2="68.000" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="109.500" y1="65.300" x2="109.500" y2="70.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<text x="80.000" y="45.000" font-size="3.4" text-anchor="start" font-weight="700" fill="#1d1d1d">③ 뚜껑과 립</text>
+<text x="108.000" y="45.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">안쪽 면에서 본 모습이라 1쪽 그림과 위아래가 반대예요</text>
+<line x1="84.000" y1="61.300" x2="79.000" y2="52.500" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="79.000" y="51.700" font-size="2.3" text-anchor="middle" font-weight="400" fill="#1d1d1d">A 초록 LED</text>
+<line x1="98.000" y1="62.100" x2="100.000" y2="52.500" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="100.000" y="51.700" font-size="2.3" text-anchor="middle" font-weight="400" fill="#1d1d1d">C 마이크 + 방진망 자리</text>
+<line x1="84.000" y1="74.700" x2="79.000" y2="82.500" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="79.000" y="85.100" font-size="2.3" text-anchor="middle" font-weight="400" fill="#1d1d1d">B 충전 LED</text>
+<line x1="111.500" y1="68.000" x2="119.000" y2="68.000" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="119.800" y="68.900" font-size="2.3" text-anchor="start" font-weight="400" fill="#1d1d1d">D 버튼 ⌀3.8 비우기</text>
+<line x1="104.000" y1="78.400" x2="104.000" y2="82.500" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="104.000" y="85.100" font-size="2.3" text-anchor="middle" font-weight="400" fill="#1d1d1d">회색 = 립 0.8 × 1</text>
+<text x="78.000" y="68.800" font-size="2.3" text-anchor="end" font-weight="400" fill="#6b6b6b">USB</text>
+<text x="117.000" y="73.500" font-size="2.3" text-anchor="start" font-weight="400" fill="#6b6b6b">고리 쪽</text>
+<text x="117.000" y="59.000" font-size="2.3" text-anchor="start" font-weight="400" fill="#6b6b6b">A·B·C는 채운 뒤</text>
+<text x="117.000" y="62.200" font-size="2.3" text-anchor="start" font-weight="400" fill="#6b6b6b">실측해서 드릴로</text>
+<rect x="122.566" y="102.000" width="5.000" height="11.000" stroke="#6b6b6b" stroke-width="0.15" fill="#efefef"/>
+<text x="125.066" y="108.300" font-size="2.2" text-anchor="middle" font-weight="400" fill="#6b6b6b">풀칠</text>
+<rect x="14.000" y="102.000" width="108.566" height="11.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<text x="21.500" y="111.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 뒤</text>
+<rect x="29.000" y="102.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="29.000" y1="102.000" x2="29.000" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="32.142" y1="102.000" x2="32.142" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="41.142" y="111.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">USB 쪽 벽</text>
+<rect x="50.142" y="102.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="50.142" y1="102.000" x2="50.142" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="53.283" y1="102.000" x2="53.283" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="68.283" y="108.300" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 앞 (마이크 쪽)</text>
+<rect x="83.283" y="102.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="83.283" y1="102.000" x2="83.283" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="86.425" y1="102.000" x2="86.425" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="95.425" y="104.300" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">고리 쪽 벽</text>
+<rect x="104.425" y="102.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="104.425" y1="102.000" x2="104.425" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="107.566" y1="102.000" x2="107.566" y2="113.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="115.066" y="111.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 뒤</text>
+<rect x="14.000" y="102.000" width="108.566" height="11.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M36.442 102.000V104.200A1.9 1.9 0 0 0 38.342 106.100H43.942A1.9 1.9 0 0 0 45.842 104.200V102.000" stroke="#d62828" stroke-width="0.3" fill="#fff"/>
+<line x1="36.442" y1="102.000" x2="45.842" y2="106.100" stroke="#d62828" stroke-width="0.12" fill="none"/>
+<line x1="45.842" y1="102.000" x2="36.442" y2="106.100" stroke="#d62828" stroke-width="0.12" fill="none"/>
+<rect x="77.283" y="102.000" width="4.000" height="1.000" stroke="#d62828" stroke-width="0.25" fill="#fff"/>
+<rect x="91.925" y="105.112" width="7.000" height="5.776" stroke="#1d1d1d" stroke-width="0.2" fill="none" stroke-dasharray="1 0.6"/>
+<text x="14.000" y="93.000" font-size="3.4" text-anchor="start" font-weight="700" fill="#1d1d1d">② 벽 띠</text>
+<text x="29.000" y="93.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">오려서 글자가 보이게 더미에 감아요. 아래 변이 바닥 쪽이에요. 회색 칸이 둥근 모서리예요.</text>
+<line x1="41.142" y1="102.000" x2="41.142" y2="98.500" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="41.142" y="97.700" font-size="2.3" text-anchor="middle" font-weight="400" fill="#d62828">USB 칸 비우기</text>
+<line x1="79.283" y1="102.000" x2="79.283" y2="98.500" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="79.283" y="97.700" font-size="2.3" text-anchor="middle" font-weight="400" fill="#d62828">손톱 홈: 윗줄만 비우기</text>
+<line x1="95.425" y1="110.888" x2="95.425" y2="116.000" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
+<text x="95.425" y="118.600" font-size="2.3" text-anchor="middle" font-weight="400" fill="#1d1d1d">고리 붙는 자리</text>
+<text x="14.000" y="117.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">길이 108.6, 높이 11. 이음매는 뒤쪽 긴 벽 가운데</text>
+<path d="M14.000 132.437L17.431 133.037A2.500 2.500 0 0 1 17.431 137.963L14.000 138.563Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<line x1="15.000" y1="132.612" x2="15.000" y2="138.388" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="17.000" cy="135.500" r="1.100" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="15.100" y1="135.500" x2="18.900" y2="135.500" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="17.000" y1="133.600" x2="17.000" y2="137.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<text x="14.000" y="129.000" font-size="3.4" text-anchor="start" font-weight="700" fill="#1d1d1d">④ 고리</text>
+<text x="23.000" y="133.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">옆모습이에요. 이 모양 그대로 폭 7만큼 뻗어요</text>
+<text x="23.000" y="136.400" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">구멍 ⌀2.2은 양옆으로 (지름 2 철사를 심으로)</text>
+<text x="23.000" y="139.800" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">점선까지 벽 두께 안으로 겹쳐 붙여요</text>
+<circle cx="107.800" cy="135.800" r="2.800" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<circle cx="107.800" cy="135.800" r="1.700" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="105.000" y="130.000" font-size="3.4" text-anchor="start" font-weight="700" fill="#1d1d1d">⑤ 버튼 캡</text>
+<text x="114.000" y="134.400" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">날개 ⌀5.6, 두께 0.6</text>
+<text x="114.000" y="137.800" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">점선 기둥 ⌀3.4, 전체 높이 2</text>
+<text x="14.000" y="151.000" font-size="3.4" text-anchor="start" font-weight="700" fill="#1d1d1d">⑥ 단면</text>
+<text x="29.000" y="151.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">실제 크기예요. 만든 케이스가 식으면 이 그림에 대 보면서 사포로 둥글기와 높이를 맞춰요.</text>
+<path d="M14.000 160.100L14.000 166.500A1.500 1.500 0 0 0 15.500 168.000L48.500 168.000A1.500 1.500 0 0 0 50.000 166.500L50.000 156.500A1.500 1.500 0 0 0 49.914 156.000L49.000 156.000L49.000 167.000L15.000 167.000L15.000 160.100Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<path d="M41.600 156.000L14.086 156.000A1.500 1.500 0 0 1 15.500 155.000L41.600 155.000Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<path d="M45.400 155.000L48.500 155.000A1.500 1.500 0 0 1 49.914 156.000L45.400 156.000Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="40.700" y="156.000" width="5.600" height="0.600" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="41.800" y="154.600" width="3.400" height="1.400" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="48.050" y="156.000" width="0.800" height="1.000" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<path d="M50.000 159.112L52.431 159.537A2.500 2.500 0 0 1 52.431 164.463L50.000 164.888Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<circle cx="52.000" cy="162.000" r="1.100" stroke="#d62828" stroke-width="0.25" fill="#fff"/>
+<path d="M73.000 156.000L72.086 156.000A1.500 1.500 0 0 0 72.000 156.500L72.000 166.500A1.500 1.500 0 0 0 73.500 168.000L94.500 168.000A1.500 1.500 0 0 0 96.000 166.500L96.000 157.000L95.000 157.000L95.000 167.000L73.000 167.000Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<path d="M82.100 156.000L72.086 156.000A1.500 1.500 0 0 1 73.500 155.000L82.100 155.000Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<path d="M85.900 155.000L94.500 155.000A1.500 1.500 0 0 1 95.914 156.000L85.900 156.000Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="81.200" y="156.000" width="5.600" height="0.600" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="82.300" y="154.600" width="3.400" height="1.400" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="73.150" y="156.000" width="0.800" height="1.000" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="94.050" y="156.000" width="0.800" height="1.000" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<text x="14.000" y="172.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">가–가 긴 방향 (왼쪽이 USB 쪽)</text>
+<text x="72.000" y="172.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">나–나 폭 방향 (오른쪽이 마이크 쪽)</text>
+<text x="108.000" y="157.000" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">위아래 모서리 R1.5</text>
+<text x="108.000" y="160.600" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">전체 높이 13, 몸통 12</text>
+<text x="108.000" y="164.200" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">안쪽 34 × 22 × 11</text>
+<text x="108.000" y="167.800" font-size="2.4" text-anchor="start" font-weight="400" fill="#6b6b6b">손톱 홈은 나–나 오른쪽 위</text>
+<line x1="10.000" y1="177.000" x2="200.000" y2="177.000" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="2 1.2"/>
+<text x="10.000" y="183.000" font-size="3" text-anchor="start" font-weight="700" fill="#1d1d1d">여분: 실패하거나 뚜껑·띠를 다시 만들 때 써요.</text>
+<path d="M17.500 188.000H46.500A3.5 3.5 0 0 1 50.000 191.500V208.500A3.5 3.5 0 0 1 46.500 212.000H17.500A3.5 3.5 0 0 1 14.000 208.500V191.500A3.5 3.5 0 0 1 17.500 188.000Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M17.000 189.000H47.000A2.0 2.0 0 0 1 49.000 191.000V209.000A2.0 2.0 0 0 1 47.000 211.000H17.000A2.0 2.0 0 0 1 15.000 209.000V191.000A2.0 2.0 0 0 1 17.000 189.000Z" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="1 0.7"/>
+<path d="M63.500 188.000H92.500A3.5 3.5 0 0 1 96.000 191.500V208.500A3.5 3.5 0 0 1 92.500 212.000H63.500A3.5 3.5 0 0 1 60.000 208.500V191.500A3.5 3.5 0 0 1 63.500 188.000Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M63.000 189.150H93.000A1.85 1.85 0 0 1 94.850 191.000V209.000A1.85 1.85 0 0 1 93.000 210.850H63.000A1.85 1.85 0 0 1 61.150 209.000V191.000A1.85 1.85 0 0 1 63.000 189.150ZM63.000 189.950H93.000A1.05 1.05 0 0 1 94.050 191.000V209.000A1.05 1.05 0 0 1 93.000 210.050H63.000A1.05 1.05 0 0 1 61.950 209.000V191.000A1.05 1.05 0 0 1 63.000 189.950Z" fill="#dedad2" fill-rule="evenodd" stroke="#6b6b6b" stroke-width="0.12"/>
+<rect x="60.990" y="195.000" width="1.150" height="10.000" stroke="none" stroke-width="0.25" fill="#fff"/>
+<circle cx="78.000" cy="195.100" r="2.300" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="64.000" cy="194.300" r="0.600" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="62.600" y1="194.300" x2="65.400" y2="194.300" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="64.000" y1="192.900" x2="64.000" y2="195.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="64.000" cy="205.700" r="0.600" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="62.600" y1="205.700" x2="65.400" y2="205.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="64.000" y1="204.300" x2="64.000" y2="207.100" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="78.000" cy="195.100" r="0.500" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="76.700" y1="195.100" x2="79.300" y2="195.100" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="78.000" y1="193.800" x2="78.000" y2="196.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="89.500" cy="200.000" r="1.900" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="86.800" y1="200.000" x2="92.200" y2="200.000" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="89.500" y1="197.300" x2="89.500" y2="202.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<path d="M109.500 188.000H138.500A3.5 3.5 0 0 1 142.000 191.500V208.500A3.5 3.5 0 0 1 138.500 212.000H109.500A3.5 3.5 0 0 1 106.000 208.500V191.500A3.5 3.5 0 0 1 109.500 188.000Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M109.000 189.000H139.000A2.0 2.0 0 0 1 141.000 191.000V209.000A2.0 2.0 0 0 1 139.000 211.000H109.000A2.0 2.0 0 0 1 107.000 209.000V191.000A2.0 2.0 0 0 1 109.000 189.000Z" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="1 0.7"/>
+<path d="M155.500 188.000H184.500A3.5 3.5 0 0 1 188.000 191.500V208.500A3.5 3.5 0 0 1 184.500 212.000H155.500A3.5 3.5 0 0 1 152.000 208.500V191.500A3.5 3.5 0 0 1 155.500 188.000Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M155.000 189.150H185.000A1.85 1.85 0 0 1 186.850 191.000V209.000A1.85 1.85 0 0 1 185.000 210.850H155.000A1.85 1.85 0 0 1 153.150 209.000V191.000A1.85 1.85 0 0 1 155.000 189.150ZM155.000 189.950H185.000A1.05 1.05 0 0 1 186.050 191.000V209.000A1.05 1.05 0 0 1 185.000 210.050H155.000A1.05 1.05 0 0 1 153.950 209.000V191.000A1.05 1.05 0 0 1 155.000 189.950Z" fill="#dedad2" fill-rule="evenodd" stroke="#6b6b6b" stroke-width="0.12"/>
+<rect x="152.990" y="195.000" width="1.150" height="10.000" stroke="none" stroke-width="0.25" fill="#fff"/>
+<circle cx="170.000" cy="195.100" r="2.300" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="156.000" cy="194.300" r="0.600" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="154.600" y1="194.300" x2="157.400" y2="194.300" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="156.000" y1="192.900" x2="156.000" y2="195.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="156.000" cy="205.700" r="0.600" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="154.600" y1="205.700" x2="157.400" y2="205.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="156.000" y1="204.300" x2="156.000" y2="207.100" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="170.000" cy="195.100" r="0.500" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="168.700" y1="195.100" x2="171.300" y2="195.100" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="170.000" y1="193.800" x2="170.000" y2="196.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="181.500" cy="200.000" r="1.900" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="178.800" y1="200.000" x2="184.200" y2="200.000" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="181.500" y1="197.300" x2="181.500" y2="202.700" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<rect x="122.566" y="218.000" width="5.000" height="11.000" stroke="#6b6b6b" stroke-width="0.15" fill="#efefef"/>
+<text x="125.066" y="224.300" font-size="2.2" text-anchor="middle" font-weight="400" fill="#6b6b6b">풀칠</text>
+<rect x="14.000" y="218.000" width="108.566" height="11.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<text x="21.500" y="227.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 뒤</text>
+<rect x="29.000" y="218.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="29.000" y1="218.000" x2="29.000" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="32.142" y1="218.000" x2="32.142" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="41.142" y="227.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">USB 쪽 벽</text>
+<rect x="50.142" y="218.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="50.142" y1="218.000" x2="50.142" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="53.283" y1="218.000" x2="53.283" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="68.283" y="224.300" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 앞 (마이크 쪽)</text>
+<rect x="83.283" y="218.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="83.283" y1="218.000" x2="83.283" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="86.425" y1="218.000" x2="86.425" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="95.425" y="220.300" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">고리 쪽 벽</text>
+<rect x="104.425" y="218.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="104.425" y1="218.000" x2="104.425" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="107.566" y1="218.000" x2="107.566" y2="229.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="115.066" y="227.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 뒤</text>
+<rect x="14.000" y="218.000" width="108.566" height="11.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M36.442 218.000V220.200A1.9 1.9 0 0 0 38.342 222.100H43.942A1.9 1.9 0 0 0 45.842 220.200V218.000" stroke="#d62828" stroke-width="0.3" fill="#fff"/>
+<line x1="36.442" y1="218.000" x2="45.842" y2="222.100" stroke="#d62828" stroke-width="0.12" fill="none"/>
+<line x1="45.842" y1="218.000" x2="36.442" y2="222.100" stroke="#d62828" stroke-width="0.12" fill="none"/>
+<rect x="77.283" y="218.000" width="4.000" height="1.000" stroke="#d62828" stroke-width="0.25" fill="#fff"/>
+<rect x="91.925" y="221.112" width="7.000" height="5.776" stroke="#1d1d1d" stroke-width="0.2" fill="none" stroke-dasharray="1 0.6"/>
+<rect x="122.566" y="234.000" width="5.000" height="11.000" stroke="#6b6b6b" stroke-width="0.15" fill="#efefef"/>
+<text x="125.066" y="240.300" font-size="2.2" text-anchor="middle" font-weight="400" fill="#6b6b6b">풀칠</text>
+<rect x="14.000" y="234.000" width="108.566" height="11.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<text x="21.500" y="243.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 뒤</text>
+<rect x="29.000" y="234.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="29.000" y1="234.000" x2="29.000" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="32.142" y1="234.000" x2="32.142" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="41.142" y="243.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">USB 쪽 벽</text>
+<rect x="50.142" y="234.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="50.142" y1="234.000" x2="50.142" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="53.283" y1="234.000" x2="53.283" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="68.283" y="240.300" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 앞 (마이크 쪽)</text>
+<rect x="83.283" y="234.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="83.283" y1="234.000" x2="83.283" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="86.425" y1="234.000" x2="86.425" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="95.425" y="236.300" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">고리 쪽 벽</text>
+<rect x="104.425" y="234.000" width="3.142" height="11.000" stroke="none" stroke-width="0.25" fill="#efefef"/>
+<line x1="104.425" y1="234.000" x2="104.425" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<line x1="107.566" y1="234.000" x2="107.566" y2="245.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="115.066" y="243.500" font-size="2.3" text-anchor="middle" font-weight="400" fill="#6b6b6b">긴 벽 뒤</text>
+<rect x="14.000" y="234.000" width="108.566" height="11.000" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<path d="M36.442 234.000V236.200A1.9 1.9 0 0 0 38.342 238.100H43.942A1.9 1.9 0 0 0 45.842 236.200V234.000" stroke="#d62828" stroke-width="0.3" fill="#fff"/>
+<line x1="36.442" y1="234.000" x2="45.842" y2="238.100" stroke="#d62828" stroke-width="0.12" fill="none"/>
+<line x1="45.842" y1="234.000" x2="36.442" y2="238.100" stroke="#d62828" stroke-width="0.12" fill="none"/>
+<rect x="77.283" y="234.000" width="4.000" height="1.000" stroke="#d62828" stroke-width="0.25" fill="#fff"/>
+<rect x="91.925" y="237.112" width="7.000" height="5.776" stroke="#1d1d1d" stroke-width="0.2" fill="none" stroke-dasharray="1 0.6"/>
+<path d="M14.000 250.437L17.431 251.037A2.500 2.500 0 0 1 17.431 255.963L14.000 256.563Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<line x1="15.000" y1="250.612" x2="15.000" y2="256.388" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="17.000" cy="253.500" r="1.100" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="15.100" y1="253.500" x2="18.900" y2="253.500" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="17.000" y1="251.600" x2="17.000" y2="255.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<path d="M39.000 250.437L42.431 251.037A2.500 2.500 0 0 1 42.431 255.963L39.000 256.563Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<line x1="40.000" y1="250.612" x2="40.000" y2="256.388" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="42.000" cy="253.500" r="1.100" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="40.100" y1="253.500" x2="43.900" y2="253.500" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="42.000" y1="251.600" x2="42.000" y2="255.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<path d="M64.000 250.437L67.431 251.037A2.500 2.500 0 0 1 67.431 255.963L64.000 256.563Z" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<line x1="65.000" y1="250.612" x2="65.000" y2="256.388" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="67.000" cy="253.500" r="1.100" stroke="#d62828" stroke-width="0.2" fill="#fff"/>
+<line x1="65.100" y1="253.500" x2="68.900" y2="253.500" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<line x1="67.000" y1="251.600" x2="67.000" y2="255.400" stroke="#d62828" stroke-width="0.1" fill="none"/>
+<circle cx="92.800" cy="253.800" r="2.800" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<circle cx="92.800" cy="253.800" r="1.700" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="107.800" cy="253.800" r="2.800" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<circle cx="107.800" cy="253.800" r="1.700" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<circle cx="122.800" cy="253.800" r="2.800" stroke="#1d1d1d" stroke-width="0.3" fill="none"/>
+<circle cx="122.800" cy="253.800" r="1.700" stroke="#6b6b6b" stroke-width="0.15" fill="none" stroke-dasharray="0.8 0.6"/>
+<text x="10.000" y="269.000" font-size="2.8" text-anchor="start" font-weight="700" fill="#1d1d1d">색·기호</text>
+<text x="10.000" y="273.500" font-size="2.5" text-anchor="start" font-weight="400" fill="#6b6b6b">굵은 선 = 바깥 끝까지 채우는 선   ·   점선 = 안쪽 기준선(벽·립·기둥 자리)   ·   빨강 = 구멍·비우는 곳</text>
+<text x="10.000" y="277.500" font-size="2.3" text-anchor="start" font-weight="400" fill="#6b6b6b">치수는 owl-case.scad 값에서 만들어요. A·B·C 위치와 USB 높이는 부품 실측 전 추정값이에요. 다시 만들기: python3 hardware/case/pen_drawing.py</text>
+</svg>
