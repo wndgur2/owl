@@ -2,6 +2,8 @@ package dev.owl.app.ui.timeline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.owl.app.model.AppUsageCard
+import dev.owl.app.model.AppUsageRepository
 import dev.owl.app.model.DeviceNotice
 import dev.owl.app.model.StandaloneBookmark
 import dev.owl.app.model.TimelineItem
@@ -40,7 +42,7 @@ private const val PAGE = 50
 
 /** Reverse infinite scroll (A7): the newest [limit] items are loaded; scrolling up raises the limit. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TimelineViewModel(private val repository: TimelineRepository) : ViewModel() {
+class TimelineViewModel(private val repository: TimelineRepository, private val appUsage: AppUsageRepository) : ViewModel() {
     private val limit = MutableStateFlow(PAGE)
     private val bookmarkedOnly = MutableStateFlow(false)
     private val jumpTarget = MutableStateFlow<LocalDate?>(null)
@@ -66,11 +68,13 @@ class TimelineViewModel(private val repository: TimelineRepository) : ViewModel(
         // Device notices explain gaps; the bookmark filter is about bookmarks only.
         val notices: Flow<List<DeviceNotice>> =
             if (q.bookmarkedOnly) flowOf(emptyList()) else since.flatMapLatest { repository.deviceNotices(it) }
-        combine(loaded, bookmarks, notices) { list, marks, events ->
+        val usage: Flow<List<AppUsageCard>> =
+            if (q.bookmarkedOnly) flowOf(emptyList()) else since.flatMapLatest { appUsage.cards(it) }
+        combine(loaded, bookmarks, notices, usage) { list, marks, events, cards ->
             TimelineUiState(
                 items = list,
                 bookmarks = marks,
-                rows = buildTimelineRows(mergeTimeline(list, marks, events)),
+                rows = buildTimelineRows(mergeTimeline(list, marks, events, cards)),
                 bookmarkedOnly = q.bookmarkedOnly,
                 canLoadMore = list.size >= q.limit,
             )

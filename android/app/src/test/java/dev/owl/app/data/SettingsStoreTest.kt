@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import dev.owl.app.model.ThemeMode
 import dev.owl.app.ui.theme.isDark
 import dev.owl.app.ui.theme.nightMode
+import dev.owl.app.usage.ClockReading
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -64,6 +65,27 @@ class SettingsStoreTest {
         withStore { store, _ -> store.setLocationEnabled(false) }
         withStore { store, _ -> store.setThemeMode(ThemeMode.LIGHT) }
         withStore { store, _ -> assertFalse(store.locationEnabled.first()) }
+    }
+
+    @Test
+    fun appUsageIsOffByDefaultAndForgetsItsPositionWhenTurnedOff() = runTest {
+        val clock = ClockReading(bootCount = 3, wallMinusElapsedMs = 500)
+        withStore { store, _ ->
+            assertFalse(store.appUsageEnabled.first())
+            assertEquals(null, store.appUsageCursor())
+            assertEquals(null, store.appUsageClock())
+            store.setAppUsageCursor(1_000, clock)
+            store.setAppUsageEnabled(true)
+        }
+        withStore { store, _ ->
+            assertTrue(store.appUsageEnabled.first())
+            assertEquals(1_000L, store.appUsageCursor())
+            assertEquals(clock, store.appUsageClock())
+            store.setAppUsageEnabled(false)
+            assertFalse(store.appUsageEnabled.first())
+            assertEquals(null, store.appUsageCursor())
+            assertEquals(null, store.appUsageClock())
+        }
     }
 
     @Test

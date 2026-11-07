@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import dev.owl.app.data.PlaceResolver
 import dev.owl.app.data.assemble
+import dev.owl.app.data.db.AppUsageEntity
 import dev.owl.app.data.db.OwlDatabase
 import kotlinx.coroutines.flow.first
 import dev.owl.app.model.Exporter
@@ -24,11 +25,12 @@ class JsonExporter(
     private val resolver: ContentResolver,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) : Exporter {
-    override suspend fun exportTo(uri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+    override suspend fun exportTo(uri: Uri, includeAppUsage: Boolean): Result<Int> = withContext(Dispatchers.IO) {
         runCatching {
             val records = collect()
+            val appUsage = if (includeAppUsage) db.appUsage().all() else null
             val out = resolver.openOutputStream(uri, "wt") ?: error("cannot open $uri")
-            out.bufferedWriter(Charsets.UTF_8).use { write(it, records, zone) }
+            out.bufferedWriter(Charsets.UTF_8).use { write(it, records, zone, appUsage) }
             records.size
         }
     }
@@ -60,7 +62,8 @@ class JsonExporter(
     }
 
     companion object {
-        fun write(w: Writer, records: List<ExportRecord>, zone: ZoneId) {
+        /** [appUsage]: the optional A18 sessions; the key is absent when the user left them out. */
+        fun write(w: Writer, records: List<ExportRecord>, zone: ZoneId, appUsage: List<AppUsageEntity>? = null) {
             val fmt = DateTimeFormatter.ISO_OFFSET_DATE_TIME
             w.write("{\"format\":\"owl-export\",\"version\":1,\"exportedAt\":${str(fmt.format(Instant.now().atZone(zone)))},\"records\":[")
             records.forEachIndexed { i, r ->
@@ -77,7 +80,18 @@ class JsonExporter(
                 }
                 w.write("]}")
             }
-            w.write("\n]}\n")
+            w.write("\n]")
+            if (appUsage != null) {
+                w.write(",\"appUsage\":[")
+                appUsage.forEachIndexed { i, u ->
+                    if (i > 0) w.write(",")
+                    val start = fmt.format(Instant.ofEpochMilli(u.startMs).atZone(zone))
+                    val end = fmt.format(Instant.ofEpochMilli(u.endMs).atZone(zone))
+                    w.write("\n{\"package\":${str(u.packageName)},\"label\":${str(u.label)},\"start\":${str(start)},\"end\":${str(end)}}")
+                }
+                w.write("\n]")
+            }
+            w.write("}\n")
         }
 
         /** JSON string literal. */

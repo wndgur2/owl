@@ -6,8 +6,11 @@ import dev.owl.app.data.db.OwlDatabase
 import dev.owl.app.data.db.PlaceEntity
 import dev.owl.app.location.LocationSink
 import dev.owl.app.model.NamedPlace
+import dev.owl.app.model.Place
+import dev.owl.app.model.PlaceSummary
 import dev.owl.app.model.PlacesRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlin.math.cos
 import kotlin.math.sqrt
@@ -102,4 +105,69 @@ class PlacesRepositoryImpl(private val db: OwlDatabase, private val resolver: Pl
         db.places().delete(id)
         resolver.relabel()
     }
+
+    override fun stays(fromMs: Long, toMs: Long): Flow<List<PlaceSummary>> =
+        combine(db.locations().observeRange(fromMs, toMs), db.places().observeAll()) { fixes, places ->
+            val edges = db.locations().lastBefore(fromMs) to db.locations().firstFrom(toMs)
+            summarizeStays(listOfNotNull(edges.first) + fixes + listOfNotNull(edges.second), places, fromMs, toMs)
+        }
+}
+
+/** Fixes further apart than this say nothing: 장소 기록 was off, the phone was dead, or anything happened. */
+const val MAX_STAY_GAP_MS: Long = 24 * 3_600_000L
+
+/** A shorter stretch at one place is passing through, not staying. */
+const val MIN_STAY_MS: Long = 5 * 60_000L
+
+/** Coarser fixes (cell towers) cannot tell one place from the next, so they neither start nor break a stay. */
+const val MAX_FIX_ACCURACY_M: Float = 200f
+
+private class Stay(val anchor: LocationEntity, var named: PlaceEntity?) {
+    val startMs = anchor.timeMs
+    var endMs = anchor.timeMs
+
+    /** Two different named places stay apart however close; otherwise within [PLACE_RADIUS_M] of where this began. */
+    fun includes(fix: LocationEntity, fixNamed: PlaceEntity?): Boolean {
+        val here = named
+        if (fix.timeMs - endMs > MAX_STAY_GAP_MS) return false
+        if (here != null && fixNamed != null) return here.rowId == fixNamed.rowId
+        return PlaceResolver.distanceM(anchor.latitude, anchor.longitude, fix.latitude, fix.longitude) <= PLACE_RADIUS_M
+    }
+}
+
+/**
+ * Time spent at each place within [fromMs, toMs) (A19), most first. Only the time between fixes at
+ * the same place counts: time between place A and place B, which is travel, goes to neither, and a
+ * stay ends at its last fix (decisions #53). Fixes come only a few times an hour in the background,
+ * so a stay is cut short by up to that gap at each end. [fixes] are oldest first and should include
+ * the last fix before [fromMs] and the first from [toMs], so stays crossing the edges count.
+ * Unnamed places add up as one "알 수 없는 장소".
+ */
+fun summarizeStays(fixes: List<LocationEntity>, places: List<PlaceEntity>, fromMs: Long, toMs: Long): List<PlaceSummary> {
+    val stays = ArrayList<Stay>()
+    for (fix in fixes) {
+        if ((fix.accuracyM ?: 0f) > MAX_FIX_ACCURACY_M) continue
+        val named = PlaceResolver.nearestPlace(places, fix.latitude, fix.longitude)
+        val current = stays.lastOrNull()
+        if (current != null && current.includes(fix, named)) {
+            current.endMs = fix.timeMs
+            current.named = current.named ?: named
+        } else {
+            stays += Stay(fix, named)
+        }
+    }
+    val summaries = LinkedHashMap<Long?, PlaceSummary>()
+    for (stay in stays) {
+        val ms = minOf(stay.endMs, toMs) - maxOf(stay.startMs, fromMs)
+        if (ms < MIN_STAY_MS) continue
+        val named = stay.named
+        val key = named?.rowId
+        val before = summaries[key] ?: PlaceSummary(
+            Place(named?.name, named?.latitude ?: stay.anchor.latitude, named?.longitude ?: stay.anchor.longitude, key),
+            visits = 0,
+            totalMs = 0,
+        )
+        summaries[key] = before.copy(visits = before.visits + 1, totalMs = before.totalMs + ms)
+    }
+    return summaries.values.sortedByDescending { it.totalMs }
 }

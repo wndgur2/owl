@@ -46,6 +46,9 @@ import dev.owl.app.sync.SyncEngine
 import dev.owl.app.sync.SyncRunner
 import dev.owl.app.sync.SyncTrigger
 import dev.owl.app.ui.theme.nightMode
+import dev.owl.app.usage.AndroidUsageSource
+import dev.owl.app.usage.AppUsageRecorder
+import dev.owl.app.usage.UsageWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -159,6 +162,7 @@ class AppContainer(private val context: Context) {
         SyncService.start(context, SyncTrigger.DEVICE_APPEARED)
     }
 
+    val appUsage: AppUsageRecorder by lazy { AppUsageRecorder(database.appUsage(), settingsStore, AndroidUsageSource(context)) }
     val locationRecorder by lazy { LocationRecorder(context) }
     val placesRepository: PlacesRepository by lazy { PlacesRepositoryImpl(database, placeResolver) }
     val exporter: Exporter by lazy { JsonExporter(database, context.contentResolver) }
@@ -208,6 +212,7 @@ class AppContainer(private val context: Context) {
         appScope.launch {
             // Data from before an app update (or a v1 DB) gets grouped and labelled right away.
             runCatching { placeResolver.resolve(); entryIndexer.rebuild() }
+            runCatching { appUsage.sync() }
             val dev = settingsStore.current() ?: return@launch
             if (dev.isFake) coordinator.setDevicePresent(true)
             SyncService.start(context, SyncTrigger.APP_START)
@@ -239,6 +244,15 @@ class AppContainer(private val context: Context) {
         }
     }
 
+    /** A18: the periodic read exists only while 앱 사용 기록 is on. */
+    private fun followAppUsageSetting() {
+        appScope.launch {
+            settingsStore.appUsageEnabled.collect { on ->
+                if (on) UsageWorker.schedule(context) else UsageWorker.cancel(context)
+            }
+        }
+    }
+
     /**
      * 설정 › 테마 → the app's night mode. Android keeps it, so the window shown before Compose's first
      * frame (res/values-night) is already in the chosen theme on the next cold start.
@@ -252,6 +266,7 @@ class AppContainer(private val context: Context) {
 
     init {
         followLocationSetting()
+        followAppUsageSetting()
         followThemeSetting()
     }
 }

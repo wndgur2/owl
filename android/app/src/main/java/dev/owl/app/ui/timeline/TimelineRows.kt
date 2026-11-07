@@ -2,6 +2,7 @@ package dev.owl.app.ui.timeline
 
 import dev.owl.app.data.PLACE_RADIUS_M
 import dev.owl.app.data.PlaceResolver
+import dev.owl.app.model.AppUsageCard
 import dev.owl.app.model.DeviceNotice
 import dev.owl.app.model.Place
 import dev.owl.app.model.SegmentState
@@ -46,6 +47,11 @@ sealed interface TimelineRow {
     data class Notice(val notice: DeviceNotice, override val date: LocalDate?) : TimelineRow {
         override val key: String get() = "ev-${notice.id}"
     }
+
+    /** Back-to-back use of the phone's other apps (A18); not tappable. */
+    data class AppUsage(val card: AppUsageCard, override val date: LocalDate?) : TimelineRow {
+        override val key: String get() = "usage-${card.id}"
+    }
 }
 
 /** One thing on the timeline before grouping: an entry or a standalone bookmark. */
@@ -53,11 +59,12 @@ sealed interface TimelineEntry {
     data class Entry(val item: TimelineItem) : TimelineEntry
     data class Mark(val bookmark: StandaloneBookmark) : TimelineEntry
     data class Notice(val notice: DeviceNotice) : TimelineEntry
+    data class Usage(val card: AppUsageCard) : TimelineEntry
 }
 
 /**
- * Merges standalone bookmarks and device notices (any order) into the entries (oldest first) by
- * sort time: a mark goes right before the first entry that sorts after it. Unknown-time entries
+ * Merges standalone bookmarks, device notices and app usage cards (any order) into the entries
+ * (oldest first) by sort time: a mark goes right before the first entry that sorts after it. Unknown-time entries
  * and marks sort by segment id order (after the record before them), so a known "pendant off"
  * stays before the recordings of the boot that never synced, which came after it.
  */
@@ -65,10 +72,15 @@ fun mergeTimeline(
     items: List<TimelineItem>,
     bookmarks: List<StandaloneBookmark>,
     notices: List<DeviceNotice> = emptyList(),
+    appUsage: List<AppUsageCard> = emptyList(),
 ): List<TimelineEntry> {
-    val out = ArrayList<TimelineEntry>(items.size + bookmarks.size + notices.size)
-    val marks = (bookmarks.map { it.sortTimeMs to TimelineEntry.Mark(it) } + notices.map { it.sortTimeMs to TimelineEntry.Notice(it) })
-        .sortedBy { it.first } // stable: equal sort times keep bookmarks-then-notices, each in query order
+    val out = ArrayList<TimelineEntry>(items.size + bookmarks.size + notices.size + appUsage.size)
+    val marks = (
+        bookmarks.map { it.sortTimeMs to TimelineEntry.Mark(it) } +
+            notices.map { it.sortTimeMs to TimelineEntry.Notice(it) } +
+            appUsage.map { it.startMs to TimelineEntry.Usage(it) }
+        )
+        .sortedBy { it.first } // stable: equal sort times keep bookmarks-then-notices-then-usage, each in query order
     var next = 0
     for (item in items) {
         while (next < marks.size && marks[next].first < item.sortTimeMs) out += marks[next++].second
@@ -141,6 +153,12 @@ fun buildTimelineRows(entries: List<TimelineEntry>, nowMs: Long = System.current
                 place = null
                 id = "ev-${entry.notice.id}"
             }
+            is TimelineEntry.Usage -> {
+                start = entry.card.startMs
+                end = entry.card.endMs
+                place = null
+                id = "usage-${entry.card.id}"
+            }
         }
         val date = start?.toLocalDate()
         if (!dayOpen || date != currentDay) {
@@ -156,9 +174,9 @@ fun buildTimelineRows(entries: List<TimelineEntry>, nowMs: Long = System.current
             dayOpen = true
             group = null
         }
-        // Notices have no place, and a bookmark without a GPS fix is not worth a "위치 없음"
-        // header of its own: both just join the group they fall in.
-        val joinsCurrent = entry is TimelineEntry.Notice || (entry is TimelineEntry.Mark && place == null)
+        // Notices and app usage have no place, and a bookmark without a GPS fix is not worth a
+        // "위치 없음" header of its own: they just join the group they fall in.
+        val joinsCurrent = entry is TimelineEntry.Notice || entry is TimelineEntry.Usage || (entry is TimelineEntry.Mark && place == null)
         val next = groupOf(place)
         if (!joinsCurrent && (group == null || !sameGroup(group, next))) {
             rows += TimelineRow.PlaceHeader(
@@ -174,6 +192,7 @@ fun buildTimelineRows(entries: List<TimelineEntry>, nowMs: Long = System.current
             is TimelineEntry.Entry -> TimelineRow.Item(entry.item, date)
             is TimelineEntry.Mark -> TimelineRow.Bookmark(entry.bookmark, date)
             is TimelineEntry.Notice -> TimelineRow.Notice(entry.notice, date)
+            is TimelineEntry.Usage -> TimelineRow.AppUsage(entry.card, date)
         }
     }
 

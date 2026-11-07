@@ -183,6 +183,17 @@ enum class ThemeMode {
 
 data class AudioUsage(val entryCount: Int, val bytes: Long)
 
+/** One app's use within a period (A18, A19). */
+data class AppUsageSummary(val packageName: String, val label: String, val totalMs: Long, val sessions: Int)
+
+/** Back-to-back app use, shown as one timeline card (A18). [apps] are most used first. */
+data class AppUsageCard(val id: Long, val startMs: Long, val endMs: Long, val apps: List<AppUsageSummary>) {
+    val totalMs: Long get() = apps.sumOf { it.totalMs }
+}
+
+/** Time spent at one place within a period (A19). A null [Place.name] is "알 수 없는 장소". */
+data class PlaceSummary(val place: Place, val visits: Int, val totalMs: Long)
+
 /** Power / reachability, shown separately from [recordingOn] (PRD A10). */
 enum class Connection {
     /** No sync attempt yet since the app started. */

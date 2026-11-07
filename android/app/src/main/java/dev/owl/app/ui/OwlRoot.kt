@@ -114,7 +114,7 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
                         owlViewModel {
                             SettingsViewModel(
                                 container.settingsRepository, container.deviceRegistrar, container.deviceController, container.exporter,
-                                container.placesRepository,
+                                container.placesRepository, container.appUsage,
                             )
                         },
                         onBack = { nav.popBackStack() },

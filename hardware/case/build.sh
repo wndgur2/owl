@@ -47,3 +47,6 @@ render section     0,0,0,80,0,-25,0 -D 'cutaway=true'
 render electronics 0,0,0,50,0,30,0  -D 'part="electronics"'
 render usb-end     0,0,0,90,0,-90,0
 render print       0,0,0,40,0,20,0  -D 'part="print"'
+
+# 3D펜 도면 (SVG + PDF)
+python3 pen_drawing.py

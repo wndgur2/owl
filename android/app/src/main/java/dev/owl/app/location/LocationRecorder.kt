@@ -61,9 +61,9 @@ class LocationRecorder(context: Context) {
             return false
         }
         if (!hasPermission()) Log.w(TAG, "no background location permission; fixes only while the app is visible")
-        val request = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, INTERVAL_MS)
-            .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
-            .build()
+        // No minimum distance: fixes while staying put are what time at a place is counted from (A19).
+        // In the background the system delivers only a few of these an hour, whatever we ask for.
+        val request = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, INTERVAL_MS).build()
         try {
             client.requestLocationUpdates(request, pendingIntent())
                 .addOnFailureListener { Log.w(TAG, "requestLocationUpdates failed", it) }
@@ -107,6 +107,5 @@ class LocationRecorder(context: Context) {
         const val KEY_ACTIVE = "active"
         const val REQUEST_CODE = 1
         val INTERVAL_MS = TimeUnit.MINUTES.toMillis(5)
-        const val MIN_DISTANCE_M = 50f
     }
 }

@@ -13,9 +13,9 @@ import dev.owl.app.model.SegmentState
 @Database(
     entities = [
         SegmentEntity::class, EventEntity::class, TimeSyncEntity::class, LocationEntity::class,
-        PlaceEntity::class, SentenceEntity::class, StatusSampleEntity::class,
+        PlaceEntity::class, SentenceEntity::class, StatusSampleEntity::class, AppUsageEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -27,11 +27,12 @@ abstract class OwlDatabase : RoomDatabase() {
     abstract fun places(): PlaceDao
     abstract fun sentences(): SentenceDao
     abstract fun status(): StatusDao
+    abstract fun appUsage(): AppUsageDao
 
     companion object {
         fun create(context: Context): OwlDatabase =
             Room.databaseBuilder(context, OwlDatabase::class.java, "owl.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
 
         /**
@@ -45,6 +46,18 @@ abstract class OwlDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_segments_entryKey ON segments (entryKey)")
                 db.execSQL("ALTER TABLE events ADD COLUMN entryKey INTEGER")
                 db.execSQL("UPDATE places SET radiusM = ${dev.owl.app.data.PLACE_RADIUS_M}")
+            }
+        }
+
+        /** v3: app usage sessions (A18). A new table, so nothing already stored changes. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `app_usage` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`packageName` TEXT NOT NULL, `label` TEXT NOT NULL, `startMs` INTEGER NOT NULL, `endMs` INTEGER NOT NULL)",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_app_usage_packageName_startMs` ON `app_usage` (`packageName`, `startMs`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_app_usage_startMs` ON `app_usage` (`startMs`)")
             }
         }
     }
