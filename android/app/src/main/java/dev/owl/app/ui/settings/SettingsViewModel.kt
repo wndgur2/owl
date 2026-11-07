@@ -3,6 +3,7 @@ package dev.owl.app.ui.settings
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.owl.app.model.AppUsageRepository
 import dev.owl.app.model.AudioUsage
 import dev.owl.app.model.DeviceController
 import dev.owl.app.model.DeviceRegistrar
@@ -36,6 +37,10 @@ data class SettingsUiState(
     val namedPlaceCount: Int? = null,
     /** A17, null until loaded. */
     val themeMode: ThemeMode? = null,
+    /** A18 switch. */
+    val appUsageEnabled: Boolean = false,
+    /** A18: there is something export could include. */
+    val hasAppUsage: Boolean = false,
 )
 
 sealed interface SettingsEvent {
@@ -49,6 +54,7 @@ class SettingsViewModel(
     controller: DeviceController,
     private val exporter: Exporter,
     places: PlacesRepository,
+    private val appUsage: AppUsageRepository,
 ) : ViewModel() {
     private val exporting = kotlinx.coroutines.flow.MutableStateFlow(false)
     private val unregistering = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -73,6 +79,8 @@ class SettingsViewModel(
     }.combine(places.places()) { s, list -> s.copy(namedPlaceCount = list.size) }
         .combine(settings.themeMode) { s, mode -> s.copy(themeMode = mode) }
         .combine(unregistering) { s, u -> s.copy(unregistering = u) }
+        .combine(appUsage.enabled) { s, on -> s.copy(appUsageEnabled = on) }
+        .combine(appUsage.hasRecords) { s, has -> s.copy(hasAppUsage = has) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
 
     fun setLocationEnabled(on: Boolean) {
@@ -83,10 +91,12 @@ class SettingsViewModel(
         viewModelScope.launch { settings.setThemeMode(mode) }
     }
 
-    fun export(uri: Uri) {
+    fun hasAppUsageAccess(): Boolean = appUsage.hasAccess()
+
+    fun export(uri: Uri, includeAppUsage: Boolean) {
         exporting.value = true
         viewModelScope.launch {
-            val result = exporter.exportTo(uri)
+            val result = exporter.exportTo(uri, includeAppUsage)
             exporting.value = false
             events.send(result.fold({ SettingsEvent.Exported(it) }, { SettingsEvent.ExportFailed }))
         }

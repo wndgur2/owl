@@ -29,6 +29,8 @@ import dev.owl.app.ui.splash.SplashScreen
 import dev.owl.app.ui.splash.SplashViewModel
 import dev.owl.app.ui.splash.StartDestination
 import dev.owl.app.ui.theme.OwlTheme
+import dev.owl.app.ui.usage.UsageScreen
+import dev.owl.app.ui.usage.UsageViewModel
 
 private object Routes {
     const val SPLASH = "splash"
@@ -42,6 +44,7 @@ private object Routes {
     const val SETTINGS = "settings"
     const val RETENTION = "retention"
     const val PLACES = "places"
+    const val APP_USAGE = "app-usage"
     const val PRIVACY = "privacy"
     const val GUIDE = "guide"
 
@@ -114,12 +117,13 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
                         owlViewModel {
                             SettingsViewModel(
                                 container.settingsRepository, container.deviceRegistrar, container.deviceController, container.exporter,
-                                container.placesRepository,
+                                container.placesRepository, container.appUsage,
                             )
                         },
                         onBack = { nav.popBackStack() },
                         onOpenRetention = { nav.navigate(Routes.RETENTION) },
                         onOpenPlaces = { nav.navigate(Routes.PLACES) },
+                        onOpenAppUsage = { nav.navigate(Routes.APP_USAGE) },
                         onOpenPrivacy = { nav.navigate(Routes.PRIVACY) },
                         onOpenGuide = { nav.navigate(Routes.GUIDE) },
                         onUnregistered = { nav.resetTo(Routes.ONBOARDING) },
@@ -133,6 +137,9 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
                 }
                 composable(Routes.PLACES) {
                     PlacesScreen(owlViewModel { PlacesViewModel(container.placesRepository) }, onBack = { nav.popBackStack() })
+                }
+                composable(Routes.APP_USAGE) {
+                    UsageScreen(owlViewModel { UsageViewModel(container.appUsage) }, onBack = { nav.popBackStack() })
                 }
                 composable(Routes.PRIVACY) { PrivacyScreen(onBack = { nav.popBackStack() }) }
                 composable(Routes.GUIDE) { GuideScreen(onBack = { nav.popBackStack() }) }

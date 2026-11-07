@@ -184,5 +184,5 @@ class StubPlacesRepository : PlacesRepository {
 }
 
 class StubExporter : Exporter {
-    override suspend fun exportTo(uri: Uri): Result<Int> = Result.success(0)
+    override suspend fun exportTo(uri: Uri, includeAppUsage: Boolean): Result<Int> = Result.success(0)
 }

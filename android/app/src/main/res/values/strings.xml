@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Owl</string>
-    <string name="privacy_principle">모든 음성, 위치, 텍스트 정보는 디바이스 내부에만 존재해요.</string>
+    <string name="privacy_principle">모든 음성, 위치, 텍스트, 앱 사용 정보는 디바이스 내부에만 존재해요.</string>
 
     <!-- Sync foreground service notification -->
     <string name="sync_channel_name">목걸이 동기화</string>

@@ -183,6 +183,9 @@ enum class ThemeMode {
 
 data class AudioUsage(val entryCount: Int, val bytes: Long)
 
+/** One app's use on one day (A18). */
+data class AppUsageSummary(val packageName: String, val label: String, val totalMs: Long, val sessions: Int)
+
 /** Power / reachability, shown separately from [recordingOn] (PRD A10). */
 enum class Connection {
     /** No sync attempt yet since the app started. */

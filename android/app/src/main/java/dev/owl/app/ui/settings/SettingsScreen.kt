@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.DarkMode
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -74,6 +76,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenRetention: () -> Unit,
     onOpenPlaces: () -> Unit,
+    onOpenAppUsage: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenGuide: () -> Unit,
     onUnregistered: () -> Unit,
@@ -86,7 +89,10 @@ fun SettingsScreen(
     var resumes by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
     val hasBackground = remember(resumes) { OwlPermissions.hasBackgroundLocation(context) }
+    val hasUsageAccess = remember(resumes) { viewModel.hasAppUsageAccess() }
     var showBackgroundDialog by rememberSaveable { mutableStateOf(false) }
+    var choosingExport by rememberSaveable { mutableStateOf(false) }
+    var includeAppUsage by rememberSaveable { mutableStateOf(false) }
 
     val foregroundLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         if (result.values.any { it }) {
@@ -97,7 +103,7 @@ fun SettingsScreen(
     }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) viewModel.export(uri)
+        if (uri != null) viewModel.export(uri, includeAppUsage)
     }
     val exportName = stringResource(R.string.export_file_name, today().toString())
 
@@ -113,10 +119,12 @@ fun SettingsScreen(
     SettingsContent(
         state = state,
         backgroundLocationGranted = hasBackground,
+        usageAccessGranted = hasUsageAccess,
         snackbar = snackbar,
         onBack = onBack,
         onOpenRetention = onOpenRetention,
         onOpenPlaces = onOpenPlaces,
+        onOpenAppUsage = onOpenAppUsage,
         onToggleLocation = { on ->
             when {
                 !on -> viewModel.setLocationEnabled(false)
@@ -127,12 +135,52 @@ fun SettingsScreen(
                 }
             }
         },
-        onExport = { exportLauncher.launch(exportName) },
+        onExport = {
+            // Left out unless chosen each time (decisions #51). Nothing to choose without records.
+            includeAppUsage = false
+            if (state.hasAppUsage) choosingExport = true else exportLauncher.launch(exportName)
+        },
         onOpenPrivacy = onOpenPrivacy,
         onOpenGuide = onOpenGuide,
         onSelectTheme = viewModel::setThemeMode,
         onUnregister = { viewModel.unregister(onUnregistered) },
     )
+
+    if (choosingExport) {
+        AlertDialog(
+            onDismissRequest = { choosingExport = false },
+            title = { Text(stringResource(R.string.export_title)) },
+            text = {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = includeAppUsage, role = Role.Checkbox, onValueChange = { includeAppUsage = it })
+                        .defaultMinSize(minHeight = 48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Checkbox(checked = includeAppUsage, onCheckedChange = null)
+                    Column {
+                        Text(stringResource(R.string.export_include_usage), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(R.string.export_include_usage_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        choosingExport = false
+                        exportLauncher.launch(exportName)
+                    },
+                ) { Text(stringResource(R.string.export_confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { choosingExport = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
 
     if (showBackgroundDialog) {
         AlertDialog(
@@ -160,10 +208,12 @@ fun SettingsScreen(
 fun SettingsContent(
     state: SettingsUiState,
     backgroundLocationGranted: Boolean,
+    usageAccessGranted: Boolean,
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
     onOpenRetention: () -> Unit,
     onOpenPlaces: () -> Unit,
+    onOpenAppUsage: () -> Unit,
     onToggleLocation: (Boolean) -> Unit,
     onExport: () -> Unit,
     onOpenPrivacy: () -> Unit,
@@ -213,6 +263,19 @@ fun SettingsContent(
                 },
                 icon = Icons.Outlined.Place,
                 onClick = onOpenPlaces,
+                trailing = chevron,
+            )
+            OwlListRow(
+                title = stringResource(R.string.app_usage_title),
+                subtitle = stringResource(
+                    when {
+                        !state.appUsageEnabled -> R.string.app_usage_off
+                        usageAccessGranted -> R.string.app_usage_on
+                        else -> R.string.app_usage_needs_access
+                    },
+                ),
+                icon = Icons.Outlined.Apps,
+                onClick = onOpenAppUsage,
                 trailing = chevron,
             )
 
@@ -365,8 +428,9 @@ private fun SettingsPreview() {
                 fakeDeviceAvailable = true, usingFakeDevice = true, namedPlaceCount = 4, themeMode = ThemeMode.DARK,
             ),
             backgroundLocationGranted = true,
+            usageAccessGranted = true,
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onSelectTheme = {}, onUnregister = {},
+            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onOpenAppUsage = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onSelectTheme = {}, onUnregister = {},
         )
     }
 }

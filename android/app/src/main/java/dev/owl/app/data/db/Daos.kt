@@ -226,6 +226,25 @@ interface LocationDao {
 }
 
 @Dao
+interface AppUsageDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(sessions: List<AppUsageEntity>)
+
+    /** Sessions with any part inside [from, to). */
+    @Query("SELECT * FROM app_usage WHERE startMs < :to AND endMs > :from ORDER BY startMs")
+    fun overlapping(from: Long, to: Long): Flow<List<AppUsageEntity>>
+
+    @Query("SELECT * FROM app_usage ORDER BY startMs")
+    suspend fun all(): List<AppUsageEntity>
+
+    @Query("SELECT EXISTS (SELECT 1 FROM app_usage)")
+    fun hasRecords(): Flow<Boolean>
+
+    @Query("DELETE FROM app_usage")
+    suspend fun deleteAll()
+}
+
+@Dao
 interface PlaceDao {
     @Insert
     suspend fun insert(place: PlaceEntity): Long

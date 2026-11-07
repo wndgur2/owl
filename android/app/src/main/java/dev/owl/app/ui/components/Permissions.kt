@@ -42,4 +42,7 @@ object OwlPermissions {
 
     fun appDetailsIntent(context: Context): Intent =
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri())
+
+    /** The system's 사용 정보 접근 list (A18). This permission has no in-app prompt. */
+    fun usageAccessIntent(): Intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
 }

@@ -123,6 +123,27 @@ interface PlacesRepository {
     suspend fun deletePlace(id: Long)
 }
 
+/** A18: how the phone's other apps were used. Stays on the phone (PRD N8). */
+interface AppUsageRepository {
+    /** The 앱 사용 기록 switch; off by default. */
+    val enabled: Flow<Boolean>
+    val hasRecords: Flow<Boolean>
+
+    /** 사용 정보 접근 is allowed in system settings. Not a flow: nothing tells us when it changes. */
+    fun hasAccess(): Boolean
+
+    /** On: records from now. Off: stores what happened so far, then stops. Records stay. */
+    suspend fun setEnabled(on: Boolean)
+
+    /** Copies new sessions from the system. */
+    suspend fun sync()
+
+    /** Each app's use on [date], most used first. */
+    fun day(date: java.time.LocalDate): Flow<List<AppUsageSummary>>
+
+    suspend fun deleteAll()
+}
+
 /** Plays one timeline entry (A8). One instance per Entry screen. */
 interface AudioPlayer {
     val state: StateFlow<PlayerState>
@@ -141,7 +162,7 @@ interface AudioPlayer {
     fun release()
 }
 
-/** A13: writes all records (text, time, place) to a user-chosen document. */
+/** A13: writes all records (text, time, place), plus app usage if asked (A18), to a user-chosen document. */
 interface Exporter {
-    suspend fun exportTo(uri: android.net.Uri): Result<Int>
+    suspend fun exportTo(uri: android.net.Uri, includeAppUsage: Boolean = false): Result<Int>
 }
