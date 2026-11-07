@@ -198,6 +198,55 @@ def finish():
     return "\n".join(out) + "\n"
 
 
+# ---------- 단면 (px·pz는 mm → 쪽 좌표. 왼쪽이 0, 위로 갈수록 z가 커져요) ----------
+def solid(px, pz, x0, x1, z0, z1):
+    rect(px(x0), pz(z1), px(x1) - px(x0), pz(z0) - pz(z1), fill=FILL, w=0.25)
+
+
+def edge_arc(px, pz):
+    a = (px(1) - px(0)) * PEN_EDGE
+    return lambda x, z, sweep: f"A{a:.3f} {a:.3f} 0 0 {sweep} {px(x):.3f} {pz(z):.3f}"
+
+
+def lid_section(px, pz, length, cx):
+    """뚜껑(버튼 구멍 양쪽)과 버튼 캡. cx는 버튼 중심"""
+    arc, bd = edge_arc(px, pz), V["btn_hole_d"]
+    path(f"M{px(cx - bd / 2):.3f} {pz(SPLIT):.3f}L{px(SPLIT_INSET):.3f} {pz(SPLIT):.3f}{arc(PEN_EDGE, OZ, 1)}L{px(cx - bd / 2):.3f} {pz(OZ):.3f}Z", fill=FILL, w=0.25)
+    path(f"M{px(cx + bd / 2):.3f} {pz(OZ):.3f}L{px(length - PEN_EDGE):.3f} {pz(OZ):.3f}{arc(length - SPLIT_INSET, SPLIT, 1)}L{px(cx + bd / 2):.3f} {pz(SPLIT):.3f}Z", fill=FILL, w=0.25)
+    solid(px, pz, cx - CAP_FLANGE_D / 2, cx + CAP_FLANGE_D / 2, SPLIT - CAP_FLANGE_T, SPLIT)
+    solid(px, pz, cx - CAP_STEM / 2, cx + CAP_STEM / 2, SPLIT, SPLIT + LID + V["cap_proud"])
+
+
+def lip_section(px, pz, x_out):
+    """립 하나. x_out은 벽 쪽 면"""
+    solid(px, pz, x_out - LIP_T, x_out, SPLIT - LIP_H, SPLIT)
+
+
+def long_section(px, pz):
+    """가–가: 긴 방향, 폭 가운데(버튼·줄 구멍). 왼쪽이 USB 쪽"""
+    arc, e = edge_arc(px, pz), PEN_EDGE
+    # 몸통: USB 쪽 벽 위에서 바깥을 따라 바닥, 고리 쪽 벽 위까지 갔다가 안쪽으로 돌아옴 (위는 트임)
+    path(f"M{px(0):.3f} {pz(USB_Z0):.3f}L{px(0):.3f} {pz(e):.3f}{arc(e, 0, 0)}L{px(OX - e):.3f} {pz(0):.3f}{arc(OX, e, 0)}"
+         f"L{px(OX):.3f} {pz(OZ - e):.3f}{arc(OX - SPLIT_INSET, SPLIT, 0)}L{px(OX - WALL):.3f} {pz(SPLIT):.3f}"
+         f"L{px(OX - WALL):.3f} {pz(FLOOR):.3f}L{px(WALL):.3f} {pz(FLOOR):.3f}L{px(WALL):.3f} {pz(USB_Z0):.3f}Z", fill=FILL, w=0.25)
+    lid_section(px, pz, OX, HOLES[3][2])
+    lip_section(px, pz, OX - WALL - V["fit"])
+    path(loop_profile_d(px, pz, OX), fill=FILL, w=0.25)
+    circle(px(LOOP_CX), pz(LOOP_CZ), (px(1) - px(0)) * LOOP_D, stroke=RED, w=0.25, fill="#fff")
+
+
+def width_section(px, pz):
+    """나–나: 폭 방향, 버튼 중심 X(손톱 홈도 지나요). USB 쪽에서 본 모습이라 오른쪽이 마이크 쪽"""
+    arc, e = edge_arc(px, pz), PEN_EDGE
+    # 몸통: 왼쪽 벽 위에서 바깥을 따라 바닥, 오른쪽 벽의 손톱 홈 아래까지 갔다가 안쪽으로 돌아옴
+    path(f"M{px(WALL):.3f} {pz(SPLIT):.3f}L{px(SPLIT_INSET):.3f} {pz(SPLIT):.3f}{arc(0, OZ - e, 0)}L{px(0):.3f} {pz(e):.3f}{arc(e, 0, 0)}"
+         f"L{px(OY - e):.3f} {pz(0):.3f}{arc(OY, e, 0)}L{px(OY):.3f} {pz(SPLIT - NAIL_H):.3f}L{px(OY - WALL):.3f} {pz(SPLIT - NAIL_H):.3f}"
+         f"L{px(OY - WALL):.3f} {pz(FLOOR):.3f}L{px(WALL):.3f} {pz(FLOOR):.3f}Z", fill=FILL, w=0.25)
+    lid_section(px, pz, OY, OY / 2)
+    lip_section(px, pz, WALL + V["fit"] + LIP_T)
+    lip_section(px, pz, OY - WALL - V["fit"])
+
+
 # ---------- 1쪽: 치수와 순서 ----------
 def top_view(ox, oy):
     s = ZOOM
@@ -218,6 +267,10 @@ def top_view(ox, oy):
     line(px(-1.5), py(OY / 2), px(OX + LOOP_LEN + 2.5), py(OY / 2), stroke=GRAY, w=0.12, dash="3 0.8 0.6 0.8")
     text(px(-1.5), py(OY / 2) - 1, "가", 2.8, "middle", fill=GRAY)
     text(px(OX + LOOP_LEN + 3), py(OY / 2) + 1, "가", 2.8, fill=GRAY)
+    nx = HOLES[3][2]
+    line(px(nx), py(OY + 0.8), px(nx), py(-1.5), stroke=GRAY, w=0.12, dash="3 0.8 0.6 0.8")
+    text(px(nx) + 0.8, py(OY) - 0.6, "나", 2.8, fill=GRAY)
+    text(px(nx), py(-1.5) + 2.8, "나–나 단면은 2쪽", 2.5, "middle", fill=GRAY)
     hdim(px(0), px(OX), oy - 3, f"{OX:g}", ref=py(OY) + s * R_OUT)
     hdim(px(0), px(OX + LOOP_LEN), oy - 8, f"고리까지 {OX + LOOP_LEN:g}", ref=oy - 3)
     vdim(py(0), py(OY), ox - 9, f"{OY:g}", ref=px(R_OUT))
@@ -258,23 +311,8 @@ def section_view(ox, oy):
     px = lambda x: ox + s * x
     pz = lambda z: oy + s * (OZ - z)
     text(ox, oy - 3.5, "단면 가–가 (앞에서 본 모습)", 3.2, weight=700)
-    def solid(x0, x1, z0, z1):
-        rect(px(x0), pz(z1), s * (x1 - x0), s * (z1 - z0), fill=FILL, w=0.25)
-    e, a = PEN_EDGE, s * PEN_EDGE
-    arc = lambda x, z, sweep: f"A{a:.3f} {a:.3f} 0 0 {sweep} {px(x):.3f} {pz(z):.3f}"
-    # 몸통: USB 쪽 벽 위에서 바깥을 따라 바닥, 고리 쪽 벽 위까지 갔다가 안쪽으로 돌아옴 (위는 트임)
-    path(f"M{px(0):.3f} {pz(USB_Z0):.3f}L{px(0):.3f} {pz(e):.3f}{arc(e, 0, 0)}L{px(OX - e):.3f} {pz(0):.3f}{arc(OX, e, 0)}"
-         f"L{px(OX):.3f} {pz(OZ - e):.3f}{arc(OX - SPLIT_INSET, SPLIT, 0)}L{px(OX - WALL):.3f} {pz(SPLIT):.3f}"
-         f"L{px(OX - WALL):.3f} {pz(FLOOR):.3f}L{px(WALL):.3f} {pz(FLOOR):.3f}L{px(WALL):.3f} {pz(USB_Z0):.3f}Z", fill=FILL, w=0.25)
-    bx, bd = HOLES[3][2], V["btn_hole_d"]
-    # 뚜껑: 버튼 구멍 양쪽
-    path(f"M{px(bx - bd / 2):.3f} {pz(SPLIT):.3f}L{px(SPLIT_INSET):.3f} {pz(SPLIT):.3f}{arc(e, OZ, 1)}L{px(bx - bd / 2):.3f} {pz(OZ):.3f}Z", fill=FILL, w=0.25)
-    path(f"M{px(bx + bd / 2):.3f} {pz(OZ):.3f}L{px(OX - e):.3f} {pz(OZ):.3f}{arc(OX - SPLIT_INSET, SPLIT, 1)}L{px(bx + bd / 2):.3f} {pz(SPLIT):.3f}Z", fill=FILL, w=0.25)
-    solid(OX - WALL - V["fit"] - LIP_T, OX - WALL - V["fit"], SPLIT - LIP_H, SPLIT)   # 립
-    solid(bx - CAP_FLANGE_D / 2, bx + CAP_FLANGE_D / 2, SPLIT - CAP_FLANGE_T, SPLIT)  # 캡 날개
-    solid(bx - CAP_STEM / 2, bx + CAP_STEM / 2, SPLIT, SPLIT + LID + V["cap_proud"])  # 캡 기둥
-    path(loop_profile_d(px, pz, OX), fill=FILL, w=0.25)                               # 고리
-    circle(px(LOOP_CX), pz(LOOP_CZ), s * LOOP_D, stroke=RED, w=0.25, fill="#fff")     # 줄 구멍
+    long_section(px, pz)
+    bx = HOLES[3][2]
     vdim(pz(0), pz(OZ), ox - 5, f"{OZ:g}", ref=px(0))
     hdim(px(WALL), px(OX - WALL), pz(3), f"안쪽 {INNER[0]:g}")
     vdim(pz(FLOOR), pz(SPLIT), px(14), f"안쪽 {INNER[2]:g}")
@@ -479,6 +517,19 @@ def cap_tpl(x, y, labels=True):
         text(x + 9, y + 4.8, f"점선 기둥 ⌀{CAP_STEM:g}, 전체 높이 {CAP_H:g}", 2.4, fill=GRAY)
 
 
+def sections_tpl(x, y):
+    text(x, y - 4, "⑥ 단면", 3.4, weight=700)
+    text(x + 15, y - 4, "실제 크기예요. 만든 케이스가 식으면 이 그림에 대 보면서 사포로 둥글기와 높이를 맞춰요.", 2.4, fill=GRAY)
+    wx = x + 58
+    long_section(lambda v: x + v, lambda z: y + OZ - z)
+    width_section(lambda v: wx + v, lambda z: y + OZ - z)
+    text(x, y + OZ + 4, "가–가 긴 방향 (왼쪽이 USB 쪽)", 2.4, fill=GRAY)
+    text(wx, y + OZ + 4, "나–나 폭 방향 (오른쪽이 마이크 쪽)", 2.4, fill=GRAY)
+    tx = wx + OY + 12
+    for i, t in enumerate([f"위아래 모서리 R{PEN_EDGE:g}", f"전체 높이 {OZ:g}, 몸통 {SPLIT:g}", f"안쪽 {INNER[0]:g} × {INNER[1]:g} × {INNER[2]:g}", f"손톱 홈은 나–나 오른쪽 위"]):
+        text(tx, y + 2 + i * 3.6, t, 2.4, fill=GRAY)
+
+
 def page2():
     begin()
     heading(2, "3D펜 케이스 도면 — 실제 크기 본", "배율 100%(실제 크기)로 인쇄해요. 맞춤 인쇄·페이지에 맞춤을 끄고, 본 위에 투명 파일을 덮고 그려요.")
@@ -488,20 +539,21 @@ def page2():
     band_tpl(14, 102)
     loop_tpl(15, 132)
     cap_tpl(105, 133)
-    line(10, 151, PAGE_W - 10, 151, stroke=GRAY, w=0.15, dash="2 1.2")
-    text(10, 157, "여분: 실패하거나 뚜껑·띠를 다시 만들 때 써요.", 3, weight=700)
-    floor_tpl(14, 163, False)
-    lid_tpl(60, 163, False)
-    floor_tpl(106, 163, False)
-    lid_tpl(152, 163, False)
-    band_tpl(14, 194, False)
-    band_tpl(14, 213, False)
-    loop_tpl(15, 233, False)
-    loop_tpl(40, 233, False)
-    loop_tpl(65, 233, False)
-    cap_tpl(90, 234, False)
-    cap_tpl(105, 234, False)
-    cap_tpl(120, 234, False)
+    sections_tpl(14, 155)
+    line(10, 177, PAGE_W - 10, 177, stroke=GRAY, w=0.15, dash="2 1.2")
+    text(10, 183, "여분: 실패하거나 뚜껑·띠를 다시 만들 때 써요.", 3, weight=700)
+    floor_tpl(14, 188, False)
+    lid_tpl(60, 188, False)
+    floor_tpl(106, 188, False)
+    lid_tpl(152, 188, False)
+    band_tpl(14, 218, False)
+    band_tpl(14, 234, False)
+    loop_tpl(15, 250, False)
+    loop_tpl(40, 250, False)
+    loop_tpl(65, 250, False)
+    cap_tpl(90, 251, False)
+    cap_tpl(105, 251, False)
+    cap_tpl(120, 251, False)
     text(10, PAGE_H - 28, "색·기호", 2.8, weight=700)
     text(10, PAGE_H - 23.5, "굵은 선 = 바깥 끝까지 채우는 선   ·   점선 = 안쪽 기준선(벽·립·기둥 자리)   ·   빨강 = 구멍·비우는 곳", 2.5, fill=GRAY)
     text(10, PAGE_H - 19.5, f"치수는 owl-case.scad 값에서 만들어요. A·B·C 위치와 USB 높이는 부품 실측 전 추정값이에요. 다시 만들기: python3 hardware/case/pen_drawing.py", 2.3, fill=GRAY)

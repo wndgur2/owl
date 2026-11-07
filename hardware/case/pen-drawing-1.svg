@@ -30,6 +30,9 @@
 <line x1="23.250" y1="72.000" x2="134.500" y2="72.000" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="3 0.8 0.6 0.8"/>
 <text x="23.250" y="71.000" font-size="2.8" text-anchor="middle" font-weight="400" fill="#6b6b6b">가</text>
 <text x="135.750" y="73.000" font-size="2.8" text-anchor="start" font-weight="400" fill="#6b6b6b">가</text>
+<line x1="100.750" y1="40.000" x2="100.750" y2="105.750" stroke="#6b6b6b" stroke-width="0.12" fill="none" stroke-dasharray="3 0.8 0.6 0.8"/>
+<text x="101.550" y="41.400" font-size="2.8" text-anchor="start" font-weight="400" fill="#6b6b6b">나</text>
+<text x="100.750" y="108.550" font-size="2.5" text-anchor="middle" font-weight="400" fill="#6b6b6b">나–나 단면은 2쪽</text>
 <line x1="27.000" y1="50.750" x2="27.000" y2="38.200" stroke="#6b6b6b" stroke-width="0.12" fill="none"/>
 <line x1="117.000" y1="50.750" x2="117.000" y2="38.200" stroke="#6b6b6b" stroke-width="0.12" fill="none"/>
 <line x1="27.000" y1="39.000" x2="117.000" y2="39.000" stroke="#6b6b6b" stroke-width="0.15" fill="none"/>
@@ -92,9 +95,9 @@
 <path d="M27.000 136.750L27.000 152.750A3.750 3.750 0 0 0 30.750 156.500L113.250 156.500A3.750 3.750 0 0 0 117.000 152.750L117.000 127.750A3.750 3.750 0 0 0 116.786 126.500L114.500 126.500L114.500 154.000L29.500 154.000L29.500 136.750Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
 <path d="M96.000 126.500L27.214 126.500A3.750 3.750 0 0 1 30.750 124.000L96.000 124.000Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
 <path d="M105.500 124.000L113.250 124.000A3.750 3.750 0 0 1 116.786 126.500L105.500 126.500Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
-<rect x="112.125" y="126.500" width="2.000" height="2.500" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
 <rect x="93.750" y="126.500" width="14.000" height="1.500" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
 <rect x="96.500" y="123.000" width="8.500" height="3.500" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
+<rect x="112.125" y="126.500" width="2.000" height="2.500" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
 <path d="M117.000 134.281L123.077 135.343A6.250 6.250 0 0 1 123.077 147.657L117.000 148.719Z" stroke="#1d1d1d" stroke-width="0.25" fill="#dedad2"/>
 <circle cx="122.000" cy="141.500" r="2.750" stroke="#d62828" stroke-width="0.25" fill="#fff"/>
 <line x1="27.000" y1="156.500" x2="21.200" y2="156.500" stroke="#6b6b6b" stroke-width="0.12" fill="none"/>

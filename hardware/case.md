@@ -99,7 +99,7 @@ OpenSCAD 앱에서 `owl-case.scad`를 열면 오른쪽 Customizer에서 값을 �
 
 ## 3D펜 (예비)
 
-출력이 어려우면 3D펜으로 만들어요. [`case/pen-drawing.pdf`](case/pen-drawing.pdf)를 A4에 **배율 100%** 로 인쇄해요. 1쪽은 치수와 순서, 2쪽은 따라 그리는 실제 크기 본(바닥, 벽 띠, 뚜껑과 립, 고리, 버튼 캡)이에요.
+출력이 어려우면 3D펜으로 만들어요. [`case/pen-drawing.pdf`](case/pen-drawing.pdf)를 A4에 **배율 100%** 로 인쇄해요. 1쪽은 치수와 순서, 2쪽은 따라 그리는 실제 크기 본(바닥, 벽 띠, 뚜껑과 립, 고리, 버튼 캡, 긴 방향·폭 방향 단면)이에요.
 값을 바꾸면 `build.sh`가 도면도 다시 만들어요(`case/pen_drawing.py`).
 
 - 부품 위에 직접 그리지 않기 (노즐 180°C 이상, LiPo 근처 위험)
