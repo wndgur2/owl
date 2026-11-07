@@ -24,7 +24,23 @@ firmware/scripts/ncs.sh 'west build -p -b xiao_nrf54l15/nrf54l15/cpuapp -d build
 firmware/scripts/ncs.sh 'west twister -T firmware/tests -p native_sim -O build/twister'
 ```
 
-결과물은 레포 루트 `build/<이름>/merged.hex`(gitignore). 굽기는 macOS에서 `west flash -d build/fw` 또는 nRF Connect for Desktop Programmer.
+결과물은 레포 루트 `build/<이름>/<앱>/zephyr/zephyr.hex`(gitignore). 앱 폴더는 `firmware` 또는 `bringup`이에요.
+
+굽기는 Mac에서 해요. macOS의 Docker는 USB를 못 보고 빌드 폴더의 경로도 컨테이너 기준이라, Docker 빌드에는 `west flash`를 못 써요. `flash.sh`가 보드의 west runner와 같은 OpenOCD 명령을 Mac에서 실행해요(보드의 온보드 디버거로 USB 케이블 하나면 돼요). 처음 한 번은 OpenOCD 설치와 Docker 실행이 필요해요.
+
+```bash
+brew install openocd
+```
+
+```bash
+firmware/scripts/flash.sh build/bringup
+```
+
+시리얼 로그는 `uart.conf` 빌드에서 115200이에요. `screen`을 끝내는 키는 Ctrl-A, K예요.
+
+```bash
+screen /dev/cu.usbmodem* 115200
+```
 
 ### macOS 직접 설치
 
