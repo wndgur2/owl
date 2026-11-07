@@ -20,8 +20,10 @@ inner = [34, 22, 11];   // 안쪽 공간 (PRD N2: 부품 기준 34 × 22 × 11)
 wall = 1.0;             // 옆벽 (레진·MJF 기준. FDM이면 1.2 이상 권장)
 floor_t = 1.0;          // 바닥
 lid_t = 1.0;            // 뚜껑 판
-corner_r = 3.0;         // 세로 모서리 반경(바깥). 안쪽은 corner_r - wall
-edge_r = 1.5;           // 위·아래 모서리 둥글기 — 조약돌 느낌은 주로 여기서
+corner_r = 3.5;         // 세로 모서리 반경(바깥)
+edge_r = 2.0;           // 위·아래 모서리 둥글기 — 조약돌 느낌은 주로 여기서
+inner_r = 2.0;          // 안쪽 세로 모서리. 보드의 USB 쪽 모서리가 걸려서 board_pos.y 이하
+inner_floor_r = 1.0;    // 안쪽 바닥 모서리. edge_r를 키워도 벽이 얇아지지 않게 같이 둥글림
 fit = 0.15;             // 뚜껑 립과 몸통 사이 틈(한쪽)
 lip_t = 0.8;            // 뚜껑 립 두께
 lip_h = 1.0;            // 뚜껑 립 깊이 (USB-C 위에서는 잘라냄)
@@ -73,8 +75,9 @@ cap_flange = [5.6, 0.6];  // 버튼 캡 날개: 지름, 두께
 cap_proud = 0.4;        // 버튼 캡이 뚜껑 위로 나오는 높이
 usb_hole = [9.4, 3.8];  // USB-C 구멍 (플러그 쉘 8.4 × 2.6 + 여유)
 usb_chamfer = 0.3;
-loop = [4.5, 7, 3];     // 목걸이 고리: 튀어나온 길이, 폭, 두께
-loop_hole_d = 2.2;
+loop = [4.5, 7, 5];     // 목걸이 고리: 튀어나온 길이, 폭(줄 구멍 길이), 두께
+loop_hole_d = 2.2;      // 줄 구멍은 Y 방향(양옆)이라 걸었을 때 뚜껑이 앞을 봐요
+loop_chamfer = 0.4;     // 고리 양끝과 줄 구멍 입구 모따기: 줄이 덜 쓸리게
 
 $fn = 48;
 eps = 0.01;
@@ -82,7 +85,8 @@ eps = 0.01;
 // ---------- 계산값 ----------
 outer = [inner.x + 2*wall, inner.y + 2*wall, inner.z + floor_t + lid_t];
 split_z = floor_t + inner.z;          // 몸통/뚜껑 나뉘는 높이 (= 뚜껑 판 아랫면)
-inner_r = corner_r - wall;
+loop_cx = outer.x + loop.x - loop.z/2;   // 줄 구멍 중심
+loop_cz = (outer.z - lid_t)/2;           // 몸통 높이 가운데
 board_pos = [0, (inner.y - board.y)/2, battery.z + board_foam];  // 안쪽 좌표
 board_top = board_pos.z + board.z;
 usb_top = board_top + usb.z;
@@ -117,6 +121,9 @@ function lane(a, y, z, b) = [a, [a.x, a.y, z], [a.x, y, z], [b.x, y, z], b];
 assert(usb_top <= inner.z - 0.3, str("USB-C 윗면(", usb_top, ")이 뚜껑에 닿아요"));
 assert(usb_overhang <= wall, "USB-C가 벽보다 더 튀어나와요");
 assert(board_pos.y >= inner_r || board_pos.x > 0, "보드 모서리가 둥근 안쪽 모서리에 걸려요");
+assert(inner_floor_r <= (inner.y - battery.y)/2, "배터리가 안쪽 바닥 둥글림에 걸려요");
+assert(loop_cx - loop_hole_d/2 >= outer.x + 0.5, "줄 구멍이 몸통 벽에 너무 붙어요");
+assert((loop.z - loop_hole_d)/2 >= 1, "줄 구멍 둘레 고리가 너무 얇아요");
 assert(btn_pad >= 0, str("버튼이 너무 높아요 (", -btn_pad, "mm)"));
 assert(board_pos.x + board.x <= flash_xy.x - 0.6, "플래시 다리가 보드와 겹쳐요");
 assert(button_xy.x - 4.3 >= board.x, "버튼이 보드와 겹쳐요");
@@ -129,7 +136,7 @@ echo(str("부품 높이 ", usb_top, " / 안쪽 ", inner.z, " mm, 버튼 밑 폼 
 // ---------- 부품 목록 ----------
 // [id, 이름, 색, 묶음, 분해할 때 올라가는 높이(mm), 설명]. build.sh가 이걸로 뷰어 목록(parts.json)을 만들어요.
 COMPONENTS = [
-    ["body",        "몸통",              "#e8e4dc", "케이스", 0,  "출력 부품. USB-C 구멍, 목걸이 고리, 뚜껑 걸림 홈, 손톱 홈"],
+    ["body",        "몸통",              "#e8e4dc", "케이스", 0,  "출력 부품. USB-C 구멍, 목걸이 고리(줄 구멍은 양옆), 뚜껑 걸림 홈, 손톱 홈"],
     ["lid",         "뚜껑",              "#d9d3c7", "케이스", 22, "출력 부품. LED 구멍 2개, 마이크 구멍과 안쪽 방진망 홈, 버튼 구멍. 립은 USB-C 위에서 잘림"],
     ["cap",         "버튼 캡",           "#ffffff", "케이스", 18, "출력 부품. 뚜껑 아래에서 끼우고 날개가 걸려 빠지지 않음"],
     ["battery",     "배터리 250mAh",     "#b8bcc2", "전원",   4,  "TW502030 LiPo, 5 × 20 × 30 mm, 몸통 바닥에 폼테이프로 붙임"],
@@ -222,7 +229,7 @@ module body() {
             loop_tab();
         }
         // 안쪽 공간
-        translate([wall, wall, floor_t]) linear_extrude(inner.z + 1) rrect([inner.x, inner.y], inner_r);
+        translate([wall, wall, floor_t]) pebble([inner.x, inner.y, inner.z + 1], inner_r, inner_floor_r, eps);
         usb_cut();
         if (snap) snap_grooves();
         // 뚜껑 열 때 손톱 넣는 홈 (긴 면 -Y, 고리 쪽)
@@ -241,13 +248,18 @@ module usb_cut() {
 }
 
 module loop_tab() {
-    z = outer.z/2 - loop.z/2 - lid_t/2;
+    c = loop_chamfer;
     difference() {
         hull() {
-            translate([outer.x - corner_r, outer.y/2 - loop.y/2 - 1, z]) cube([eps, loop.y + 2, loop.z]);
-            translate([outer.x + loop.x - loop.y/2, outer.y/2, z]) cylinder(d = loop.y, h = loop.z);
+            translate([outer.x - corner_r, outer.y/2 - loop.y/2, loop_cz - loop.z/2 - 1]) cube([eps, loop.y, loop.z + 2]);
+            translate([loop_cx, outer.y/2, loop_cz]) rotate([90, 0, 0]) {
+                cylinder(d = loop.z, h = loop.y - 2*c, center = true);
+                cylinder(d = loop.z - 2*c, h = loop.y, center = true);
+            }
         }
-        translate([outer.x + loop.x - loop.y/2, outer.y/2, z - 1]) cylinder(d = loop_hole_d, h = loop.z + 2);
+        translate([loop_cx, outer.y/2, loop_cz]) rotate([90, 0, 0]) cylinder(d = loop_hole_d, h = loop.y + 2, center = true);
+        for (s = [-1, 1]) translate([loop_cx, outer.y/2 + s*(loop.y/2 - c), loop_cz]) rotate([-s*90, 0, 0])
+            cylinder(d1 = loop_hole_d, d2 = loop_hole_d + 2*c, h = c + eps);
     }
 }
 
