@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +88,8 @@ fun SettingsScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
     val hasBackground = remember(resumes) { OwlPermissions.hasBackgroundLocation(context) }
     var showBackgroundDialog by rememberSaveable { mutableStateOf(false) }
+    var choosingExport by rememberSaveable { mutableStateOf(false) }
+    var includeAppUsage by rememberSaveable { mutableStateOf(false) }
 
     val foregroundLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         if (result.values.any { it }) {
@@ -97,7 +100,7 @@ fun SettingsScreen(
     }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) viewModel.export(uri)
+        if (uri != null) viewModel.export(uri, includeAppUsage)
     }
     val exportName = stringResource(R.string.export_file_name, today().toString())
 
@@ -127,12 +130,52 @@ fun SettingsScreen(
                 }
             }
         },
-        onExport = { exportLauncher.launch(exportName) },
+        onExport = {
+            // Left out unless chosen each time (decisions #53). Nothing to choose without records.
+            includeAppUsage = false
+            if (state.hasAppUsage) choosingExport = true else exportLauncher.launch(exportName)
+        },
         onOpenPrivacy = onOpenPrivacy,
         onOpenGuide = onOpenGuide,
         onSelectTheme = viewModel::setThemeMode,
         onUnregister = { viewModel.unregister(onUnregistered) },
     )
+
+    if (choosingExport) {
+        AlertDialog(
+            onDismissRequest = { choosingExport = false },
+            title = { Text(stringResource(R.string.export_title)) },
+            text = {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = includeAppUsage, role = Role.Checkbox, onValueChange = { includeAppUsage = it })
+                        .defaultMinSize(minHeight = 48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Checkbox(checked = includeAppUsage, onCheckedChange = null)
+                    Column {
+                        Text(stringResource(R.string.export_include_usage), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(R.string.export_include_usage_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        choosingExport = false
+                        exportLauncher.launch(exportName)
+                    },
+                ) { Text(stringResource(R.string.export_confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { choosingExport = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
 
     if (showBackgroundDialog) {
         AlertDialog(

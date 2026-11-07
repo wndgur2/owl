@@ -12,6 +12,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import dev.owl.app.model.RetentionPolicy
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.model.ThemeMode
+import dev.owl.app.usage.AppUsageStateStore
+import dev.owl.app.usage.ClockReading
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -20,7 +22,7 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "owl_settings")
 
 /** Small key-value settings (DataStore). Excluded from backup like everything else (decisions #22). */
-class SettingsStore(private val store: DataStore<Preferences>) : SettingsRepository, RegistrationStore {
+class SettingsStore(private val store: DataStore<Preferences>) : SettingsRepository, RegistrationStore, AppUsageStateStore {
     constructor(context: Context) : this(context.dataStore)
 
     private object Keys {
@@ -35,6 +37,10 @@ class SettingsStore(private val store: DataStore<Preferences>) : SettingsReposit
         val lastSync = longPreferencesKey("last_sync_ms")
         val lastSeen = longPreferencesKey("last_seen_ms")
         val disconnected = booleanPreferencesKey("disconnected")
+        val appUsage = booleanPreferencesKey("app_usage_enabled")
+        val appUsageCursor = longPreferencesKey("app_usage_cursor_ms")
+        val appUsageClockBoot = intPreferencesKey("app_usage_clock_boot")
+        val appUsageClockOffset = longPreferencesKey("app_usage_clock_offset_ms")
     }
 
     override val retention: Flow<RetentionPolicy> = store.data.map { p ->
@@ -63,6 +69,30 @@ class SettingsStore(private val store: DataStore<Preferences>) : SettingsReposit
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         store.edit { it[Keys.theme] = mode.name }
+    }
+
+    override val appUsageEnabled: Flow<Boolean> = store.data.map { it[Keys.appUsage] ?: false }.distinctUntilChanged()
+
+    override suspend fun setAppUsageEnabled(enabled: Boolean) {
+        store.edit {
+            it[Keys.appUsage] = enabled
+            if (!enabled) listOf(Keys.appUsageClockBoot, Keys.appUsageClockOffset, Keys.appUsageCursor).forEach { k -> it.remove(k) }
+        }
+    }
+
+    override suspend fun appUsageCursor(): Long? = store.data.first()[Keys.appUsageCursor]
+
+    override suspend fun appUsageClock(): ClockReading? {
+        val p = store.data.first()
+        return ClockReading(p[Keys.appUsageClockBoot] ?: return null, p[Keys.appUsageClockOffset] ?: return null)
+    }
+
+    override suspend fun setAppUsageCursor(ms: Long, clock: ClockReading) {
+        store.edit {
+            it[Keys.appUsageCursor] = ms
+            it[Keys.appUsageClockBoot] = clock.bootCount
+            it[Keys.appUsageClockOffset] = clock.wallMinusElapsedMs
+        }
     }
 
     override val device: Flow<RegisteredDevice?> = store.data.map { p ->

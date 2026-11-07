@@ -1,6 +1,8 @@
 package dev.owl.app.export
 
+import dev.owl.app.data.db.AppUsageEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.StringWriter
@@ -30,5 +32,21 @@ class JsonExporterTest {
         assertTrue(json.contains("\"place\":\"집\""))
         assertTrue(json.contains("{\"startMs\":0,\"endMs\":5000,\"text\":\"안녕\"}"))
         assertTrue(json.contains("{\"kind\":\"bookmark\",\"start\":null,\"durationMs\":null,\"place\":null"))
+        assertFalse(json.contains("appUsage"))
+    }
+
+    @Test
+    fun writesAppUsageOnlyWhenIncluded() {
+        val w = StringWriter()
+        JsonExporter.write(
+            w,
+            emptyList(),
+            ZoneId.of("Asia/Seoul"),
+            listOf(AppUsageEntity(packageName = "com.example.chat", label = "메신저", startMs = 1_793_440_000_000, endMs = 1_793_440_060_000)),
+        )
+        val json = w.toString()
+        assertTrue(json.contains("\"appUsage\":["))
+        assertTrue(json.contains("\"package\":\"com.example.chat\",\"label\":\"메신저\",\"start\":\"2026-10-31T"))
+        assertTrue(json.trimEnd().endsWith("]}"))
     }
 }

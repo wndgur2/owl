@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.FileDownload
@@ -56,6 +57,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
             InfoItem(Icons.Outlined.CloudOff, R.string.privacy_no_upload_title, R.string.privacy_no_upload_body)
             InfoItem(Icons.Outlined.PhoneAndroid, R.string.privacy_on_device_title, R.string.privacy_on_device_body)
             InfoItem(Icons.Outlined.LocationOn, R.string.privacy_location_title, R.string.privacy_location_body)
+            InfoItem(Icons.Outlined.Apps, R.string.privacy_app_usage_title, R.string.privacy_app_usage_body)
             InfoItem(Icons.Outlined.SettingsBackupRestore, R.string.privacy_backup_title, R.string.privacy_backup_body)
             InfoItem(Icons.Outlined.FileDownload, R.string.privacy_export_title, R.string.privacy_export_body)
         }

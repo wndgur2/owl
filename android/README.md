@@ -91,6 +91,7 @@ CompanionDeviceManager ──(목걸이 범위 진입/이탈)──▶ OwlCompan
 
 LocationRecorder: FusedLocationProvider + PendingIntent → LocationReceiver → Room
 SyncWorker: 15분 주기 WorkManager (CDM이 못 깨웠을 때의 안전망)
+UsageWorker: 6시간 주기 WorkManager → AppUsageRecorder (UsageStatsManager 이벤트 → Room, 켰을 때만)
 ```
 
 | 패키지 | 내용 |
@@ -104,8 +105,9 @@ SyncWorker: 15분 주기 WorkManager (CDM이 못 깨웠을 때의 안전망)
 | `audio/` | `OpusPlayer` — MediaCodec Opus 디코더 + AudioTrack, 문장 탐색 |
 | `stt/` | `Transcriber` 인터페이스, `PlaceholderTranscriber`, `DemoTranscriber`, `TranscribeWorker` |
 | `retention/` | 보관 기간 규칙(A14), `RetentionWorker` |
-| `export/` | `JsonExporter` — SAF로 사용자가 고른 파일에 JSON (A13) |
-| `ui/` | Compose 화면 (스플래시, 온보딩, 타임라인, 기록 상세, 검색, 기기, 설정, 보관 기간, 개인정보, 사용 설명) |
+| `usage/` | 앱 사용 기록(A18): `UsageSessions`(이벤트 → 구간, 일별 합계), `AppUsageRecorder`, `UsageWorker` |
+| `export/` | `JsonExporter` — SAF로 사용자가 고른 파일에 JSON (A13). 앱 사용 기록은 고를 때만 |
+| `ui/` | Compose 화면 (스플래시, 온보딩, 타임라인, 기록 상세, 검색, 집계, 기기, 설정, 보관 기간, 개인정보, 사용 설명) |
 | `model/` | UI가 보는 모델과 인터페이스 (`Contracts.kt`) |
 
 ### 유실 없는 동기화 (N4, A3)
@@ -205,6 +207,8 @@ python fake_owl.py --transport bumble --state /tmp/owl.json
 | `ProtocolTest` | STATUS, 모든 CONTROL 요청(SET_RECORDING 포함)·응답, LIST, DATA 청크, 세그먼트 헤더·오디오 프레임·이벤트, CRC32, 시각 복원. 바이트는 `tools/owlproto.py`가 만든 값 |
 | `SyncEngineTest` | 가짜 기기 상대로 전체 동기화(LIST 페이지 2개), 청크 유실 복구, 마지막 청크 유실, **FETCH 도중 끊김 → 다음 동기화에서 이어받기**, 저장 후 ACK 전 죽음 → 재ACK, CRC 불일치, 깨진 세그먼트 |
 | `BatteryTest`, `RetentionRulesTest`, `JsonExporterTest` | 전압 곡선, 보관 기간 규칙, 내보내기 형식 |
+| `UsageSessionsTest`, `AppUsageRecorderTest` | 이벤트 → 구간 규칙, 타임라인 카드 묶기, 기간 합계, 다시 읽어도 중복 없음, 권한 없음·잠금 중 이어 읽기, 시계 변경, 끄기·모두 지우기 |
+| `PlacesTest`, `StatsViewModelTest` | 장소, 머문 시간 계산(기간 경계, 24시간 상한, 방문 수), 집계 기간 이동 |
 
 프로토콜이 바뀌면 픽스처를 다시 만들어요 (레포 루트에서):
 
@@ -251,6 +255,8 @@ python3 android/app/src/test/fixtures/gen_protocol_fixtures.py
   줄일지 정해요(`decisions.md` #49)
 - 본딩: 확인 창 없는 등록과 창 밖 거절, 목걸이가 키를 잃었을 때 "다시 등록 필요"는 에뮬레이터(API 37)에서 확인. 남은 것:
   리플렉션 `removeBond`가 제조사 ROM에서도 되는지, 키 분실 때 진짜 컨트롤러의 0x06·`ACTION_KEY_MISSING`과 API 31–35의 137(위 참고)
+- 앱 사용 기록(A18): 에뮬레이터(API 37)에서 권한 흐름, 실제 이벤트 기록, 앱 프로세스 없이 도는 작업, 시계 변경을 봤어요. 남은 것: 제조사 ROM의 사용 정보 접근 화면과 이벤트, API 31–36,
+  Doze·삼성 배터리 관리에서 6시간 주기, 시스템이 이벤트를 며칠 보관하는지(주기 작업이 그보다 오래 밀리면 그 사이 구간은 사라져요)
 - Opus 디코더: Android 디코더는 48kHz 출력만 받아서 OpusHead에 16kHz를 적고 48kHz로 디코딩해요. pre-skip 312, seek pre-roll 80ms
 
 ## 아직 안 된 것 / 다음 마일스톤

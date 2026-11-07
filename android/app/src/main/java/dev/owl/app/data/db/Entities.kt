@@ -102,6 +102,25 @@ data class LocationEntity(
     val accuracyM: Float?,
 )
 
+/**
+ * One stretch of using another app (A18). [label] is copied because an uninstalled app can no longer
+ * be named. Reading overlapping windows finds the same session again; the unique index drops it.
+ */
+@Entity(
+    tableName = "app_usage",
+    indices = [
+        Index(value = ["packageName", "startMs"], unique = true),
+        Index(value = ["startMs"]),
+    ],
+)
+data class AppUsageEntity(
+    @PrimaryKey(autoGenerate = true) val rowId: Long = 0,
+    val packageName: String,
+    val label: String,
+    val startMs: Long,
+    val endMs: Long,
+)
+
 /** A named place. Names are never looked up online (PRD N8: no reverse geocoding). */
 @Entity(tableName = "places")
 data class PlaceEntity(

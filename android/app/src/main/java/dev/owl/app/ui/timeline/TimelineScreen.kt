@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.GraphicEq
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.SdStorage
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
+import dev.owl.app.model.AppUsageCard
 import dev.owl.app.model.DeviceNotice
 import dev.owl.app.protocol.Cause
 import dev.owl.app.protocol.EventType
@@ -256,7 +258,7 @@ fun TimelineContent(
                 val items = state.items
                 when {
                     items == null -> Unit
-                    items.isEmpty() && state.bookmarks.isEmpty() -> dev.owl.app.ui.components.EmptyState(
+                    items.isEmpty() && state.bookmarks.isEmpty() && state.rows.none { it is TimelineRow.AppUsage } -> dev.owl.app.ui.components.EmptyState(
                         icon = if (state.bookmarkedOnly) Icons.Outlined.BookmarkBorder else Icons.Outlined.GraphicEq,
                         title = stringResource(if (state.bookmarkedOnly) R.string.timeline_empty_bookmarks else R.string.timeline_empty),
                         body = stringResource(
@@ -278,6 +280,7 @@ fun TimelineContent(
                                 is TimelineRow.Item -> TimelineCard(row.item, formats, onClick = { onOpenEntry(row.item.id) })
                                 is TimelineRow.Bookmark -> StandaloneBookmarkRow(row.bookmark.timeMs, formats)
                                 is TimelineRow.Notice -> DeviceNoticeRow(row.notice, formats)
+                                is TimelineRow.AppUsage -> AppUsageTimelineCard(row.card, formats)
                             }
                         }
                     }
@@ -520,6 +523,41 @@ private fun TimelineCard(item: TimelineItem, formats: OwlFormats, onClick: () ->
         }
     }
 }
+
+/** Laid out like [TimelineCard], with an apps icon in place of play: there is nothing to open (A18). */
+@Composable
+private fun AppUsageTimelineCard(card: AppUsageCard, formats: OwlFormats) {
+    val colors = MaterialTheme.colorScheme
+    val apps = card.apps.take(APPS_ON_CARD).joinToString(" · ") { "${it.label} ${formats.duration(it.totalMs, estimate = false)}" }
+    val more = card.apps.size - APPS_ON_CARD
+    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = colors.surfaceContainerLow) {
+        Column(
+            Modifier.padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(formats.hm(card.startMs), style = MaterialTheme.typography.titleSmall, color = colors.primary)
+                Text(
+                    formats.duration(card.totalMs, estimate = false),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                )
+                Box(Modifier.size(32.dp).background(colors.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.Apps, contentDescription = stringResource(R.string.app_usage_title), Modifier.size(18.dp), tint = colors.onSecondaryContainer)
+                }
+            }
+            Text(
+                if (more > 0) stringResource(R.string.app_usage_card_more, apps, more) else apps,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private const val APPS_ON_CARD = 3
 
 @Composable
 fun TranscribingLabel(modifier: Modifier = Modifier) {

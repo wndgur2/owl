@@ -121,6 +121,33 @@ interface PlacesRepository {
 
     /** Entries in it go back to "알 수 없는 장소". */
     suspend fun deletePlace(id: Long)
+
+    /** Time spent at each place within [fromMs, toMs), from the phone's GPS fixes, most first (A19). */
+    fun stays(fromMs: Long, toMs: Long): Flow<List<PlaceSummary>>
+}
+
+/** A18: how the phone's other apps were used. Stays on the phone (PRD N8). */
+interface AppUsageRepository {
+    /** The 앱 사용 기록 switch; off by default. */
+    val enabled: Flow<Boolean>
+    val hasRecords: Flow<Boolean>
+
+    /** 사용 정보 접근 is allowed in system settings. Not a flow: nothing tells us when it changes. */
+    fun hasAccess(): Boolean
+
+    /** On: records from now. Off: stores what happened so far, then stops. Records stay. */
+    suspend fun setEnabled(on: Boolean)
+
+    /** Copies new sessions from the system. */
+    suspend fun sync()
+
+    /** Timeline cards ending after [sinceMs] (null = all), oldest first. */
+    fun cards(sinceMs: Long?): Flow<List<AppUsageCard>>
+
+    /** Each app's use within [fromMs, toMs), most used first. */
+    fun summary(fromMs: Long, toMs: Long): Flow<List<AppUsageSummary>>
+
+    suspend fun deleteAll()
 }
 
 /** Plays one timeline entry (A8). One instance per Entry screen. */
@@ -141,7 +168,7 @@ interface AudioPlayer {
     fun release()
 }
 
-/** A13: writes all records (text, time, place) to a user-chosen document. */
+/** A13: writes all records (text, time, place), plus app usage if asked (A18), to a user-chosen document. */
 interface Exporter {
-    suspend fun exportTo(uri: android.net.Uri): Result<Int>
+    suspend fun exportTo(uri: android.net.Uri, includeAppUsage: Boolean = false): Result<Int>
 }
