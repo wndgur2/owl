@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owl bring-up</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --line: #e4e3dd;
+    --text: #0b0b0b;
+    --text-2: #52514e;
+    --text-3: #6f6e69;
+    --accent: #2a78d6;
+    --accent-text: #ffffff;
+    --quiet: #2a78d6;
+    --speech: #eb6834;
+    --other: #b5b4ad;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --critical-text: #b42f2f;
+    --log-bg: #f3f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --line: #33332f;
+      --text: #f0efec;
+      --text-2: #c3c2b7;
+      --text-3: #a09f95;
+      --accent: #3987e5;
+      --quiet: #3987e5;
+      --speech: #d95926;
+      --other: #6c6b64;
+      --critical-text: #ef8080;
+      --log-bg: #131312;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --line: #33332f;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --text-3: #a09f95;
+    --accent: #3987e5;
+    --quiet: #3987e5;
+    --speech: #d95926;
+    --other: #6c6b64;
+    --critical-text: #ef8080;
+    --log-bg: #131312;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 40px; display: grid; gap: 16px; }
+  h1 { font-size: 22px; line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; margin: 0; font-weight: 600; }
+  p { margin: 0; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  .conn { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px; min-width: 0; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--other); flex: none; }
+  .conn.on .conn-dot { background: var(--good); }
+  .conn.off .conn-dot { background: var(--critical); }
+  .conn span:last-child { overflow-wrap: anywhere; }
+  .spacer { flex: 1; }
+  .meta { color: var(--text-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  button {
+    font: inherit; font-weight: 600; font-size: 14px;
+    border-radius: 8px; padding: 8px 14px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  button:hover:not(:disabled) { filter: brightness(0.96); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .banner { border: 1px solid var(--critical); border-radius: 8px; padding: 10px 14px; color: var(--critical-text); background: var(--surface); }
+
+  .cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .card, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card { display: grid; gap: 4px; align-content: start; min-height: 122px; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card-title { color: var(--text-2); font-size: 13px; font-weight: 600; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+  .badge i { font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; line-height: 1; background: var(--other); color: #0b0b0b; }
+  .pass .badge i { background: var(--good); color: #fff; }
+  .fail .badge i { background: var(--critical); color: #fff; }
+  .wait .badge i { background: var(--warning); }
+  .card-value { font-size: 22px; font-weight: 650; line-height: 1.3; font-variant-numeric: tabular-nums; }
+  .pending .card-value { color: var(--text-3); }
+  .card-note { color: var(--text-2); font-size: 13px; }
+
+  .panel { display: grid; gap: 14px; min-width: 0; }
+  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .help { color: var(--text-2); font-size: 13px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .compare { display: grid; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 64px 1fr 84px; align-items: center; gap: 10px; font-size: 13px; }
+  .bar-track { height: 10px; border-radius: 0 4px 4px 0; }
+  .bar { height: 100%; width: 0; border-radius: 0 4px 4px 0; transition: width .25s; }
+  .bar.quiet { background: var(--quiet); }
+  .bar.speech { background: var(--speech); }
+  .bar-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .bar-label { color: var(--text-2); }
+  .ratio { font-size: 13px; color: var(--text-2); }
+  .ratio b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .history { display: flex; align-items: flex-end; gap: 2px; height: 72px; border-bottom: 1px solid var(--line); overflow: hidden; }
+  .history-item { flex: 1 1 0; max-width: 28px; min-width: 6px; height: 100%; display: flex; align-items: flex-end; }
+  .history-item div { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--other); }
+  .history-item.quiet div { background: var(--quiet); }
+  .history-item.speech div { background: var(--speech); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--text-2); font-size: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; }
+  .empty { color: var(--text-3); font-size: 13px; }
+
+  details summary { cursor: pointer; color: var(--text-2); font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-2); font-weight: 600; }
+
+  .log {
+    background: var(--log-bg); border-radius: 8px; padding: 10px 12px;
+    height: 300px; overflow: auto; overscroll-behavior: contain;
+    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
+  }
+  .log div { white-space: pre-wrap; color: var(--text-2); }
+  .log .inf { color: var(--text); }
+  .log .wrn { color: var(--text); font-weight: 600; }
+  .log .err { color: var(--critical-text); }
+  .log .ts { color: var(--text-3); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Owl bring-up</h1>
+    <div class="conn" id="conn"><span class="conn-dot"></span><span id="conn-text">서버에 연결하는 중</span></div>
+    <div class="spacer"></div>
+    <div class="meta" id="meta"></div>
+    <button id="reset">보드 리셋</button>
+  </header>
+
+  <div class="banner" id="banner" role="alert" hidden></div>
+
+  <section class="cards" id="cards" aria-label="M0 확인 항목"></section>
+
+  <section class="panel" aria-labelledby="mic-title">
+    <div class="panel-head">
+      <h2 id="mic-title">마이크 반응</h2>
+      <div class="spacer"></div>
+      <div class="actions">
+        <button id="measure-quiet" class="primary">조용히 측정</button>
+        <button id="measure-speech" class="primary">말하면서 측정</button>
+      </div>
+    </div>
+    <p class="help" id="mic-help">보드를 리셋해서 1초간 소리 크기(rms)를 재요. "말하면서 측정"은 먼저 말을 시작하고 누른 뒤, 결과가 나올 때까지 계속 말해요.</p>
+    <div class="compare">
+      <div class="bar-row"><span class="bar-label">조용할 때</span><div class="bar-track"><div class="bar quiet" id="bar-quiet"></div></div><span class="bar-value" id="val-quiet">-</span></div>
+      <div class="bar-row"><span class="bar-label">말할 때</span><div class="bar-track"><div class="bar speech" id="bar-speech"></div></div><span class="bar-value" id="val-speech">-</span></div>
+      <p class="ratio" id="ratio"></p>
+    </div>
+    <div>
+      <div class="history" id="history" role="img" aria-label="최근 마이크 측정 rms"></div>
+      <p class="empty" id="history-empty">아직 측정 결과가 없어요.</p>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--quiet)"></i>조용할 때</span>
+      <span><i style="background:var(--speech)"></i>말할 때</span>
+      <span><i style="background:var(--other)"></i>구분 없음</span>
+    </div>
+    <details>
+      <summary>측정값 표</summary>
+      <table>
+        <thead><tr><th>구분</th><th>rms</th><th>peak</th></tr></thead>
+        <tbody id="mic-table"></tbody>
+      </table>
+    </details>
+  </section>
+
+  <section class="panel" aria-labelledby="log-title">
+    <div class="panel-head">
+      <h2 id="log-title">시리얼 로그</h2>
+      <span class="meta">115200</span>
+    </div>
+    <div class="log" id="log" tabindex="0" aria-live="off"></div>
+  </section>
+</main>
+
+<script>
+  const CARDS = [
+    ["overall", "전체 결과"],
+    ["mic", "마이크"],
+    ["flash", "외부 플래시"],
+    ["battery", "배터리 전압"],
+    ["button", "버튼 (D1)"],
+    ["wake", "System OFF 깨우기"],
+  ];
+  const BADGES = {
+    pass: ["✓", "통과"],
+    fail: ["✕", "실패"],
+    wait: ["!", "확인 필요"],
+    info: ["i", "참고"],
+    pending: ["·", "대기"],
+  };
+  const LABELS = { quiet: "조용할 때", speech: "말할 때" };
+  const $ = (id) => document.getElementById(id);
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function renderCards(checks) {
+    $("cards").replaceChildren(...CARDS.map(([id, title]) => {
+      const check = checks[id];
+      const [icon, label] = BADGES[check.status];
+      const card = el("article", "card " + check.status);
+      const top = el("div", "card-top");
+      top.append(el("span", "card-title", title));
+      const badge = el("span", "badge");
+      badge.append(el("i", "", icon), label);
+      top.append(badge);
+      card.append(top, el("div", "card-value", check.value ?? "-"), el("p", "card-note", check.note));
+      return card;
+    }));
+  }
+
+  function renderMic(state) {
+    const { quiet, speech, mics, speech_ratio: needed } = state;
+    const scale = Math.max(quiet?.rms ?? 0, speech?.rms ?? 0, 1);
+    for (const [key, mic] of [["quiet", quiet], ["speech", speech]]) {
+      $("bar-" + key).style.width = mic ? (mic.rms / scale * 100) + "%" : "0";
+      $("val-" + key).textContent = mic ? "rms " + mic.rms : "-";
+    }
+    if (quiet && speech) {
+      const ratio = speech.rms / Math.max(quiet.rms, 1);
+      $("ratio").replaceChildren("말할 때가 ", el("b", "", ratio.toFixed(1) + "배"), ` 커요. ${needed}배 이상이면 반응한다고 봐요.`);
+    } else {
+      $("ratio").textContent = "두 가지를 모두 재면 비교해요.";
+    }
+
+    const top = Math.max(...mics.map((m) => m.rms), 1);
+    $("history").replaceChildren(...mics.map((mic) => {
+      const item = el("div", "history-item " + (mic.label ?? ""));
+      item.title = `${LABELS[mic.label] ?? "구분 없음"}: rms ${mic.rms}, peak ${mic.peak}`;
+      const bar = el("div");
+      bar.style.height = (mic.rms / top * 100) + "%";
+      item.append(bar);
+      return item;
+    }));
+    $("history").hidden = mics.length === 0;
+    $("history-empty").hidden = mics.length > 0;
+
+    $("mic-table").replaceChildren(...[...mics].reverse().map((mic) => {
+      const row = el("tr");
+      row.append(el("td", "", LABELS[mic.label] ?? "구분 없음"), el("td", "", mic.rms), el("td", "", mic.peak));
+      return row;
+    }));
+  }
+
+  function renderState(state) {
+    const conn = $("conn");
+    conn.className = "conn " + (state.port ? "on" : "off");
+    $("conn-text").textContent = state.port ? state.port : "보드가 안 보여요. USB 케이블을 확인해요";
+
+    const meta = [];
+    if (state.boots) meta.push("부팅 " + state.boots + "회");
+    if (state.reset_cause) meta.push("리셋 원인 " + state.reset_cause);
+    $("meta").textContent = meta.join(" · ");
+
+    const busy = Boolean(state.measuring);
+    for (const id of ["reset", "measure-quiet", "measure-speech"]) {
+      $(id).disabled = busy || !state.port;
+    }
+    $("measure-quiet").textContent = state.measuring === "quiet" ? "측정 중…" : "조용히 측정";
+    $("measure-speech").textContent = state.measuring === "speech" ? "측정 중… 계속 말해요" : "말하면서 측정";
+    $("reset").textContent = state.measuring === "reset" ? "리셋 중…" : "보드 리셋";
+
+    $("banner").hidden = !state.error;
+    $("banner").textContent = state.error ?? "";
+
+    renderCards(state.checks);
+    renderMic(state);
+  }
+
+  function addLine(line) {
+    const log = $("log");
+    const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 24;
+    const row = el("div", line.level);
+    row.textContent = line.text;
+    log.append(row);
+    while (log.childElementCount > 500) log.firstElementChild.remove();
+    if (stick) log.scrollTop = log.scrollHeight;
+  }
+
+  async function measure(label) {
+    await fetch("/measure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    });
+  }
+  $("reset").onclick = () => measure(null);
+  $("measure-quiet").onclick = () => measure("quiet");
+  $("measure-speech").onclick = () => measure("speech");
+
+  const events = new EventSource("/events");
+  events.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.lines) {
+      $("log").replaceChildren();
+      message.lines.forEach(addLine);
+    }
+    if (message.line) addLine(message.line);
+    renderState(message.state);
+  };
+  events.onerror = () => {
+    $("conn").className = "conn off";
+    $("conn-text").textContent = "모니터 서버가 꺼졌어요. bringup_monitor.py를 다시 켜요";
+  };
+</script>
+</body>
+</html>
