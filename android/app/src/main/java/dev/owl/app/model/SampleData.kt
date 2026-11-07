@@ -174,6 +174,7 @@ class StubAudioPlayer : AudioPlayer {
 class StubPlacesRepository : PlacesRepository {
     private val list = MutableStateFlow(SampleData.places)
     override fun places(): Flow<List<NamedPlace>> = list
+    override fun stays(fromMs: Long, toMs: Long): Flow<List<PlaceSummary>> = flowOf(emptyList())
     override suspend fun nameEntryPlace(entryId: Long, name: String): Result<Unit> = Result.success(Unit)
     override suspend fun renamePlace(id: Long, name: String) {
         list.value = list.value.map { if (it.id == id) it.copy(name = name) else it }

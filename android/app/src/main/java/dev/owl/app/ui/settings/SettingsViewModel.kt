@@ -37,8 +37,6 @@ data class SettingsUiState(
     val namedPlaceCount: Int? = null,
     /** A17, null until loaded. */
     val themeMode: ThemeMode? = null,
-    /** A18 switch. */
-    val appUsageEnabled: Boolean = false,
     /** A18: there is something export could include. */
     val hasAppUsage: Boolean = false,
 )
@@ -54,7 +52,7 @@ class SettingsViewModel(
     controller: DeviceController,
     private val exporter: Exporter,
     places: PlacesRepository,
-    private val appUsage: AppUsageRepository,
+    appUsage: AppUsageRepository,
 ) : ViewModel() {
     private val exporting = kotlinx.coroutines.flow.MutableStateFlow(false)
     private val unregistering = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -79,7 +77,6 @@ class SettingsViewModel(
     }.combine(places.places()) { s, list -> s.copy(namedPlaceCount = list.size) }
         .combine(settings.themeMode) { s, mode -> s.copy(themeMode = mode) }
         .combine(unregistering) { s, u -> s.copy(unregistering = u) }
-        .combine(appUsage.enabled) { s, on -> s.copy(appUsageEnabled = on) }
         .combine(appUsage.hasRecords) { s, has -> s.copy(hasAppUsage = has) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState(fakeDeviceAvailable = registrar.fakeDeviceAvailable))
 
@@ -90,8 +87,6 @@ class SettingsViewModel(
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settings.setThemeMode(mode) }
     }
-
-    fun hasAppUsageAccess(): Boolean = appUsage.hasAccess()
 
     fun export(uri: Uri, includeAppUsage: Boolean) {
         exporting.value = true

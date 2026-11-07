@@ -1,6 +1,8 @@
 package dev.owl.app.usage
 
+import dev.owl.app.data.ENTRY_MERGE_GAP_MS
 import dev.owl.app.data.db.AppUsageEntity
+import dev.owl.app.model.AppUsageCard
 import dev.owl.app.model.AppUsageSummary
 import dev.owl.app.usage.UsageEvent.Type.ALL_STOPPED
 import dev.owl.app.usage.UsageEvent.Type.PAUSED
@@ -77,6 +79,25 @@ class UsageSessionsTest {
     fun tooShortSessionIsDropped() {
         val events = listOf(e("a", RESUMED, 0), e("a", PAUSED, UsageSessions.MIN_SESSION_MS - 1))
         assertEquals(emptyList<UsageSession>(), UsageSessions.build(events, toMs = 100_000).finished)
+    }
+
+    @Test
+    fun sessionsAtMostTwoMinutesApartShareACard() {
+        val rows = listOf(
+            AppUsageEntity(rowId = 1, packageName = "a", label = "에이", startMs = 0, endMs = 60_000),
+            AppUsageEntity(rowId = 2, packageName = "b", label = "비", startMs = 60_000 + ENTRY_MERGE_GAP_MS, endMs = 400_000),
+            AppUsageEntity(rowId = 3, packageName = "a", label = "에이", startMs = 400_001 + ENTRY_MERGE_GAP_MS, endMs = 600_000),
+        )
+        val cards = UsageSessions.cards(rows)
+        assertEquals(listOf(1L, 3L), cards.map { it.id })
+        assertEquals(0L to 400_000L, cards[0].startMs to cards[0].endMs)
+        assertEquals(listOf("b", "a"), cards[0].apps.map { it.packageName })
+        assertEquals(60_000 + 400_000 - 180_000L, cards[0].totalMs)
+    }
+
+    @Test
+    fun noSessionsNoCards() {
+        assertEquals(emptyList<AppUsageCard>(), UsageSessions.cards(emptyList()))
     }
 
     @Test

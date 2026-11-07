@@ -18,15 +18,16 @@ import androidx.work.WorkerParameters
 import dev.owl.app.appContainer
 import dev.owl.app.data.db.AppUsageDao
 import dev.owl.app.data.db.AppUsageEntity
+import dev.owl.app.model.AppUsageCard
 import dev.owl.app.model.AppUsageRepository
 import dev.owl.app.model.AppUsageSummary
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 /** The system side of A18; a fake in tests. */
@@ -111,7 +112,6 @@ class AppUsageRecorder(
     private val dao: AppUsageDao,
     private val state: AppUsageStateStore,
     private val source: UsageEventSource,
-    private val zone: () -> ZoneId = ZoneId::systemDefault,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : AppUsageRepository {
     private val lock = Mutex()
@@ -130,34 +130,34 @@ class AppUsageRecorder(
         }
     }
 
-    override suspend fun sync() {
-        lock.withLock {
-            if (!state.appUsageEnabled.first() || !source.hasAccess()) return
-            val now = clock()
-            val reading = source.clock()
-            val cursor = state.appUsageCursor()
-            val from = cursor?.plus(UsageSessions.clockShiftMs(state.appUsageClock(), reading))
-            if (from == null || from > now) {
-                state.setAppUsageCursor(now, reading)
-                return
-            }
-            val events = source.events(from, now) ?: return
-            val window = UsageSessions.build(events, now)
-            val labels = source.labels(window.finished.map { it.packageName }.toSet())
-            dao.insertAll(
-                window.finished.mapNotNull { s ->
-                    labels[s.packageName]?.let { AppUsageEntity(packageName = s.packageName, label = it, startMs = s.startMs, endMs = s.endMs) }
-                },
-            )
-            state.setAppUsageCursor(window.nextCursorMs, reading)
+    override suspend fun sync() = withContext(Dispatchers.IO) { lock.withLock { read() } }
+
+    private suspend fun read() {
+        if (!state.appUsageEnabled.first() || !source.hasAccess()) return
+        val now = clock()
+        val reading = source.clock()
+        val cursor = state.appUsageCursor()
+        val from = cursor?.plus(UsageSessions.clockShiftMs(state.appUsageClock(), reading))
+        if (from == null || from > now) {
+            state.setAppUsageCursor(now, reading)
+            return
         }
+        val events = source.events(from, now) ?: return
+        val window = UsageSessions.build(events, now)
+        val labels = source.labels(window.finished.map { it.packageName }.toSet())
+        dao.insertAll(
+            window.finished.mapNotNull { s ->
+                labels[s.packageName]?.let { AppUsageEntity(packageName = s.packageName, label = it, startMs = s.startMs, endMs = s.endMs) }
+            },
+        )
+        state.setAppUsageCursor(window.nextCursorMs, reading)
     }
 
-    override fun day(date: LocalDate): Flow<List<AppUsageSummary>> {
-        val from = date.atStartOfDay(zone()).toInstant().toEpochMilli()
-        val to = date.plusDays(1).atStartOfDay(zone()).toInstant().toEpochMilli()
-        return dao.overlapping(from, to).map { UsageSessions.summarize(it, from, to) }
-    }
+    override fun cards(sinceMs: Long?): Flow<List<AppUsageCard>> =
+        dao.endingAfter(sinceMs ?: Long.MIN_VALUE).map(UsageSessions::cards)
+
+    override fun summary(fromMs: Long, toMs: Long): Flow<List<AppUsageSummary>> =
+        dao.overlapping(fromMs, toMs).map { UsageSessions.summarize(it, fromMs, toMs) }
 
     override suspend fun deleteAll() {
         lock.withLock {

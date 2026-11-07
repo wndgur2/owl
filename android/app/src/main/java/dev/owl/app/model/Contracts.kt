@@ -121,6 +121,9 @@ interface PlacesRepository {
 
     /** Entries in it go back to "알 수 없는 장소". */
     suspend fun deletePlace(id: Long)
+
+    /** Time spent at each place within [fromMs, toMs), from the phone's GPS fixes, most first (A19). */
+    fun stays(fromMs: Long, toMs: Long): Flow<List<PlaceSummary>>
 }
 
 /** A18: how the phone's other apps were used. Stays on the phone (PRD N8). */
@@ -138,8 +141,11 @@ interface AppUsageRepository {
     /** Copies new sessions from the system. */
     suspend fun sync()
 
-    /** Each app's use on [date], most used first. */
-    fun day(date: java.time.LocalDate): Flow<List<AppUsageSummary>>
+    /** Timeline cards ending after [sinceMs] (null = all), oldest first. */
+    fun cards(sinceMs: Long?): Flow<List<AppUsageCard>>
+
+    /** Each app's use within [fromMs, toMs), most used first. */
+    fun summary(fromMs: Long, toMs: Long): Flow<List<AppUsageSummary>>
 
     suspend fun deleteAll()
 }

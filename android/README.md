@@ -107,7 +107,7 @@ UsageWorker: 6시간 주기 WorkManager → AppUsageRecorder (UsageStatsManager 
 | `retention/` | 보관 기간 규칙(A14), `RetentionWorker` |
 | `usage/` | 앱 사용 기록(A18): `UsageSessions`(이벤트 → 구간, 일별 합계), `AppUsageRecorder`, `UsageWorker` |
 | `export/` | `JsonExporter` — SAF로 사용자가 고른 파일에 JSON (A13). 앱 사용 기록은 고를 때만 |
-| `ui/` | Compose 화면 (스플래시, 온보딩, 타임라인, 기록 상세, 검색, 기기, 설정, 보관 기간, 개인정보, 사용 설명) |
+| `ui/` | Compose 화면 (스플래시, 온보딩, 타임라인, 기록 상세, 검색, 집계, 기기, 설정, 보관 기간, 개인정보, 사용 설명) |
 | `model/` | UI가 보는 모델과 인터페이스 (`Contracts.kt`) |
 
 ### 유실 없는 동기화 (N4, A3)
@@ -207,7 +207,8 @@ python fake_owl.py --transport bumble --state /tmp/owl.json
 | `ProtocolTest` | STATUS, 모든 CONTROL 요청(SET_RECORDING 포함)·응답, LIST, DATA 청크, 세그먼트 헤더·오디오 프레임·이벤트, CRC32, 시각 복원. 바이트는 `tools/owlproto.py`가 만든 값 |
 | `SyncEngineTest` | 가짜 기기 상대로 전체 동기화(LIST 페이지 2개), 청크 유실 복구, 마지막 청크 유실, **FETCH 도중 끊김 → 다음 동기화에서 이어받기**, 저장 후 ACK 전 죽음 → 재ACK, CRC 불일치, 깨진 세그먼트 |
 | `BatteryTest`, `RetentionRulesTest`, `JsonExporterTest` | 전압 곡선, 보관 기간 규칙, 내보내기 형식 |
-| `UsageSessionsTest`, `AppUsageRecorderTest` | 이벤트 → 구간 규칙, 일별 합계, 다시 읽어도 중복 없음, 권한 없음·잠금 중 이어 읽기, 끄기·모두 지우기 |
+| `UsageSessionsTest`, `AppUsageRecorderTest` | 이벤트 → 구간 규칙, 타임라인 카드 묶기, 기간 합계, 다시 읽어도 중복 없음, 권한 없음·잠금 중 이어 읽기, 시계 변경, 끄기·모두 지우기 |
+| `PlacesTest`, `StatsViewModelTest` | 장소, 머문 시간 계산(기간 경계, 24시간 상한, 방문 수), 집계 기간 이동 |
 
 프로토콜이 바뀌면 픽스처를 다시 만들어요 (레포 루트에서):
 

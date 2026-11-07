@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.AutoDelete
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.DarkMode
@@ -76,7 +75,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenRetention: () -> Unit,
     onOpenPlaces: () -> Unit,
-    onOpenAppUsage: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenGuide: () -> Unit,
     onUnregistered: () -> Unit,
@@ -89,7 +87,6 @@ fun SettingsScreen(
     var resumes by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
     val hasBackground = remember(resumes) { OwlPermissions.hasBackgroundLocation(context) }
-    val hasUsageAccess = remember(resumes) { viewModel.hasAppUsageAccess() }
     var showBackgroundDialog by rememberSaveable { mutableStateOf(false) }
     var choosingExport by rememberSaveable { mutableStateOf(false) }
     var includeAppUsage by rememberSaveable { mutableStateOf(false) }
@@ -119,12 +116,10 @@ fun SettingsScreen(
     SettingsContent(
         state = state,
         backgroundLocationGranted = hasBackground,
-        usageAccessGranted = hasUsageAccess,
         snackbar = snackbar,
         onBack = onBack,
         onOpenRetention = onOpenRetention,
         onOpenPlaces = onOpenPlaces,
-        onOpenAppUsage = onOpenAppUsage,
         onToggleLocation = { on ->
             when {
                 !on -> viewModel.setLocationEnabled(false)
@@ -208,12 +203,10 @@ fun SettingsScreen(
 fun SettingsContent(
     state: SettingsUiState,
     backgroundLocationGranted: Boolean,
-    usageAccessGranted: Boolean,
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
     onOpenRetention: () -> Unit,
     onOpenPlaces: () -> Unit,
-    onOpenAppUsage: () -> Unit,
     onToggleLocation: (Boolean) -> Unit,
     onExport: () -> Unit,
     onOpenPrivacy: () -> Unit,
@@ -263,19 +256,6 @@ fun SettingsContent(
                 },
                 icon = Icons.Outlined.Place,
                 onClick = onOpenPlaces,
-                trailing = chevron,
-            )
-            OwlListRow(
-                title = stringResource(R.string.app_usage_title),
-                subtitle = stringResource(
-                    when {
-                        !state.appUsageEnabled -> R.string.app_usage_off
-                        usageAccessGranted -> R.string.app_usage_on
-                        else -> R.string.app_usage_needs_access
-                    },
-                ),
-                icon = Icons.Outlined.Apps,
-                onClick = onOpenAppUsage,
                 trailing = chevron,
             )
 
@@ -428,9 +408,8 @@ private fun SettingsPreview() {
                 fakeDeviceAvailable = true, usingFakeDevice = true, namedPlaceCount = 4, themeMode = ThemeMode.DARK,
             ),
             backgroundLocationGranted = true,
-            usageAccessGranted = true,
             snackbar = remember { SnackbarHostState() },
-            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onOpenAppUsage = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onSelectTheme = {}, onUnregister = {},
+            onBack = {}, onOpenRetention = {}, onOpenPlaces = {}, onToggleLocation = {}, onExport = {}, onOpenPrivacy = {}, onOpenGuide = {}, onSelectTheme = {}, onUnregister = {},
         )
     }
 }

@@ -6,8 +6,11 @@ import dev.owl.app.data.db.OwlDatabase
 import dev.owl.app.data.db.PlaceEntity
 import dev.owl.app.location.LocationSink
 import dev.owl.app.model.NamedPlace
+import dev.owl.app.model.Place
+import dev.owl.app.model.PlaceSummary
 import dev.owl.app.model.PlacesRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlin.math.cos
 import kotlin.math.sqrt
@@ -102,4 +105,46 @@ class PlacesRepositoryImpl(private val db: OwlDatabase, private val resolver: Pl
         db.places().delete(id)
         resolver.relabel()
     }
+
+    override fun stays(fromMs: Long, toMs: Long): Flow<List<PlaceSummary>> =
+        combine(db.locations().observeRange(fromMs, toMs), db.places().observeAll()) { fixes, places ->
+            summarizeStays(listOfNotNull(db.locations().lastBefore(fromMs)) + fixes, places, fromMs, toMs, System.currentTimeMillis())
+        }
+}
+
+/**
+ * A fix counts as "still there" for at most this long. LocationRecorder gets no fix while the phone
+ * stays within 50 m, so a long gap is normally a long stay; beyond this it more likely means 장소 기록
+ * was off or the phone was dead, and we cannot tell which.
+ */
+const val MAX_STAY_PER_FIX_MS: Long = 24 * 3_600_000L
+
+/**
+ * Time spent at each place within [fromMs, toMs) (A19), most first: every fix holds until the next
+ * one, up to [MAX_STAY_PER_FIX_MS], and never past [nowMs]. Unnamed places count as one
+ * "알 수 없는 장소". [fixes] are oldest first and should start with the last fix before [fromMs],
+ * which is where the period begins. A visit is an unbroken stretch at one place.
+ */
+fun summarizeStays(fixes: List<LocationEntity>, places: List<PlaceEntity>, fromMs: Long, toMs: Long, nowMs: Long): List<PlaceSummary> {
+    val periodEnd = minOf(toMs, nowMs)
+    val summaries = LinkedHashMap<Long?, PlaceSummary>()
+    var lastPlace: Long? = null
+    var lastEnd: Long? = null
+    fixes.forEachIndexed { i, fix ->
+        val start = maxOf(fix.timeMs, fromMs)
+        val end = minOf(fixes.getOrNull(i + 1)?.timeMs ?: periodEnd, fix.timeMs + MAX_STAY_PER_FIX_MS, periodEnd)
+        if (end <= start) return@forEachIndexed
+        val named = PlaceResolver.nearestPlace(places, fix.latitude, fix.longitude)
+        val key = named?.rowId
+        val sameVisit = lastEnd == start && lastPlace == key
+        val before = summaries[key] ?: PlaceSummary(
+            Place(named?.name, named?.latitude ?: fix.latitude, named?.longitude ?: fix.longitude, key),
+            visits = 0,
+            totalMs = 0,
+        )
+        summaries[key] = before.copy(visits = before.visits + if (sameVisit) 0 else 1, totalMs = before.totalMs + end - start)
+        lastPlace = key
+        lastEnd = end
+    }
+    return summaries.values.sortedByDescending { it.totalMs }
 }

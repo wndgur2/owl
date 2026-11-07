@@ -1,6 +1,8 @@
 package dev.owl.app.usage
 
+import dev.owl.app.data.ENTRY_MERGE_GAP_MS
 import dev.owl.app.data.db.AppUsageEntity
+import dev.owl.app.model.AppUsageCard
 import dev.owl.app.model.AppUsageSummary
 
 /** What we need from one system usage event (A18). */
@@ -87,6 +89,29 @@ object UsageSessions {
         val (done, pending) = closed.values.flatten().partition { it.endMs + MERGE_GAP_MS <= toMs }
         val nextCursor = (open.values + pending.map { it.startMs }).minOrNull()?.coerceAtMost(toMs) ?: toMs
         return UsageWindow(done.filter { it.endMs - it.startMs >= MIN_SESSION_MS }.sortedBy { it.startMs }, nextCursor)
+    }
+
+    /**
+     * Timeline cards: sessions at most [ENTRY_MERGE_GAP_MS] apart become one, the same rule as
+     * recordings (A7), so a day of phone use is a few cards rather than hundreds. [rows] oldest first.
+     */
+    fun cards(rows: List<AppUsageEntity>): List<AppUsageCard> {
+        val groups = ArrayList<MutableList<AppUsageEntity>>()
+        var groupEnd = Long.MIN_VALUE
+        for (row in rows) {
+            if (groups.isEmpty() || row.startMs - groupEnd > ENTRY_MERGE_GAP_MS) {
+                groups += mutableListOf(row)
+                groupEnd = row.endMs
+            } else {
+                groups.last() += row
+                groupEnd = maxOf(groupEnd, row.endMs)
+            }
+        }
+        return groups.map { group ->
+            val start = group.first().startMs
+            val end = group.maxOf { it.endMs }
+            AppUsageCard(id = group.first().rowId, startMs = start, endMs = end, apps = summarize(group, start, end))
+        }
     }
 
     /** Each app's use within [fromMs, toMs), most used first. A session crossing midnight counts in both days. */

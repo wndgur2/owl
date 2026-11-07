@@ -223,6 +223,12 @@ interface LocationDao {
 
     @Query("SELECT * FROM locations WHERE timeMs BETWEEN :from AND :to ORDER BY ABS(timeMs - :around) LIMIT 1")
     suspend fun nearest(around: Long, from: Long, to: Long): LocationEntity?
+
+    @Query("SELECT * FROM locations WHERE timeMs >= :from AND timeMs < :to ORDER BY timeMs")
+    fun observeRange(from: Long, to: Long): Flow<List<LocationEntity>>
+
+    @Query("SELECT * FROM locations WHERE timeMs < :before ORDER BY timeMs DESC LIMIT 1")
+    suspend fun lastBefore(before: Long): LocationEntity?
 }
 
 @Dao
@@ -233,6 +239,9 @@ interface AppUsageDao {
     /** Sessions with any part inside [from, to). */
     @Query("SELECT * FROM app_usage WHERE startMs < :to AND endMs > :from ORDER BY startMs")
     fun overlapping(from: Long, to: Long): Flow<List<AppUsageEntity>>
+
+    @Query("SELECT * FROM app_usage WHERE endMs > :sinceMs ORDER BY startMs")
+    fun endingAfter(sinceMs: Long): Flow<List<AppUsageEntity>>
 
     @Query("SELECT * FROM app_usage ORDER BY startMs")
     suspend fun all(): List<AppUsageEntity>
@@ -251,6 +260,9 @@ interface PlaceDao {
 
     @Query("SELECT * FROM places")
     suspend fun all(): List<PlaceEntity>
+
+    @Query("SELECT * FROM places")
+    fun observeAll(): Flow<List<PlaceEntity>>
 
     @Query("SELECT name FROM places ORDER BY name")
     fun names(): Flow<List<String>>

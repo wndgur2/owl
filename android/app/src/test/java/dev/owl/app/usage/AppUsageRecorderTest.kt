@@ -12,8 +12,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
-import java.time.LocalDate
-import java.time.ZoneOffset
 
 class AppUsageRecorderTest {
     private class FakeDao : AppUsageDao {
@@ -26,6 +24,9 @@ class AppUsageRecorderTest {
 
         override fun overlapping(from: Long, to: Long): Flow<List<AppUsageEntity>> =
             rows.map { all -> all.filter { it.startMs < to && it.endMs > from } }
+
+        override fun endingAfter(sinceMs: Long): Flow<List<AppUsageEntity>> =
+            rows.map { all -> all.filter { it.endMs > sinceMs } }
 
         override suspend fun all() = rows.value
         override fun hasRecords(): Flow<Boolean> = rows.map { it.isNotEmpty() }
@@ -75,7 +76,7 @@ class AppUsageRecorderTest {
     private val state = FakeState()
     private val source = FakeSource()
     private var now = 1_000_000L
-    private val recorder = AppUsageRecorder(dao, state, source, zone = { ZoneOffset.UTC }, clock = { now })
+    private val recorder = AppUsageRecorder(dao, state, source, clock = { now })
 
     private fun used(pkg: String, from: Long, to: Long) {
         source.events += UsageEvent(pkg, RESUMED, from)
@@ -245,17 +246,28 @@ class AppUsageRecorderTest {
     }
 
     @Test
-    fun dayAddsUpOnlyThatDay() = runTest {
-        val date = LocalDate.of(2026, 11, 7)
-        val start = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    fun summaryAddsUpOnlyThatPeriod() = runTest {
+        val start = 10_000_000L
         dao.insertAll(
             listOf(
                 AppUsageEntity(packageName = "a", label = "에이", startMs = start - 1_000, endMs = start + 1_000),
                 AppUsageEntity(packageName = "b", label = "비", startMs = start - 5_000, endMs = start - 4_000),
             ),
         )
-        val day = recorder.day(date).first()
-        assertEquals(listOf("a"), day.map { it.packageName })
-        assertEquals(1_000L, day.single().totalMs)
+        val summary = recorder.summary(start, start + 60_000).first()
+        assertEquals(listOf("a"), summary.map { it.packageName })
+        assertEquals(1_000L, summary.single().totalMs)
+    }
+
+    @Test
+    fun cardsLeaveOutOlderOnesWhenTheTimelineHasNotLoadedThem() = runTest {
+        dao.insertAll(
+            listOf(
+                AppUsageEntity(rowId = 1, packageName = "a", label = "에이", startMs = 1_000, endMs = 2_000),
+                AppUsageEntity(rowId = 2, packageName = "b", label = "비", startMs = 1_000_000, endMs = 1_001_000),
+            ),
+        )
+        assertEquals(listOf(1L, 2L), recorder.cards(null).first().map { it.id })
+        assertEquals(listOf(2L), recorder.cards(500_000).first().map { it.id })
     }
 }

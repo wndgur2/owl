@@ -1,5 +1,6 @@
 package dev.owl.app.ui.timeline
 
+import dev.owl.app.model.AppUsageCard
 import dev.owl.app.model.DeviceNotice
 import dev.owl.app.model.Place
 import dev.owl.app.model.SegmentState
@@ -40,6 +41,29 @@ class TimelineRowsTest {
     }
 
     private fun headers(rows: List<TimelineRow>) = rows.filterIsInstance<TimelineRow.PlaceHeader>()
+
+    private fun usage(id: Long, start: Long, end: Long) = AppUsageCard(id, start, end, emptyList())
+
+    @Test
+    fun appUsageCardsSortByTimeAndJoinTheCurrentPlaceGroup() {
+        val rows = buildTimelineRows(
+            mergeTimeline(
+                listOf(item(1, at(10, 0), 40_000, at(10, 19)), item(2, at(12, 0), 5_000, at(12, 30))),
+                emptyList(),
+                appUsage = listOf(usage(7, at(11, 0), at(11, 45))),
+            ),
+            nowMs = at(23, 0),
+        )
+        assertEquals(listOf("item-1", "usage-7", "item-2"), rows.filter { it is TimelineRow.Item || it is TimelineRow.AppUsage }.map { it.key })
+        // One group, and the card neither opens a new one nor stretches the header's times.
+        assertEquals(listOf(at(10, 0) to at(12, 30)), headers(rows).map { it.startMs to it.endMs })
+    }
+
+    @Test
+    fun appUsageAloneGetsADayButNoPlaceHeader() {
+        val rows = buildTimelineRows(mergeTimeline(emptyList(), emptyList(), appUsage = listOf(usage(7, at(11, 0), at(11, 45)))), nowMs = at(23, 0))
+        assertEquals(listOf(TimelineRow.Day::class, TimelineRow.AppUsage::class), rows.map { it::class })
+    }
 
     @Test
     fun unnamedPlacesSplitWhenThePhoneMovesMoreThan100m() {
@@ -111,6 +135,7 @@ class TimelineRowsTest {
                 is TimelineEntry.Entry -> "item-${it.item.id}"
                 is TimelineEntry.Mark -> "bm-${it.bookmark.id}"
                 is TimelineEntry.Notice -> "ev-${it.notice.id}"
+                is TimelineEntry.Usage -> "usage-${it.card.id}"
             }
         })
     }

@@ -41,6 +41,7 @@
     <!-- Bottom navigation -->
     <string name="tab_timeline">타임라인</string>
     <string name="tab_search">검색</string>
+    <string name="tab_stats">집계</string>
     <string name="tab_device">기기</string>
 
     <!-- Timeline (A7, A8a, A9) -->
@@ -206,11 +207,19 @@
     <string name="app_usage_needs_access">사용 정보 접근을 허용해야 기록돼요</string>
     <string name="app_usage_access_title">사용 정보 접근을 허용해 주세요</string>
     <string name="app_usage_access_body">다른 앱을 언제 얼마나 썼는지 읽으려면 필요해요. 열리는 화면에서 Owl을 찾아 켜 주세요. 기록은 이 폰 밖으로 나가지 않아요.</string>
-    <string name="app_usage_previous_day">이전 날</string>
-    <string name="app_usage_next_day">다음 날</string>
+    <string name="app_usage_card_more">%1$s 외 %2$d개</string>
+    <string name="stats_tab_app_usage">앱 사용</string>
+    <string name="stats_span_day">하루</string>
+    <string name="stats_span_week">7일</string>
+    <string name="stats_span_month">30일</string>
+    <string name="stats_previous">이전 기간</string>
+    <string name="stats_next">다음 기간</string>
+    <string name="stats_place_visits">%1$d번 방문</string>
+    <string name="stats_places_empty">이 기간에는 위치 기록이 없어요</string>
+    <string name="stats_places_hint">다음 위치가 기록될 때까지 그 자리에 머문 것으로 계산해요. 장소 기록을 꺼 둔 시간은 구분하지 못해 최대 24시간까지 더해질 수 있어요.</string>
     <string name="app_usage_total">총 %1$s</string>
     <string name="app_usage_sessions">%1$d번 사용</string>
-    <string name="app_usage_empty_title">이 날은 기록이 없어요</string>
+    <string name="app_usage_empty_title">이 기간에는 앱 사용 기록이 없어요</string>
     <string name="app_usage_empty_off_body">켜면 그때부터 기록해요. 그 전 사용은 가져오지 않아요.</string>
     <string name="app_usage_empty_on_body">방금 쓴 앱은 잠시 뒤에 보여요.</string>
     <string name="app_usage_hint">홈 화면과 시스템 화면은 기록하지 않아요. 기록은 자동으로 지워지지 않고 이 폰에만 남아요.</string>
@@ -258,7 +267,7 @@
     <string name="privacy_no_upload_title">밖으로 보내지 않아요</string>
     <string name="privacy_no_upload_body">음성, 위치, 텍스트, 앱 사용 기록은 목걸이와 이 폰에만 있어요. 서버나 클라우드로 보내지 않아요.</string>
     <string name="privacy_app_usage_title">앱 사용 기록은 켰을 때만</string>
-    <string name="privacy_app_usage_body">설정 › 앱 사용 기록을 켠 뒤부터 어떤 앱을 언제 썼는지 이 폰에 저장해요. 내보낼 때 직접 고른 경우에만 파일에 들어가요.</string>
+    <string name="privacy_app_usage_body">집계 탭에서 앱 사용 기록을 켠 뒤부터 어떤 앱을 언제 썼는지 이 폰에 저장해요. 내보낼 때 직접 고른 경우에만 파일에 들어가요.</string>
     <string name="privacy_on_device_title">텍스트 변환도 폰 안에서</string>
     <string name="privacy_on_device_body">음성을 텍스트로 바꾸는 일도 이 폰에서 해요.</string>
     <string name="privacy_location_title">위치는 좌표로만</string>
