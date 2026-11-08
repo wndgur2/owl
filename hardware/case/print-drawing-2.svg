@@ -98,10 +98,10 @@
 <path d="M198.900 72.000L197.472 72.120L197.654 72.709Z" fill="#1d1d1d"/>
 <line x1="186.000" y1="76.000" x2="183.500" y2="76.000" stroke="#1d1d1d" stroke-width="0.13" fill="none" stroke-linejoin="round"/>
 <text x="182.900" y="76.900" font-size="2.5" text-anchor="end" font-weight="400" fill="#1d1d1d">립 두께 0.8</text>
-<line x1="169.220" y1="53.420" x2="182.000" y2="62.200" stroke="#1d1d1d" stroke-width="0.13" fill="none" stroke-linejoin="round"/>
-<path d="M169.220 53.420L170.200 54.467L170.548 53.959Z" fill="#1d1d1d"/>
-<line x1="182.000" y1="62.200" x2="184.500" y2="62.200" stroke="#1d1d1d" stroke-width="0.13" fill="none" stroke-linejoin="round"/>
-<text x="185.100" y="63.100" font-size="2.5" text-anchor="start" font-weight="400" fill="#1d1d1d">⌀4.6 깊이 0.3</text>
+<line x1="162.780" y1="53.420" x2="152.000" y2="62.200" stroke="#1d1d1d" stroke-width="0.13" fill="none" stroke-linejoin="round"/>
+<path d="M162.780 53.420L161.500 54.065L161.889 54.543Z" fill="#1d1d1d"/>
+<line x1="152.000" y1="62.200" x2="149.500" y2="62.200" stroke="#1d1d1d" stroke-width="0.13" fill="none" stroke-linejoin="round"/>
+<text x="148.900" y="63.100" font-size="2.5" text-anchor="end" font-weight="400" fill="#1d1d1d">⌀4.6 깊이 0.3</text>
 <text x="222.000" y="26.000" font-size="3.2" text-anchor="start" font-weight="700" fill="#1d1d1d">구멍 (관통, 뚜껑 윗면 기준)</text>
 <text x="222.000" y="32.000" font-size="2.3" text-anchor="start" font-weight="400" fill="#6b6b6b"></text>
 <text x="228.000" y="32.000" font-size="2.3" text-anchor="start" font-weight="400" fill="#6b6b6b">이름</text>

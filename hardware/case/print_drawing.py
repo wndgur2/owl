@@ -425,7 +425,7 @@ def page_lid():
     hdim(*bot.p(0, OY), *bot.p(BUMP_X[0], OY - WALL - FIT), bot.y(OY) + 10, f"{BUMP_X[0]:g}")
     leader(*bot.p(lx0 + LIP_OUT[0] - LIP_T / 2, OY - 6), bot.x(OX - 8), bot.y(OY - 4), f"립 두께 {LIP_T:g}")
     mic = HOLES[2]
-    leader(*bot.p(mic[2] + V["mesh_d"] / 2 * 0.7, mic[3] + V["mesh_d"] / 2 * 0.7), bot.x(mic[2] + 8), bot.y(mic[3] + 6),
+    leader(*bot.p(mic[2] - V["mesh_d"] / 2 * 0.7, mic[3] + V["mesh_d"] / 2 * 0.7), bot.x(mic[2] - 7), bot.y(mic[3] + 6),
            f"⌀{V['mesh_d']:g} 깊이 {V['mesh_depth']:g}")
 
     # 구멍 표
