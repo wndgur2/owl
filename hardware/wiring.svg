@@ -6,8 +6,8 @@
 <text x="54" y="90" font-size="14" text-anchor="start" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >LiPo 250mAh</text>
 <text x="54" y="110" font-size="12" text-anchor="start" font-weight="normal" fill="#555" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >보호회로 탭</text>
 <text x="54" y="144" font-size="11" text-anchor="start" font-weight="normal" fill="#777" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >실제로는 보드·플래시 밑</text>
-<text x="222" y="104" font-size="15" text-anchor="end" font-weight="700" fill="#d62828" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >+</text>
-<text x="222" y="130" font-size="15" text-anchor="end" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >−</text>
+<text x="222" y="104" font-size="15" text-anchor="end" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >−</text>
+<text x="222" y="130" font-size="15" text-anchor="end" font-weight="700" fill="#d62828" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >+</text>
 <rect x="300" y="200" width="300" height="370" rx="12" fill="#e3f0e4" stroke="#2f6b3a" stroke-width="2"/>
 <rect x="400" y="182" width="100" height="40" rx="8" fill="#c9ccd1" stroke="#7d828a" stroke-width="1.5"/>
 <text x="450" y="210" font-size="12" text-anchor="middle" font-weight="700" fill="#444" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >USB-C</text>
@@ -30,7 +30,7 @@
 <rect x="300" y="522" width="14" height="26" rx="2" fill="#eadca8" stroke="#c9b77c"/>
 <text x="322" y="540" font-size="14" text-anchor="start" font-weight="normal" fill="#9aa39b" font-family="ui-monospace, Menlo, Consolas, monospace" >D6</text>
 <rect x="586" y="222" width="14" height="26" rx="2" fill="#eadca8" stroke="#c9b77c"/>
-<text x="578" y="240" font-size="14" text-anchor="end" font-weight="normal" fill="#9aa39b" font-family="ui-monospace, Menlo, Consolas, monospace" >5V</text>
+<text x="578" y="240" font-size="14" text-anchor="end" font-weight="normal" fill="#9aa39b" font-family="ui-monospace, Menlo, Consolas, monospace" >VBUS</text>
 <rect x="586" y="272" width="14" height="26" rx="2" fill="#d4a017" stroke="#9c7410"/>
 <text x="578" y="290" font-size="14" text-anchor="end" font-weight="700" fill="#1d1d1d" font-family="ui-monospace, Menlo, Consolas, monospace" >GND</text>
 <rect x="586" y="322" width="14" height="26" rx="2" fill="#d4a017" stroke="#9c7410"/>
@@ -46,41 +46,39 @@
 <text x="578" y="500" font-size="11" text-anchor="end" font-weight="normal" fill="#4a6b50" font-family="ui-monospace, Menlo, Consolas, monospace" >P2.01</text>
 <rect x="586" y="522" width="14" height="26" rx="2" fill="#eadca8" stroke="#c9b77c"/>
 <text x="578" y="540" font-size="14" text-anchor="end" font-weight="normal" fill="#9aa39b" font-family="ui-monospace, Menlo, Consolas, monospace" >D7</text>
-<rect x="471" y="358" width="18" height="18" fill="none" stroke="#d62828" stroke-width="1.5" stroke-dasharray="3 2"/>
-<text x="480" y="393" font-size="12" text-anchor="middle" font-weight="700" fill="#d62828" font-family="ui-monospace, Menlo, Consolas, monospace" >BAT+</text>
-<rect x="411" y="358" width="18" height="18" fill="none" stroke="#1d1d1d" stroke-width="1.5" stroke-dasharray="3 2"/>
-<text x="420" y="393" font-size="12" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="ui-monospace, Menlo, Consolas, monospace" >BAT−</text>
-<text x="450" y="409" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >밑면 패드 (위치 추정)</text>
-<rect x="760" y="285" width="160" height="200" rx="4" fill="#4a4a4f" stroke="#2b2b2e" stroke-width="1.5"/>
-<rect x="730" y="306" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="768" y="303" font-size="13" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >8 VCC</text>
-<rect x="730" y="356" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="768" y="353" font-size="13" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >7 /HOLD</text>
-<rect x="730" y="406" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="768" y="403" font-size="13" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >6 CLK</text>
-<rect x="730" y="456" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="768" y="453" font-size="13" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >5 DI</text>
-<rect x="920" y="306" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="912" y="303" font-size="13" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >/CS 1</text>
-<rect x="920" y="356" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="912" y="353" font-size="13" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >DO 2</text>
-<rect x="920" y="406" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="912" y="403" font-size="13" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >/WP 3</text>
-<rect x="920" y="456" width="30" height="8" fill="#b9bcc2" stroke="#7d828a"/>
-<text x="912" y="453" font-size="13" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >GND 4</text>
-<circle cx="908" cy="323" r="5" fill="#ffffff"/>
-<text x="898" y="327" font-size="11" text-anchor="end" font-weight="normal" fill="#ffffff" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >1번</text>
-<text x="840.0" y="505" font-size="13" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >W25Q128 (SOIC-8) · 다리가 위</text>
+<rect x="411" y="456" width="18" height="18" fill="none" stroke="#d62828" stroke-width="1.5" stroke-dasharray="3 2"/>
+<text x="420" y="491" font-size="12" text-anchor="middle" font-weight="700" fill="#d62828" font-family="ui-monospace, Menlo, Consolas, monospace" >BAT+</text>
+<rect x="471" y="456" width="18" height="18" fill="none" stroke="#1d1d1d" stroke-width="1.5" stroke-dasharray="3 2"/>
+<text x="480" y="491" font-size="12" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="ui-monospace, Menlo, Consolas, monospace" >BAT−</text>
+<text x="450" y="507" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >밑면 패드 (위에서 비춘 위치)</text>
+<rect x="716" y="285" width="248" height="200" rx="10" fill="#26262a" stroke="#111" stroke-width="1.5"/>
+<circle cx="730" cy="310" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="752" y="302" font-size="14" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >3V</text>
+<circle cx="730" cy="360" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="752" y="352" font-size="14" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >IO3</text>
+<circle cx="730" cy="410" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="752" y="402" font-size="14" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >CLK</text>
+<circle cx="730" cy="460" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="752" y="452" font-size="14" text-anchor="start" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >IO0</text>
+<circle cx="950" cy="310" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="928" y="302" font-size="14" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >CS</text>
+<circle cx="950" cy="360" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="928" y="352" font-size="14" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >IO1</text>
+<circle cx="950" cy="410" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="928" y="402" font-size="14" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >IO2</text>
+<circle cx="950" cy="460" r="10" fill="#d4af37" stroke="#9c7410"/>
+<text x="928" y="452" font-size="14" text-anchor="end" font-weight="700" fill="#ffffff" font-family="ui-monospace, Menlo, Consolas, monospace" >G</text>
+<text x="840.0" y="505" font-size="13" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >W25Q128 보드 (Adafruit 5634) · 글자 면이 위</text>
 <rect x="863" y="660" width="24" height="20" fill="#b9bcc2" stroke="#7d828a"/>
 <rect x="913" y="760" width="24" height="20" fill="#b9bcc2" stroke="#7d828a"/>
 <rect x="855" y="680" width="90" height="80" rx="4" fill="#3b3b40" stroke="#222"/>
 <circle cx="900.0" cy="720.0" r="22" fill="#6b6b72" stroke="#222"/>
 <text x="843" y="716.0" font-size="13" text-anchor="end" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >마스터 버튼</text>
 <text x="843" y="733.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >양옆 탭 2개</text>
-<path d="M230,100 L515,100 L515,200" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M515,200 L515,367 L480,367" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
-<path d="M230,125 L385,125 L385,200" fill="none" stroke="#1d1d1d" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M385,200 L385,367 L420,367" fill="none" stroke="#1d1d1d" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<path d="M230,125 L385,125 L385,200" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M385,200 L385,465 L420,465" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<path d="M230,100 L515,100 L515,200" fill="none" stroke="#1d1d1d" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M515,200 L515,465 L480,465" fill="none" stroke="#1d1d1d" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
 <path d="M600,335 L705,335 L705,310 L730,310" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M600,385 L665,385 L665,460 L678,460 A7,7 0 0 1 692,460 L730,460" fill="none" stroke="#1f6fd1" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M600,485 L685,485 L685,410 L730,410" fill="none" stroke="#1f6fd1" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
@@ -89,8 +87,8 @@
 <path d="M600,285 L625,285 L625,255 L1020,255 L1020,460 L1007,460 A7,7 0 0 0 993,460 L987,460 A7,7 0 0 0 973,460 L950,460" fill="none" stroke="#1d1d1d" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M300,285 L240,285 L240,640 L875,640 L875,660" fill="none" stroke="#1f6fd1" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M1020,460 L1020,810 L925,810 L925,780" fill="none" stroke="#1d1d1d" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M745,310 L745,360" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M760,360 L840,360 L840,410 L920,410" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M730,310 L730,360" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M730,360 L840,360 L840,410 L950,410" fill="none" stroke="#d62828" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="1020" cy="460" r="5" fill="#1d1d1d"/>
 <circle cx="730" cy="310" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
 <circle cx="730" cy="460" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
@@ -107,18 +105,18 @@
 <circle cx="300" cy="385" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
 <circle cx="600" cy="285" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
 <circle cx="300" cy="285" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
-<circle cx="745" cy="310" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
-<circle cx="745" cy="360" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
-<circle cx="480" cy="367" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
-<circle cx="420" cy="367" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
-<text x="395" y="92" font-size="12" text-anchor="middle" font-weight="700" fill="#d62828" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">BAT+ (빨강)</text>
-<text x="300" y="140" font-size="12" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">BAT− (검정)</text>
-<text x="840" y="249" font-size="12" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">GND → 4 GND · 버튼</text>
-<text x="840" y="539" font-size="12" text-anchor="middle" font-weight="700" fill="#1f6fd1" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">D9 → 2 DO (MISO)</text>
-<text x="480" y="593" font-size="12" text-anchor="middle" font-weight="700" fill="#1f6fd1" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">D3 → 1 /CS</text>
+<circle cx="730" cy="360" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
+<circle cx="950" cy="410" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
+<circle cx="420" cy="465" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
+<circle cx="480" cy="465" r="4.2" fill="#c0c4ca" stroke="#555" stroke-width="1"/>
+<text x="395" y="92" font-size="12" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">BAT− (검정)</text>
+<text x="300" y="140" font-size="12" text-anchor="middle" font-weight="700" fill="#d62828" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">BAT+ (빨강)</text>
+<text x="840" y="249" font-size="12" text-anchor="middle" font-weight="700" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">GND → G · 버튼</text>
+<text x="840" y="539" font-size="12" text-anchor="middle" font-weight="700" fill="#1f6fd1" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">D9 → IO1 (MISO)</text>
+<text x="480" y="593" font-size="12" text-anchor="middle" font-weight="700" fill="#1f6fd1" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">D3 → CS</text>
 <text x="480" y="633" font-size="12" text-anchor="middle" font-weight="700" fill="#1f6fd1" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" paint-order="stroke" stroke="#ffffff" stroke-width="4">D1 → 버튼</text>
 <text x="652" y="329" font-size="11" text-anchor="middle" font-weight="700" fill="#d62828" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >3V3</text>
-<text x="738" y="339.0" font-size="11" text-anchor="end" font-weight="700" fill="#d62828" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >점퍼</text>
+<text x="736" y="332.0" font-size="11" text-anchor="start" font-weight="700" fill="#ff9a9a" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >점퍼</text>
 <line x1="40" y1="840" x2="1040" y2="840" stroke="#ddd"/>
 <line x1="40" y1="870" x2="74" y2="870" stroke="#d62828" stroke-width="3.2"/>
 <text x="84" y="874" font-size="13" text-anchor="start" font-weight="normal" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >전원 (3V3, BAT+)</text>
@@ -133,10 +131,10 @@
 <line x1="520" y1="900" x2="554" y2="900" stroke="#1d1d1d" stroke-width="3.2"/>
 <path d="M537,888 L537,893 A7,7 0 0 1 537,907 L537,912" fill="none" stroke="#1f6fd1" stroke-width="3.2"/>
 <text x="564" y="904" font-size="13" text-anchor="start" font-weight="normal" fill="#1d1d1d" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >건너감 (안 이어짐)</text>
-<text x="40" y="938" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 플래시는 다리를 위로 뒤집어(dead-bug) 붙여서, 위에서 보면 데이터시트 그림과 좌우가 바뀌어요. 1번 점은 뒤집으면 가려지니 먼저 1번 다리 쪽에 표시해요.</text>
-<text x="40" y="962" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 플래시 방향은 3D 모델과 같아요: 보드 쪽 줄이 8 VCC · 7 /HOLD · 6 CLK · 5 DI, 바깥 줄이 1 /CS · 2 DO · 3 /WP · 4 GND.</text>
-<text x="40" y="986" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 3V3은 8 VCC로 바로 가요. 7 /HOLD는 옆 다리 8에서, 3 /WP는 칩 등 위로 7에서 점퍼해요. /WP·/HOLD를 3V3에 묶어야 쓰기 보호와 일시 정지가 꺼져요.</text>
-<text x="40" y="1010" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 소프트 터치 버튼은 양옆 탭 2개가 스위치 양쪽이에요. 누를 때만 이어지고 방향은 상관없어요. 택트 스위치(다리 4개)면 대각선 두 다리를 써요.</text>
-<text x="40" y="1034" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 버튼 GND는 GND 선에서 갈라져요. GND 아무 데나 이어도 같고, 3D 모델에서는 플래시 4번 다리에서 짧게 점퍼해요.</text>
-<text x="40" y="1058" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· D1은 펌웨어가 내부 풀업을 켜서, 버튼을 누르면 GND로 내려가 0이 돼요(active low). 배터리 극성은 납땜 전에 멀티미터로 확인!</text>
+<text x="40" y="938" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 플래시는 칩이 납땜된 브레이크아웃 보드예요. 글자 면을 위로 두면 왼쪽 줄이 3V·IO3·CLK·IO0, 오른쪽 줄이 CS·IO1·IO2·G예요.</text>
+<text x="40" y="962" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 데이터시트 이름과 대응: IO0 = DI(MOSI), IO1 = DO(MISO), IO2 = /WP, IO3 = /HOLD, 3V = VCC, G = GND.</text>
+<text x="40" y="986" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 3V3은 3V로 바로 가요. IO3은 옆 구멍 3V에서, IO2는 보드 위로 IO3에서 점퍼해요. SPI로 쓸 때 IO2·IO3을 3.3V에 묶어요.</text>
+<text x="40" y="1010" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· 소프트 터치 버튼은 양옆 탭 2개가 스위치 양쪽이고 방향은 상관없어요. 한쪽은 D1, 다른 쪽은 플래시 G 구멍에서 이어요.</text>
+<text x="40" y="1034" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· D1은 펌웨어가 내부 풀업을 켜서, 버튼을 누르면 GND로 내려가 0이 돼요(active low).</text>
+<text x="40" y="1058" font-size="13" text-anchor="start" font-weight="normal" fill="#333" font-family="-apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" >· BAT 패드는 밑면에 있어요. 밑면에서 보면 왼쪽 −, 오른쪽 +예요(그림은 위에서 비춘 모습이라 반대). 극성은 납땜 전에 멀티미터로 확인!</text>
 </svg>

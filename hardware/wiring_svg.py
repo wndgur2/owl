@@ -16,11 +16,11 @@ HOP = 7          # 건너는 곳 반원 반지름
 EXPECTED_CROSSINGS = 4
 
 # ---------- 배치 ----------
-# XIAO: USB-C 위, 왼쪽 줄 D0–D6, 오른쪽 줄 5V·GND·3V3·D10·D9·D8·D7 (위→아래)
+# XIAO: USB-C 위, 왼쪽 줄 D0–D6, 오른쪽 줄 VBUS·GND·3V3·D10·D9·D8·D7 (위→아래)
 BX0, BX1, BY0, BY1 = 300, 600, 200, 570
 PITCH = 50
 LEFT = ["D0", "D1", "D2", "D3", "D4", "D5", "D6"]
-RIGHT = ["5V", "GND", "3V3", "D10", "D9", "D8", "D7"]
+RIGHT = ["VBUS", "GND", "3V3", "D10", "D9", "D8", "D7"]
 NRF = {"D1": "P1.05", "D3": "P1.07", "D8": "P2.01", "D9": "P2.04", "D10": "P2.02"}
 USED = {"D1", "D3", "GND", "3V3", "D10", "D9", "D8"}
 
@@ -30,15 +30,14 @@ def pad_y(name):
     return BY0 + 35 + i * PITCH
 
 
-# BAT+·BAT−: 밑면 패드(위치는 추정). BAT+가 오른쪽(오른쪽 줄 쪽)
-BAT_P, BAT_N = (480, 367), (420, 367)
+# BAT+·BAT−: 밑면 패드를 위에서 비춘 위치. 밑면 인쇄(v1.2)는 왼쪽 −, 오른쪽 +라 위에서 보면 반대
+BAT_P, BAT_N = (420, 465), (480, 465)
 
-# W25Q128, 다리를 위로 뒤집어 위에서 본 모습(dead-bug). 1번에서 시계 방향으로 1..8.
-# 3D 모델과 같은 방향: 보드 쪽 줄이 8·7·6·5, 바깥 줄이 1·2·3·4
+# W25Q128 브레이크아웃(Adafruit 5634)을 글자 면에서 본 모습. 번호는 칩 핀 번호(1 CS … 8 3V)
 FX0, FX1, FY0, FY1 = 760, 920, 285, 485
 LEG = 30
-FLEFT = [(8, "VCC"), (7, "/HOLD"), (6, "CLK"), (5, "DI")]   # 보드 쪽 줄, 위→아래
-FRIGHT = [(1, "/CS"), (2, "DO"), (3, "/WP"), (4, "GND")]    # 바깥 줄, 위→아래
+FLEFT = [(8, "3V"), (7, "IO3"), (6, "CLK"), (5, "IO0")]     # 왼쪽 줄, 위→아래
+FRIGHT = [(1, "CS"), (2, "IO1"), (3, "IO2"), (4, "G")]      # 오른쪽 줄, 위→아래
 
 
 def fpin_y(n):
@@ -69,10 +68,10 @@ def L(name):
 # ---------- 전선 ----------
 # (이름, 색, 점들, 점선?, 넘어가는 순위) — 두 선이 건너면 순위가 높은 선에 반원을 그려요
 WIRES = [
-    ("BAT+", RED, [(AX1, 100), (515, 100), (515, BY0)], False, 0),
-    ("BAT+ 밑", RED, [(515, BY0), (515, BAT_P[1]), BAT_P], True, 0),
-    ("BAT−", BLACK, [(AX1, 125), (385, 125), (385, BY0)], False, 0),
-    ("BAT− 밑", BLACK, [(385, BY0), (385, BAT_N[1]), BAT_N], True, 0),
+    ("BAT+", RED, [(AX1, 125), (385, 125), (385, BY0)], False, 0),
+    ("BAT+ 밑", RED, [(385, BY0), (385, BAT_P[1]), BAT_P], True, 0),
+    ("BAT−", BLACK, [(AX1, 100), (515, 100), (515, BY0)], False, 0),
+    ("BAT− 밑", BLACK, [(515, BY0), (515, BAT_N[1]), BAT_N], True, 0),
     ("3V3→8", RED, [R("3V3"), (705, pad_y("3V3")), (705, fpin_y(8)), ftip(8)], False, 0),
     # D10·D8은 5·6번이 패드와 순서가 반대라 한 번 건너요
     ("D10→5", BLUE, [R("D10"), (665, pad_y("D10")), (665, fpin_y(5)), ftip(5)], False, 2),
@@ -87,15 +86,15 @@ WIRES = [
     # 버튼 GND: GND 선 모서리에서 갈라져 버튼 오른쪽 아래 다리로
     ("GND→버튼", BLACK, [(1020, fpin_y(4)), (1020, 810), (K_LR[0], 810), K_LR], False, 0),
 ]
-# 칩 위 점퍼(3V3): 8 VCC → 옆 다리 7 /HOLD, 7 → 칩 등 위로 → 3 /WP
+# 3V3 점퍼: 3V → 옆 구멍 IO3, IO3 → 보드 위로 → IO2
 JUMPERS = [
-    ("8→7", RED, [(FX0 - 15, fpin_y(8)), (FX0 - 15, fpin_y(7))]),
-    ("7→3", RED, [(FX0, fpin_y(7)), (840, fpin_y(7)), (840, fpin_y(3)), (FX1, fpin_y(3))]),
+    ("8→7", RED, [ftip(8), ftip(7)]),
+    ("7→3", RED, [ftip(7), (840, fpin_y(7)), (840, fpin_y(3)), ftip(3)]),
 ]
 GND_SPLIT = (1020, fpin_y(4))
 SOLDER = [w[2][-1] for w in WIRES if not w[0].startswith("BAT")] + \
          [w[2][0] for w in WIRES if not w[0].startswith("BAT") and w[0] != "GND→버튼"] + \
-         [(FX0 - 15, fpin_y(8)), (FX0 - 15, fpin_y(7)), BAT_P, BAT_N]
+         [ftip(7), ftip(3), BAT_P, BAT_N]
 
 
 # ---------- 검사: 직각, 겹침 없음, 건너는 곳 수 ----------
@@ -182,8 +181,8 @@ def draw():
     text(AX0 + 14, AY0 + 24, "LiPo 250mAh", 14, weight="700")
     text(AX0 + 14, AY0 + 44, "보호회로 탭", 12, fill="#555")
     text(AX0 + 14, AY0 + 78, "실제로는 보드·플래시 밑", 11, fill="#777")
-    text(AX1 - 8, 104, "+", 15, anchor="end", weight="700", fill=RED)
-    text(AX1 - 8, 130, "−", 15, anchor="end", weight="700", fill=BLACK)
+    text(AX1 - 8, 104, "−", 15, anchor="end", weight="700", fill=BLACK)
+    text(AX1 - 8, 130, "+", 15, anchor="end", weight="700", fill=RED)
 
     # XIAO 보드
     add(f'<rect x="{BX0}" y="{BY0}" width="{BX1 - BX0}" height="{BY1 - BY0}" rx="12" fill="#e3f0e4" stroke="#2f6b3a" stroke-width="2"/>')
@@ -209,20 +208,17 @@ def draw():
     for (x, y), lab, col in ((BAT_P, "BAT+", RED), (BAT_N, "BAT−", BLACK)):
         add(f'<rect x="{x - 9}" y="{y - 9}" width="18" height="18" fill="none" stroke="{col}" stroke-width="1.5" stroke-dasharray="3 2"/>')
         text(x, y + 26, lab, 12, "middle", "700", col, MONO)
-    text(450, BAT_P[1] + 42, "밑면 패드 (위치 추정)", 11, "middle", fill="#555")
+    text(450, BAT_P[1] + 42, "밑면 패드 (위에서 비춘 위치)", 11, "middle", fill="#555")
 
     # 플래시
-    add(f'<rect x="{FX0}" y="{FY0}" width="{FX1 - FX0}" height="{FY1 - FY0}" rx="4" fill="#4a4a4f" stroke="#2b2b2e" stroke-width="1.5"/>')
+    add(f'<rect x="{FX0 - LEG - 14}" y="{FY0}" width="{FX1 - FX0 + 2 * LEG + 28}" height="{FY1 - FY0}" rx="10" fill="#26262a" stroke="#111" stroke-width="1.5"/>')
     for col, side in ((FLEFT, "L"), (FRIGHT, "R")):
         for n, lab in col:
             y = fpin_y(n)
-            x0, x1 = (FX0 - LEG, FX0) if side == "L" else (FX1, FX1 + LEG)
-            add(f'<rect x="{x0}" y="{y - 4}" width="{LEG}" height="8" fill="#b9bcc2" stroke="#7d828a"/>')
-            tx, anchor = (FX0 + 8, "start") if side == "L" else (FX1 - 8, "end")
-            text(tx, y - 7, f"{n} {lab}" if side == "L" else f"{lab} {n}", 13, anchor, "700", "#ffffff", MONO)
-    add(f'<circle cx="{FX1 - 12}" cy="{fpin_y(1) + 13}" r="5" fill="#ffffff"/>')
-    text(FX1 - 22, fpin_y(1) + 17, "1번", 11, "end", fill="#ffffff")
-    text((FX0 + FX1) / 2, FY1 + 20, "W25Q128 (SOIC-8) · 다리가 위", 13, "middle", "700")
+            add(f'<circle cx="{ftip(n)[0]}" cy="{y}" r="10" fill="#d4af37" stroke="#9c7410"/>')
+            tx, anchor = (FX0 - 8, "start") if side == "L" else (FX1 + 8, "end")
+            text(tx, y - 8, lab, 14, anchor, "700", "#ffffff", MONO)
+    text((FX0 + FX1) / 2, FY1 + 20, "W25Q128 보드 (Adafruit 5634) · 글자 면이 위", 13, "middle", "700")
 
     # 버튼
     for (x, y) in (K_UL, K_LR):
@@ -252,14 +248,14 @@ def draw():
 
     # 전선 이름
     lab = [
-        (395, 92, "BAT+ (빨강)", RED), (300, 140, "BAT− (검정)", BLACK),
-        (840, 249, "GND → 4 GND · 버튼", BLACK), (840, 539, "D9 → 2 DO (MISO)", BLUE),
-        (480, 593, "D3 → 1 /CS", BLUE), (480, 633, "D1 → 버튼", BLUE),
+        (395, 92, "BAT− (검정)", BLACK), (300, 140, "BAT+ (빨강)", RED),
+        (840, 249, "GND → G · 버튼", BLACK), (840, 539, "D9 → IO1 (MISO)", BLUE),
+        (480, 593, "D3 → CS", BLUE), (480, 633, "D1 → 버튼", BLUE),
     ]
     for x, y, s, c in lab:
         text(x, y, s, 12, "middle", "700", c, extra='paint-order="stroke" stroke="#ffffff" stroke-width="4"')
     text(652, pad_y("3V3") - 6, "3V3", 11, "middle", "700", RED)
-    text(FX0 - 22, (fpin_y(8) + fpin_y(7)) / 2 + 4, "점퍼", 11, "end", "700", RED)
+    text(FX0 - 24, (fpin_y(8) + fpin_y(7)) / 2 - 3, "점퍼", 11, "start", "700", "#ff9a9a")
 
     # 범례·메모 (글꼴이 넓어도 잘리지 않게 두 줄)
     y = 870
@@ -279,12 +275,12 @@ def draw():
                 add(f'<line x1="{x}" y1="{yy}" x2="{x + 34}" y2="{yy}" stroke="{c}" stroke-width="3.2"{dash}/>')
             text(x + 44, yy + 4, s, 13)
     notes = [
-        "· 플래시는 다리를 위로 뒤집어(dead-bug) 붙여서, 위에서 보면 데이터시트 그림과 좌우가 바뀌어요. 1번 점은 뒤집으면 가려지니 먼저 1번 다리 쪽에 표시해요.",
-        "· 플래시 방향은 3D 모델과 같아요: 보드 쪽 줄이 8 VCC · 7 /HOLD · 6 CLK · 5 DI, 바깥 줄이 1 /CS · 2 DO · 3 /WP · 4 GND.",
-        "· 3V3은 8 VCC로 바로 가요. 7 /HOLD는 옆 다리 8에서, 3 /WP는 칩 등 위로 7에서 점퍼해요. /WP·/HOLD를 3V3에 묶어야 쓰기 보호와 일시 정지가 꺼져요.",
-        "· 소프트 터치 버튼은 양옆 탭 2개가 스위치 양쪽이에요. 누를 때만 이어지고 방향은 상관없어요. 택트 스위치(다리 4개)면 대각선 두 다리를 써요.",
-        "· 버튼 GND는 GND 선에서 갈라져요. GND 아무 데나 이어도 같고, 3D 모델에서는 플래시 4번 다리에서 짧게 점퍼해요.",
-        "· D1은 펌웨어가 내부 풀업을 켜서, 버튼을 누르면 GND로 내려가 0이 돼요(active low). 배터리 극성은 납땜 전에 멀티미터로 확인!",
+        "· 플래시는 칩이 납땜된 브레이크아웃 보드예요. 글자 면을 위로 두면 왼쪽 줄이 3V·IO3·CLK·IO0, 오른쪽 줄이 CS·IO1·IO2·G예요.",
+        "· 데이터시트 이름과 대응: IO0 = DI(MOSI), IO1 = DO(MISO), IO2 = /WP, IO3 = /HOLD, 3V = VCC, G = GND.",
+        "· 3V3은 3V로 바로 가요. IO3은 옆 구멍 3V에서, IO2는 보드 위로 IO3에서 점퍼해요. SPI로 쓸 때 IO2·IO3을 3.3V에 묶어요.",
+        "· 소프트 터치 버튼은 양옆 탭 2개가 스위치 양쪽이고 방향은 상관없어요. 한쪽은 D1, 다른 쪽은 플래시 G 구멍에서 이어요.",
+        "· D1은 펌웨어가 내부 풀업을 켜서, 버튼을 누르면 GND로 내려가 0이 돼요(active low).",
+        "· BAT 패드는 밑면에 있어요. 밑면에서 보면 왼쪽 −, 오른쪽 +예요(그림은 위에서 비춘 모습이라 반대). 극성은 납땜 전에 멀티미터로 확인!",
     ]
     for i, s in enumerate(notes):
         text(40, y + 68 + i * 24, s, 13, fill="#333")
