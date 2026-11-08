@@ -1,6 +1,6 @@
 # 배선
 
-보드: XIAO nRF54L15 Sense (21 × 17.8 mm). 핀 번호는 `firmware/boards/*.overlay`와 같아야 해요. 케이스 안에서 전선이 지나가는 길은 [`case.md`](case.md#안쪽-배치와-배선).
+보드: XIAO nRF54L15 Sense (21 × 17.8 mm). 핀 번호는 `firmware/boards/*.overlay`와 같아야 해요. 케이스 안에서 전선이 지나가는 길은 [`case.md`](case.md#안쪽-배치와-배선), 단계별 납땜 순서와 검사는 [`soldering.md`](soldering.md).
 
 ![배선도](wiring.svg)
 
