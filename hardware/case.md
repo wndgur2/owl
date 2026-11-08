@@ -77,7 +77,9 @@ brew install --cask openscad@snapshot
 hardware/case/build.sh
 ```
 
-`build.sh`가 `case/stl/`(owl-body, owl-lid, owl-cap), 뷰어 데이터 `case/viewer/parts.json`, `case/renders/` 그림을 다시 만들어요. 값을 바꾸면 모두 다시 만들어 같이 커밋해요.
+`build.sh`가 `case/stl/`(owl-body, owl-lid, owl-cap), 뷰어 데이터 `case/viewer/parts.json`, `case/renders/` 그림, 도면 PDF를 다시 만들어요. 값을 바꾸면 모두 다시 만들어 같이 커밋해요.
+
+**치수 도면**: [`case/print-drawing.pdf`](case/print-drawing.pdf) (A4 가로 2쪽: ① 몸통, ② 뚜껑과 버튼 캡). 다른 CAD로 모델을 다시 그리거나 출력 업체에 STL과 같이 보낼 때 써요. 선은 모델을 OpenSCAD로 투상·단면한 그대로이고 숫자는 `owl-case.scad` 값이에요(`case/print_drawing.py`).
 부품을 더하거나 이름·색·설명을 바꾸려면 `owl-case.scad`의 `COMPONENTS` 목록을 고쳐요. 뷰어 목록도 여기서 나와요.
 OpenSCAD 앱에서 `owl-case.scad`를 열면 오른쪽 Customizer에서 값을 바꾸며 바로 볼 수 있어요(`part`로 조립·분해·부품 보기, `cutaway`로 단면).
 
