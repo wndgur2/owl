@@ -331,7 +331,7 @@ private fun DayLabel(date: LocalDate?, formats: OwlFormats) {
     }
     Text(
         label,
-        modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 4.dp).semantics { heading() },
+        modifier = Modifier.fillMaxWidth().padding(top = 24.dp).semantics { heading() },
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
@@ -341,7 +341,7 @@ private fun DayLabel(date: LocalDate?, formats: OwlFormats) {
 @Composable
 private fun PlaceHeaderRow(row: TimelineRow.PlaceHeader, formats: OwlFormats) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 12.dp),
+        Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
