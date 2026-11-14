@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -273,10 +273,12 @@ fun TimelineContent(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
                     ) {
-                        items(display, key = { it.key }, contentType = { it::class.simpleName }) { row ->
+                        itemsIndexed(display, key = { _, row -> row.key }, contentType = { _, row -> row::class.simpleName }) { index, row ->
                             when (row) {
                                 is TimelineRow.Day -> DayLabel(row.date, formats)
-                                is TimelineRow.PlaceHeader -> PlaceHeaderRow(row, formats)
+                                // The list is reversed, so the row drawn above this one is the next index.
+                                is TimelineRow.PlaceHeader ->
+                                    PlaceHeaderRow(row, formats, afterDayLabel = display.getOrNull(index + 1) is TimelineRow.Day)
                                 is TimelineRow.Item -> TimelineCard(row.item, formats, onClick = { onOpenEntry(row.item.id) })
                                 is TimelineRow.Bookmark -> StandaloneBookmarkRow(row.bookmark.timeMs, formats)
                                 is TimelineRow.Notice -> DeviceNoticeRow(row.notice, formats)
@@ -321,7 +323,10 @@ fun TimelineContent(
     }
 }
 
-/** Day label: no rule on either side, the space above it separates the days (decisions #54). */
+/**
+ * Day label: no rule on either side, the space around it separates the days (decisions #54).
+ * The same space above and below, so a lone row between two labels sits in the middle.
+ */
 @Composable
 private fun DayLabel(date: LocalDate?, formats: OwlFormats) {
     val label = when (date) {
@@ -331,17 +336,18 @@ private fun DayLabel(date: LocalDate?, formats: OwlFormats) {
     }
     Text(
         label,
-        modifier = Modifier.fillMaxWidth().padding(top = 24.dp).semantics { heading() },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).semantics { heading() },
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
     )
 }
 
+/** [afterDayLabel]: the day label above already left its space, so the header adds none of its own. */
 @Composable
-private fun PlaceHeaderRow(row: TimelineRow.PlaceHeader, formats: OwlFormats) {
+private fun PlaceHeaderRow(row: TimelineRow.PlaceHeader, formats: OwlFormats, afterDayLabel: Boolean) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 8.dp),
+        Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = if (afterDayLabel) 0.dp else 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
