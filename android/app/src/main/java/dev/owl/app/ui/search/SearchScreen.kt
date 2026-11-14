@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -350,14 +349,14 @@ private fun SearchResultList(results: SearchResults, formats: OwlFormats, onOpen
         }
         groups.forEachIndexed { gi, group ->
             item(key = "h-$gi-${group.date}") {
-                if (gi > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 Text(
                     when (group.date) {
                         null -> stringResource(R.string.time_unknown)
                         today() -> stringResource(R.string.search_today_header, formats.monthDay(group.date))
                         else -> formats.dayLong(group.date)
                     },
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp).semantics { heading() },
+                    // No rule between days: the wider gap above the heading separates them (decisions #54).
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (gi > 0) 24.dp else 12.dp, bottom = 4.dp).semantics { heading() },
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )

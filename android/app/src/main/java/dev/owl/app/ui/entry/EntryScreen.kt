@@ -458,7 +458,6 @@ private fun BookmarkMarker(time: String) {
     ) {
         Icon(Icons.Filled.Bookmark, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
         Text(stringResource(R.string.bookmark_marker, time), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

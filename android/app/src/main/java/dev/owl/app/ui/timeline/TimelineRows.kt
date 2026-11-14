@@ -13,7 +13,7 @@ import java.time.LocalDate
 
 /**
  * Flattened timeline in display order (oldest → newest, top → bottom):
- * a day divider, then place groups, each a [PlaceHeader] followed by its [Item]s and [Bookmark]s.
+ * a day label, then place groups, each a [PlaceHeader] followed by its [Item]s and [Bookmark]s.
  * Every row carries the [date] it belongs to so the header can follow the scroll position.
  * `date == null` means the "시각 알 수 없음" group.
  */

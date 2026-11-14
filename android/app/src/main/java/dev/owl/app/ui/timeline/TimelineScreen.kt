@@ -46,7 +46,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -77,6 +76,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -275,7 +275,7 @@ fun TimelineContent(
                     ) {
                         items(display, key = { it.key }, contentType = { it::class.simpleName }) { row ->
                             when (row) {
-                                is TimelineRow.Day -> DayDivider(row.date, formats)
+                                is TimelineRow.Day -> DayLabel(row.date, formats)
                                 is TimelineRow.PlaceHeader -> PlaceHeaderRow(row, formats)
                                 is TimelineRow.Item -> TimelineCard(row.item, formats, onClick = { onOpenEntry(row.item.id) })
                                 is TimelineRow.Bookmark -> StandaloneBookmarkRow(row.bookmark.timeMs, formats)
@@ -321,33 +321,27 @@ fun TimelineContent(
     }
 }
 
+/** Day label: no rule on either side, the space above it separates the days (decisions #54). */
 @Composable
-private fun DayDivider(date: LocalDate?, formats: OwlFormats) {
+private fun DayLabel(date: LocalDate?, formats: OwlFormats) {
     val label = when (date) {
         null -> stringResource(R.string.time_unknown)
         today() -> stringResource(R.string.today)
         else -> formats.dayLong(date)
     }
-    Row(
-        Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-        Text(
-            label,
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-    }
+    Text(
+        label,
+        modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 4.dp).semantics { heading() },
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
 private fun PlaceHeaderRow(row: TimelineRow.PlaceHeader, formats: OwlFormats) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 8.dp),
+        Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -385,7 +379,7 @@ fun StandaloneBookmarkRow(timeMs: Long?, formats: OwlFormats, modifier: Modifier
     val time = if (timeMs != null) formats.hm(timeMs) else stringResource(R.string.time_unknown)
     val description = stringResource(R.string.standalone_bookmark_description, time)
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clearAndSetSemantics { contentDescription = description },
+        modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clearAndSetSemantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -395,7 +389,6 @@ fun StandaloneBookmarkRow(timeMs: Long?, formats: OwlFormats, modifier: Modifier
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.tertiary,
         )
-        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -409,13 +402,12 @@ fun DeviceNoticeRow(notice: DeviceNotice, formats: OwlFormats, modifier: Modifie
         (notice.event == EventType.POWER_OFF && notice.arg == Cause.BATTERY)
     val color = if (warn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clearAndSetSemantics { contentDescription = text },
+        modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clearAndSetSemantics { contentDescription = text },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(icon, null, Modifier.size(16.dp), tint = color)
         Text(text, style = MaterialTheme.typography.labelMedium, color = color)
-        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
