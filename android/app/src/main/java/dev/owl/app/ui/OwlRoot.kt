@@ -62,7 +62,7 @@ fun OwlRoot(container: AppContainer, darkTheme: Boolean) {
             val nav = rememberNavController()
             NavHost(navController = nav, startDestination = Routes.SPLASH) {
                 composable(Routes.SPLASH) {
-                    SplashScreen(owlViewModel { SplashViewModel(container.settingsRepository, container.deviceRegistrar) }) { dest ->
+                    SplashScreen(owlViewModel { SplashViewModel(container.settingsRepository) }) { dest ->
                         nav.resetTo(if (dest == StartDestination.MAIN) Routes.MAIN else Routes.ONBOARDING)
                     }
                 }

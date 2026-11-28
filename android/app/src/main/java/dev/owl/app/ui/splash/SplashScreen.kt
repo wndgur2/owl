@@ -31,7 +31,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import dev.owl.app.R
-import dev.owl.app.model.DeviceRegistrar
 import dev.owl.app.model.SettingsRepository
 import dev.owl.app.ui.theme.OwlTheme
 import kotlinx.coroutines.delay
@@ -39,13 +38,14 @@ import kotlinx.coroutines.flow.first
 
 enum class StartDestination { ONBOARDING, MAIN }
 
-class SplashViewModel(private val settings: SettingsRepository, private val registrar: DeviceRegistrar) : ViewModel() {
-    /** Onboarding until it was finished once and a pendant is registered. */
-    suspend fun destination(): StartDestination {
-        val done = settings.onboardingDone.first()
-        val name = registrar.registeredName.first()
-        return if (done && name != null) StartDestination.MAIN else StartDestination.ONBOARDING
-    }
+class SplashViewModel(private val settings: SettingsRepository) : ViewModel() {
+    /**
+     * Onboarding until it was left once, with or without a pendant ("나중에"): what the phone
+     * records by itself (places, app use) works without one, and the device tab offers
+     * registration (decisions #55).
+     */
+    suspend fun destination(): StartDestination =
+        if (settings.onboardingDone.first()) StartDestination.MAIN else StartDestination.ONBOARDING
 }
 
 @Composable
